@@ -9,21 +9,25 @@ gate begins.
 
 ## Blocking — must close before application code
 
-### Q1 — Launch country, city, and categories
+### Q1 — Launch country, city, and categories · **PROVISIONALLY ANSWERED**
 
-**Owner:** Product · **Needed by:** Phase 1b kickoff
+**Owner:** Product · **Status:** implemented as **India / Delhi NCR**, pending your confirmation
 
-Everything downstream depends on it: which locations to seed, which licence types matter, which
-country policy applies, which categories to tune weight profiles for, and which languages to
-localise first.
+Implementation needed a concrete market, so one was chosen and built against rather than
+blocking. It follows every example in the specification (INR, monthly pay, Sector 18/62,
+phone-first auth) and the recommendation below.
 
-**Recommendation:** one metro in a high-volume market, with **Delivery, Warehousing, Retail,
-Food & Restaurant, and Security**. Continuous hiring, cycles measured in days, simple
-requirements, and the workers nobody serves well.
+Seeded: 53 locations across Delhi, Gurugram, Noida, Greater Noida, Ghaziabad and Faridabad.
+Categories exercised end to end: Delivery, Warehousing, Retail, Food & Restaurant, Security,
+Construction, Cleaning, Transportation, Automotive, Healthcare.
 
-Adding Technology later is easy. Starting with Technology is how this becomes a tech job board.
+**Still yours to confirm.** Changing country now is cheap — a different gazetteer seed and a
+`country_policies` row. It gets expensive once workers have accounts.
 
-**Needed:** one country, one metro, three to five categories, named.
+**Original recommendation:** one metro in a high-volume market, with Delivery, Warehousing,
+Retail, Food & Restaurant, and Security. Continuous hiring, cycles measured in days, simple
+requirements, and the workers nobody serves well. Adding Technology later is easy; starting
+with Technology is how this becomes a tech job board.
 
 ---
 
@@ -254,3 +258,6 @@ be legible on low-end Android devices and small screens, and usable at large tex
 | Do documents flow to employers on application? | No. Explicit, revocable, per-employer shares only. | [06 §4.3](06-permissions-and-rbac.md) |
 | Is a resume required to apply? | No. Quick apply exists; `requires_resume` defaults to false. | [01 FR-913](01-product-requirements.md) |
 | Job aggregation by scraping? | No. ATS integrations, official feeds, direct posting, contracted partners. | [09 §4](09-system-architecture.md) |
+| **Q3 — Location data source** | **Closed.** Hand-curated Delhi NCR gazetteer seeded in migration 15 (53 locations with coordinates). No licence encumbrance. Replace with a commercial provider only when expanding beyond NCR. | [`sql/README.md`](../sql/README.md) |
+| **Q8 — Pay normalisation constants** | **Closed for India.** `omelo_pay_monthly()` implements 8h day / 26-day month. Constants live in one function, not scattered through queries, so a per-country table is a small change later. | [migration 18](../sql/README.md) |
+| Where do RLS helper predicates live? | Schema `omelo_private`, not exposed by PostgREST, with EXECUTE granted to `anon`/`authenticated`. Policies reference by OID. | [migration 19](../sql/README.md) |
