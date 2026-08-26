@@ -28,6 +28,54 @@ Database: [`sql/README.md`](sql/README.md) · project `jfyqnlucoraazjkndbvm` · 
 
 ---
 
+## Running it locally
+
+### Employer portal → http://localhost:3000
+
+```bash
+npm run dev --prefix "apps/company_portal"
+```
+
+### Worker app
+
+On a device or emulator (open `apps/user_app` in Android Studio, or):
+
+```bash
+flutter run
+```
+
+Or in a browser, which is the quickest way to click through it:
+
+```bash
+cd apps/user_app && flutter run -d chrome
+```
+
+### Sign-in details
+
+No email confirmation — accounts work the moment you create them.
+
+| Role | Email | Password |
+|---|---|---|
+| Employer, owns *Sector 18 Kitchens* (1 job, 1 applicant) | `sarah@zippylogistics.in` | `OmeloDemo2026!` |
+| Employer, brand new, no company yet | `meera.hr@urbangrocers.in` | `UrbanGrocers2026!` |
+| Worker — Cook, Sector 62 Noida | `ravi.worker@omelo.dev` | `OmeloWorker2026!` |
+
+### A five-minute walkthrough of the whole loop
+
+1. **Portal** → sign in as Sarah → **Post a job**. Pick a category and a kind of
+   work, and watch the matching-worker count and pay benchmark update as you
+   type. Save the draft, then **Publish**.
+2. **Worker app** → the job appears in Discover, sorted by distance from you,
+   with pay, shift and benefits. Open it → **View profile** to see the employer,
+   their reply rate and their other jobs.
+3. **Apply.** The screen lists exactly what the employer will see — and what
+   they will not. Send it.
+4. **Portal** → **Candidates**. The applicant is there.
+5. Back in the **worker app** → **Applications**. The timeline shows
+   *Employer viewed* the moment they open it, and the employer cannot undo that.
+
+---
+
 ## Phase 1 architecture
 
 Build against these four. They are the contract between the specification and the code.
