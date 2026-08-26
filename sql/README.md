@@ -171,3 +171,21 @@ anonymous worker discovery  -> FINDS IT: "Cook - Test Kitchen" 0km,
 ```
 
 The employer -> job -> worker loop is proven end to end against RLS.
+
+| 23 | `omelo_23_protect_application_immutables` | **Fix.** Employers could `PATCH first_viewed_at` back to `NULL` and erase the fact they had opened an application — breaking FR-331, the promise `viewed` cannot be suppressed. RLS has no column-level rules, so a trigger now makes `first_viewed_at` monotonic and `job_id`/`person_id`/`company_id`/`work_identity_id`/`applied_at`/`identity_snapshot` immutable after submission. Also made `omelo_mark_application_viewed()` idempotent. |
+
+## Demo accounts (development)
+
+Email confirmation is on and the default SMTP is rate-limited, so these were
+created directly in `auth.users`. To enable self-serve signup, turn off
+**Confirm email** in Authentication → Providers → Email.
+
+| Role | Email | Password |
+|---|---|---|
+| Employer (owner of *Sector 18 Kitchens*) | `sarah@zippylogistics.in` | `OmeloDemo2026!` |
+| Worker (Cook, Sector 62 Noida) | `ravi.worker@omelo.dev` | `OmeloWorker2026!` |
+
+**Worker phone OTP is not available** — the Supabase phone provider is disabled
+and needs an SMS provider (Twilio) configured. Both apps use email + password
+until then; swapping the worker app to OTP is a change in
+`lib/data/auth_repository.dart` only.

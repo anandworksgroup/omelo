@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Omelo — Company Portal (Next.js)
 
-## Getting Started
+Employer web app. Spec: [`architecture/A2-company-portal.md`](../../architecture/A2-company-portal.md)
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev --prefix apps/company_portal
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Config lives in `.env.local` (publishable key only — the **service role key must
+never appear in this app**).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Demo account
 
-## Learn More
+```
+sarah@zippylogistics.in  /  OmeloDemo2026!
+```
 
-To learn more about Next.js, take a look at the following resources:
+Owns *Sector 18 Kitchens* with one published job and one real applicant.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Built so far
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Screen | Spec | State |
+|---|---|---|
+| Landing | A2 | Working |
+| Sign up / sign in | A2 §3 | Working (email + password) |
+| Company onboarding | A2 §3 | Working — creates company, auto-grants owner + free tier |
+| Dashboard | A2 §4 | Working — real stats, stale-application banner |
+| Jobs list | A2 §5 | Working |
+| Job wizard | A2 §5.1 | Working — 6 steps, live pool + pay benchmark |
+| Job detail / publish | A2 §5 | Working — publish, pause, close |
+| Company profile | A2 §12 | Working — edit, hiring stats, team list |
+| Candidates | A2 §7 | List only. Opening, stage moves, messaging and rejection not built. |
+| Talent search | A2 §8 | Not built — Phase 3, gated on verification |
 
-## Deploy on Vercel
+## Behaviours already enforced
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Free tier has talent search disabled.** It stays off until the company is verified.
+- **Pipeline stages map to fixed candidate-visible states.** An employer names stages freely but cannot invent or hide a state.
+- **Requirements show their cost** — the wizard reports how many workers match as you edit.
+- **The pay benchmark refuses to show a range from too few samples** rather than inventing one.
+- **A job cannot be published on-site without a location**, because workers find work by distance.
+- Server components read as the **signed-in user**, never the service role, so a missing RLS policy fails loudly in development.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Gotchas worth knowing
+
+- `work_identities → professions` must be embedded as
+  `professions!work_identities_profession_id_fkey(...)`. Unqualified, PostgREST
+  returns HTTP 300 because there is also a many-to-many path through
+  `person_professions`.
+- Never destructure only `{ data }` from a Supabase query. An error yields
+  `data: null`, which renders as an empty list and looks exactly like "no rows".
+  That is how a silent regression ships — check `error` too.
+
+## Build
+
+```bash
+npm run build --prefix apps/company_portal
+```

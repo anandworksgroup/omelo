@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
+import '../../core/app_state.dart';
 import '../../core/format.dart';
 import '../../core/location.dart';
 import '../../core/theme.dart';
+import '../../data/applications_repository.dart';
+import '../../data/auth_repository.dart';
 import '../../data/job.dart';
 import '../../data/jobs_repository.dart';
 
@@ -287,8 +292,22 @@ class _Content extends StatelessWidget {
         ],
 
         const SizedBox(height: 24),
-        const _Heading('About the employer'),
-        const SizedBox(height: 10),
+        Row(
+          children: [
+            const _Heading('About the employer'),
+            const Spacer(),
+            if (j.companyId != null)
+              TextButton(
+                onPressed: () => context.push('/company/${j.companyId}'),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('View profile'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
         if ((detail.aboutCompany ?? '').isNotEmpty)
           Text(detail.aboutCompany!,
               style: const TextStyle(fontSize: 15, height: 1.5)),
@@ -377,6 +396,13 @@ class _Row extends StatelessWidget {
   }
 }
 
+/// Whether the signed-in worker has already applied to this job.
+final hasAppliedProvider =
+    FutureProvider.family<bool, String>((ref, jobId) async {
+  ref.watch(authStateProvider);
+  return ref.watch(applicationsRepositoryProvider).hasApplied(jobId);
+});
+
 class _ApplyBar extends ConsumerWidget {
   const _ApplyBar({required this.detail});
   final JobDetail detail;
@@ -384,6 +410,11 @@ class _ApplyBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final signedIn = ref.watch(authRepositoryProvider).isSignedIn;
+    final applied = signedIn
+        ? ref.watch(hasAppliedProvider(detail.job.id)).value ?? false
+        : false;
+
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
@@ -392,64 +423,41 @@ class _ApplyBar extends ConsumerWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => _apply(context),
-                  child: Text(detail.job.quickApplyEnabled
-                      ? 'Apply — no resume needed'
-                      : 'Apply'),
+          child: applied
+              ? Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        color: OmeloTheme.verified, size: 20),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text('You have applied to this job',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/applications'),
+                      child: const Text('Track it'),
+                    ),
+                  ],
+                )
+              : SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      // The sign-in prompt appears here — at the moment the
+                      // value is obvious — never before the worker has seen
+                      // real jobs (UC-1).
+                      if (signedIn) {
+                        context.push('/apply/${detail.job.id}');
+                      } else {
+                        context.push(
+                            '/sign-in?next=/apply/${detail.job.id}');
+                      }
+                    },
+                    child: Text(detail.job.quickApplyEnabled
+                        ? 'Apply — no resume needed'
+                        : 'Apply'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _apply(BuildContext context) {
-    // Applying requires an account. The prompt appears here — at the moment
-    // the value is obvious — never before the worker has seen real jobs.
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Sign in to apply',
-                  style:
-                      TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 10),
-              const Text(
-                'It takes about 30 seconds with your phone number. '
-                'Your application is saved and sends as soon as you verify.',
-                style: TextStyle(fontSize: 15, height: 1.45),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Phone sign-in is the next build step — not wired yet.'),
-                      ),
-                    );
-                  },
-                  child: const Text('Continue with phone'),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

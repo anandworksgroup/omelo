@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design tokens mirror the Flutter app (apps/user_app/lib/core/theme.dart)
+   so employers and workers see one product, not two. */
+@theme {
+  --color-brand-50:  #eaf3f0;
+  --color-brand-100: #cfe3dc;
+  --color-brand-200: #a3c9be;
+  --color-brand-400: #4a8a75;
+  --color-brand-600: #1b5e4a;
+  --color-brand-700: #164c3c;
+  --color-brand-900: #0c2b22;
+
+  --color-accent-500: #f2a63b;
+  --color-verified:   #12805c;
+  --color-warn:       #b25e02;
+  --color-danger:     #b3261e;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --bg: #ffffff;
+  --fg: #12211d;
+  --muted: #5c6b66;
+  --line: #dfe6e3;
+  --surface: #f6f9f8;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0e1512;
+    --fg: #e8efec;
+    --muted: #9bb0a8;
+    --line: #24322d;
+    --surface: #141d19;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Utilities used across the portal */
+.card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.muted { color: var(--muted); }
+.surface { background: var(--surface); }
+.hairline { border-color: var(--line); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  height: 44px; padding: 0 1.1rem; border-radius: 10px;
+  font-weight: 600; font-size: .95rem; cursor: pointer;
+  transition: background .12s ease, opacity .12s ease;
+}
+.btn-primary { background: var(--color-brand-600); color: #fff; }
+.btn-primary:hover { background: var(--color-brand-700); }
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+.btn-ghost { border: 1px solid var(--line); color: var(--fg); background: transparent; }
+.btn-ghost:hover { background: var(--surface); }
+
+.input {
+  width: 100%; height: 44px; padding: 0 .8rem;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg); font-size: .95rem;
+}
+.input:focus { outline: 2px solid var(--color-brand-400); outline-offset: -1px; }
+textarea.input { height: auto; padding: .65rem .8rem; line-height: 1.5; }
+select.input { appearance: none; }
+
+.label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .35rem; }
+.hint { font-size: .78rem; color: var(--muted); margin-top: .3rem; line-height: 1.45; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .22rem .55rem; border-radius: 7px;
+  background: var(--surface); border: 1px solid var(--line);
+  font-size: .76rem; font-weight: 600; color: var(--muted);
 }
