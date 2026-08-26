@@ -147,3 +147,27 @@ with, never about clinical specialisations or driving licence classes for heavy 
 against the white-collar-only model. They are kept for reference only. **Do not implement
 against them** — they lack the category/profession spine, the adaptive attribute system,
 licences, shifts, pay periods, benefits, offers, employments, and the admin surface.
+
+| 21 | `omelo_21_company_bootstrap` | **Fix.** Founder is auto-made `owner` on company insert, plus free-tier entitlements. Without it, `company_members_manage` required an owner role to create the first owner — nobody could ever own a company they created. Adds `omelo_company_slug()`. |
+| 22 | `omelo_22_jobs_geo_from_location` | **Fix.** `jobs.geo` derived from `company_location_id` / `location_id`. A portal-posted job had no way to send PostGIS geography over PostgREST, so `geo` was NULL and `omelo_nearby_jobs` silently never returned it. Adds a publish guard: an on-site job cannot be published without a location. |
+
+## Verified as a real authenticated user
+
+Both fixes were found by testing with an actual signed-in JWT rather than `service_role`:
+
+```
+sign in                     -> 200
+read own person row         -> 1 row
+read other person rows      -> 0 rows        (RLS holds)
+create company              -> 201
+  auto owner membership     -> ['owner']
+  auto entitlements         -> free, 3 job slots, talent_search DISABLED
+create job as draft         -> 201
+  geo derived from location -> present, country IN
+  draft visible to anon     -> 0 rows        (correctly hidden)
+publish job                 -> published_at + expires_at set automatically
+anonymous worker discovery  -> FINDS IT: "Cook - Test Kitchen" 0km,
+                               16000-24000/month, no-experience, meals
+```
+
+The employer -> job -> worker loop is proven end to end against RLS.

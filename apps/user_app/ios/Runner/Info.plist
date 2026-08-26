@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Omelo uses your location to show jobs near you, sorted by distance. You can use Omelo without sharing your location.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.omelo.omeloUserApp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>omelo</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
