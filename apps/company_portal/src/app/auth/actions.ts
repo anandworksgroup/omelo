@@ -47,29 +47,43 @@ export async function signUp(
   if (password.length < 8)
     return { error: 'Use at least 8 characters for your password.' };
 
+  // Create through the auth-signup Edge Function, which makes an
+  // already-confirmed user. No confirmation email is sent, so the default
+  // SMTP rate limit never applies and the account works immediately.
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/auth-signup`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        full_name: fullName,
+        role: 'employer',
+      }),
+    }
+  );
+
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    code?: string;
+  };
+
+  if (!res.ok) {
+    if (body.code === 'already_exists') {
+      return { error: 'An account with that email already exists. Sign in below.' };
+    }
+    return { error: body.error ?? 'Could not create your account.' };
+  }
+
+  // Straight in — no verification step.
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } },
-  });
-
-  if (error) {
-    if (error.message.toLowerCase().includes('rate limit'))
-      return {
-        error:
-          'Too many sign-up emails from this project right now. Wait a few minutes, or ask an admin to turn off email confirmation for development.',
-      };
-    return { error: error.message };
-  }
-
-  // Email confirmation is on by default, so there may be no session yet.
-  if (!data.session) {
-    return {
-      notice:
-        'Account created. Check your email to confirm the address, then sign in.',
-    };
-  }
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: error.message };
 
   revalidatePath('/', 'layout');
   redirect('/dashboard');

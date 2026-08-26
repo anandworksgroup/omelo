@@ -189,3 +189,19 @@ created directly in `auth.users`. To enable self-serve signup, turn off
 and needs an SMS provider (Twilio) configured. Both apps use email + password
 until then; swapping the worker app to OTP is a change in
 `lib/data/auth_repository.dart` only.
+
+## Edge Functions
+
+| Function | verify_jwt | Purpose |
+|---|---|---|
+| `auth-signup` | **off** | Creates an already-confirmed user so sign-up needs no email confirmation. The caller is by definition unauthenticated, so JWT verification is off and the function validates input and rate limits itself (10 accounts per IP per hour, tracked in `audit_log`). |
+
+Both apps call `auth-signup` and then sign in normally with the publishable
+key. The service role key exists only inside the function's environment and
+never reaches a browser bundle or an APK.
+
+> **Trade-off, stated plainly:** nobody proves they own their email address.
+> That is deliberate for now — it removes the SMTP rate limit that made
+> self-serve sign-up unusable. Before launch, either turn confirmation back on
+> or move workers to phone OTP, because password reset is not trustworthy
+> without a verified address.

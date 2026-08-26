@@ -51,26 +51,43 @@ class AuthRepository {
     }
   }
 
+  /// Create an account and sign straight in.
+  ///
+  /// Goes through the `auth-signup` Edge Function, which creates an
+  /// already-confirmed user server-side. No confirmation email is sent, so
+  /// there is no verification step and no SMTP rate limit to hit. The app
+  /// never holds anything more privileged than the publishable key.
   Future<AuthResult> signUp(String email, String password, String name) async {
     try {
-      final res = await _db.auth.signUp(
-        email: email.trim(),
-        password: password,
-        data: {'full_name': name.trim()},
+      final res = await _db.functions.invoke(
+        'auth-signup',
+        body: {
+          'email': email.trim(),
+          'password': password,
+          'full_name': name.trim(),
+          'role': 'worker',
+        },
       );
-      if (res.session == null) return const AuthResult(needsConfirmation: true);
-      return const AuthResult();
-    } on AuthException catch (e) {
-      final m = e.message.toLowerCase();
-      if (m.contains('rate limit')) {
-        return const AuthResult(
-          error:
-              'Too many sign-up emails from this project right now. Try again in a few minutes.',
+
+      final data = res.data;
+      final body = data is Map ? Map<String, dynamic>.from(data) : const {};
+
+      if (res.status != 200) {
+        if (body['code'] == 'already_exists') {
+          // Their account exists — try their password rather than dead-ending.
+          return signIn(email, password);
+        }
+        return AuthResult(
+          error: (body['error'] as String?) ?? 'Could not create your account.',
         );
       }
-      return AuthResult(error: e.message);
+
+      // Straight in, no verification.
+      return signIn(email, password);
     } catch (_) {
-      return const AuthResult(error: 'Could not create your account.');
+      return const AuthResult(
+        error: 'Could not create your account. Check your connection.',
+      );
     }
   }
 

@@ -50,16 +50,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     if (!mounted) return;
 
-    if (res.needsConfirmation) {
-      setState(() {
-        _busy = false;
-        _isSignUp = false;
-        _notice =
-            'Account created. Confirm your email address, then sign in here.';
-      });
-      return;
-    }
-
     if (res.error != null) {
       setState(() {
         _busy = false;
@@ -92,7 +82,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           const SizedBox(height: 6),
           Text(
             _isSignUp
-                ? 'You need an account to apply. It takes under a minute.'
+                ? 'You need an account to apply. Takes under a minute — no email to confirm.'
                 : 'Sign in to apply and track your applications.',
             style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
           ),
@@ -186,8 +176,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Signing in with a phone number is not switched on for this '
-                    'project yet. It needs an SMS provider configured.',
+                    'No email confirmation needed — your account works straight '
+                    'away. Signing in with a phone number is not switched on for '
+                    'this project yet; it needs an SMS provider.',
                     style: TextStyle(
                         fontSize: 12.5,
                         height: 1.45,

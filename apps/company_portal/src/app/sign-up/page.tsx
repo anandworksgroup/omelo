@@ -22,7 +22,8 @@ export default function SignUpPage() {
 
         <h1 className="text-2xl font-bold mb-1">Create an account</h1>
         <p className="text-sm muted mb-6">
-          Free to post your first jobs. No card needed.
+          Free to post your first jobs. No card, no email to confirm — you go
+          straight in.
         </p>
 
         <form action={action} className="space-y-4">
@@ -53,6 +54,7 @@ export default function SignUpPage() {
             />
             <p className="hint">
               Use your company domain — it counts toward verification later.
+              You will not be asked to confirm it.
             </p>
           </div>
           <div>
