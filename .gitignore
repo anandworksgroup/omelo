@@ -1,0 +1,57 @@
+# ---- Secrets -------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+service-role*
+
+# ---- Node / Next ---------------------------------------------------
+node_modules/
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+.vercel
+
+# ---- Flutter / Dart ------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+**/doc/api/
+*.g.dart
+*.freezed.dart
+apps/user_app/build/
+apps/user_app/android/.gradle/
+apps/user_app/android/local.properties
+apps/user_app/android/key.properties
+apps/user_app/ios/Pods/
+apps/user_app/ios/.symlinks/
+apps/user_app/ios/Flutter/Flutter.framework
+apps/user_app/ios/Flutter/Generated.xcconfig
+apps/user_app/ios/Flutter/flutter_export_environment.sh
+apps/user_app/.flutter-plugins*
+
+# ---- Supabase ------------------------------------------------------
+supabase/.branches
+supabase/.temp
+supabase/.env
+
+# ---- Editors / OS --------------------------------------------------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# ---- Logs / temp ---------------------------------------------------
+*.log
+npm-debug.log*
+coverage/
+.scratch/

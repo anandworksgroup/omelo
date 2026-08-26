@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "user-app-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve", "-l", "5173", "apps/user_app/build/web"],
+      "port": 5173
+    },
+    {
+      "name": "company-portal",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/company_portal"],
+      "port": 3000
+    }
+  ]
+}
