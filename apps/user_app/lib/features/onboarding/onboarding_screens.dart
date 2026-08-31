@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_state.dart';
+import '../../core/responsive.dart';
 import '../../core/location.dart';
 
 /// U-02 — Language.
@@ -32,7 +33,8 @@ class LanguageScreen extends ConsumerWidget {
                   style: TextStyle(fontSize: 15)),
             ),
             Expanded(
-              child: langs.when(
+              child: ContentWidth.reading(
+                child: langs.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
                 error: (_, __) => _LangFallback(current: current),
@@ -60,6 +62,7 @@ class LanguageScreen extends ConsumerWidget {
                       },
                     );
                   },
+                ),
                 ),
               ),
             ),
@@ -109,7 +112,8 @@ class CountryScreen extends ConsumerWidget {
                       TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
             ),
             Expanded(
-              child: countries.when(
+              child: ContentWidth.reading(
+                child: countries.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const Center(
@@ -143,6 +147,7 @@ class CountryScreen extends ConsumerWidget {
                     },
                   );
                 },
+                ),
               ),
             ),
           ],
@@ -166,7 +171,7 @@ class WelcomeScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: ContentWidth.reading(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

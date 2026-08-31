@@ -7,6 +7,7 @@ import '../../core/app_state.dart';
 import '../../core/format.dart';
 import '../../core/location.dart';
 import '../../core/theme.dart';
+import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
 import '../../data/job.dart';
@@ -125,7 +126,8 @@ class _Content extends StatelessWidget {
     final j = detail.job;
     final scheme = Theme.of(context).colorScheme;
 
-    return ListView(
+    return ContentWidth.reading(
+      child: ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
         Text(j.title,
@@ -357,6 +359,7 @@ class _Content extends StatelessWidget {
         Text('Posted ${Fmt.posted(j.publishedAt).toLowerCase()}',
             style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant)),
       ],
+      ),
     );
   }
 }
@@ -421,7 +424,7 @@ class _ApplyBar extends ConsumerWidget {
         border: Border(top: BorderSide(color: scheme.outlineVariant)),
       ),
       child: SafeArea(
-        child: Padding(
+        child: ContentWidth.reading(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: applied
               ? Row(

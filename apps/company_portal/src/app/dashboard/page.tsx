@@ -50,14 +50,14 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">{ctx.companyName}</h1>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold break-words">{ctx.companyName}</h1>
           <p className="muted text-sm mt-1">
             {ent?.plan === 'free' ? 'Free plan' : ent?.plan} ·{' '}
             {published.length}/{ent?.active_job_slots ?? 3} job slots used
           </p>
         </div>
-        <Link href="/dashboard/jobs/new" className="btn btn-primary">
+        <Link href="/dashboard/jobs/new" className="btn btn-primary w-full sm:w-auto">
           Post a job
         </Link>
       </div>
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="card p-4">
             <div className="text-2xl font-bold">{s.value}</div>

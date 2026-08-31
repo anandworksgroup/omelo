@@ -60,7 +60,9 @@ export default async function JobDetailPage({
           ← All jobs
         </Link>
         <div className="flex items-start gap-3 mt-3 flex-wrap">
-          <h1 className="text-2xl font-bold flex-1 min-w-0">{job.title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold flex-1 min-w-0 break-words">
+            {job.title}
+          </h1>
           <span className="pill">{job.status}</span>
         </div>
         <p className="muted text-sm mt-1">
@@ -91,7 +93,7 @@ export default async function JobDetailPage({
             <p className="text-sm muted mb-4">
               {job.view_count} views · {apps?.length ?? 0} applications
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <form action={pauseJob}>
                 <input type="hidden" name="job_id" value={job.id} />
                 <button className="btn btn-ghost">Pause</button>

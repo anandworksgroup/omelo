@@ -49,7 +49,7 @@ export default async function CandidatesPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold">Candidates</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Candidates</h1>
         <p className="muted text-sm mt-1">
           Everyone who applied to any of your jobs.
         </p>

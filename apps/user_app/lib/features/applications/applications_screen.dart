@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
+import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
@@ -28,7 +29,8 @@ class ApplicationsScreen extends ConsumerWidget {
     if (!signedIn) {
       return Scaffold(
         appBar: AppBar(title: const Text('Applications')),
-        body: ListView(
+        body: ContentWidth.reading(
+          child: ListView(
           padding: const EdgeInsets.fromLTRB(32, 60, 32, 32),
           children: [
             Icon(Icons.assignment_outlined,
@@ -60,6 +62,7 @@ class ApplicationsScreen extends ConsumerWidget {
               child: const Text('Find work'),
             ),
           ],
+          ),
         ),
       );
     }
@@ -85,7 +88,8 @@ class ApplicationsScreen extends ConsumerWidget {
         ),
         data: (apps) {
           if (apps.isEmpty) {
-            return ListView(
+            return ContentWidth.reading(
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(32, 60, 32, 32),
               children: [
                 Icon(Icons.assignment_outlined,
@@ -108,6 +112,7 @@ class ApplicationsScreen extends ConsumerWidget {
                   child: const Text('Find work'),
                 ),
               ],
+              ),
             );
           }
 
@@ -117,31 +122,42 @@ class ApplicationsScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(myApplicationsProvider),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: EdgeInsets.fromLTRB(
+                  Breakpoints.of(context).gutter, 12,
+                  Breakpoints.of(context).gutter, 32),
               children: [
-                if (active.isNotEmpty) ...[
-                  Text('Active (${active.length})',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 10),
-                  for (final a in active)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ApplicationCard(app: a),
-                    ),
-                ],
-                if (archived.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  Text('Closed (${archived.length})',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 10),
-                  for (final a in archived)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ApplicationCard(app: a),
-                    ),
-                ],
+                ContentWidth(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (active.isNotEmpty) ...[
+                        Text('Active (${active.length})',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        ResponsiveCardGrid(
+                          minCardWidth: 380,
+                          children: [
+                            for (final a in active) _ApplicationCard(app: a),
+                          ],
+                        ),
+                      ],
+                      if (archived.isNotEmpty) ...[
+                        const SizedBox(height: 22),
+                        Text('Closed (${archived.length})',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 10),
+                        ResponsiveCardGrid(
+                          minCardWidth: 380,
+                          children: [
+                            for (final a in archived) _ApplicationCard(app: a),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           );

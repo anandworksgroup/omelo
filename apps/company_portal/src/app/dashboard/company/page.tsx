@@ -23,7 +23,7 @@ export default async function CompanyPage() {
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold">Company profile</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Company profile</h1>
         <p className="muted text-sm mt-1">
           This is what workers see on every job you post, and on{' '}
           <code className="text-xs">/company/{company?.slug}</code> in the app.
@@ -52,7 +52,7 @@ export default async function CompanyPage() {
           Workers see these numbers on your job cards. They are computed from
           how you actually respond, not from anything you set here.
         </p>
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
           <Stat
             value={company?.response_rate_pct != null ? `${Math.round(Number(company.response_rate_pct))}%` : '—'}
             label="Response rate"

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
+import '../../core/responsive.dart';
 import '../../data/auth_repository.dart';
 import '../applications/applications_screen.dart';
 
@@ -23,7 +24,8 @@ class ProfileScreen extends ConsumerWidget {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('My Omelo')),
-        body: ListView(
+        body: ContentWidth.reading(
+          child: ListView(
           padding: const EdgeInsets.fromLTRB(32, 60, 32, 32),
           children: [
             Icon(Icons.person_outline,
@@ -46,6 +48,7 @@ class ProfileScreen extends ConsumerWidget {
               child: const Text('Sign in or create an account'),
             ),
           ],
+          ),
         ),
       );
     }
@@ -54,7 +57,8 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Omelo')),
-      body: ListView(
+      body: ContentWidth.reading(
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
           Row(
@@ -167,6 +171,7 @@ class ProfileScreen extends ConsumerWidget {
             child: const Text('Sign out'),
           ),
         ],
+        ),
       ),
     );
   }

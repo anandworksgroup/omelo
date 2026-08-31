@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/location.dart';
 import '../../core/theme.dart';
+import '../../core/responsive.dart';
 import '../../data/job.dart';
 import '../../data/jobs_repository.dart';
 import '../discover/job_card.dart';
@@ -113,7 +114,8 @@ class CompanyScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (c) => ListView(
+        data: (c) => ContentWidth.reading(
+          child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             Row(
@@ -259,15 +261,17 @@ class CompanyScreen extends ConsumerWidget {
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
               )
             else
-              for (final j in c.openJobs)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: JobCard(
-                    job: j,
-                    onTap: () => context.push('/job/${j.id}'),
-                  ),
-                ),
+              ResponsiveCardGrid(
+                children: [
+                  for (final j in c.openJobs)
+                    JobCard(
+                      job: j,
+                      onTap: () => context.push('/job/${j.id}'),
+                    ),
+                ],
+              ),
           ],
+          ),
         ),
       ),
     );

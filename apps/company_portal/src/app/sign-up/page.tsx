@@ -11,7 +11,7 @@ export default function SignUpPage() {
   );
 
   return (
-    <main className="min-h-screen grid place-items-center px-6 py-16">
+    <main className="min-h-screen grid place-items-center px-5 sm:px-6 py-10 sm:py-16">
       <div className="w-full max-w-sm">
         <Link href="/" className="block mb-8">
           <span className="text-2xl font-black tracking-tight text-brand-600">

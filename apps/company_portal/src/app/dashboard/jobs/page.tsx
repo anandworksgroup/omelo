@@ -32,9 +32,9 @@ export default async function JobsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Jobs</h1>
-        <Link href="/dashboard/jobs/new" className="btn btn-primary">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h1 className="text-xl sm:text-2xl font-bold">Jobs</h1>
+        <Link href="/dashboard/jobs/new" className="btn btn-primary w-full sm:w-auto">
           Post a job
         </Link>
       </div>
@@ -50,7 +50,7 @@ export default async function JobsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {(jobs ?? []).map((j) => (
             <Link key={j.id} href={`/dashboard/jobs/${j.id}`} className="card p-5 hover:opacity-90">
               <div className="flex items-start gap-4 flex-wrap">
@@ -80,7 +80,7 @@ export default async function JobsPage() {
                   </p>
                 </div>
 
-                <div className="flex gap-6 text-center">
+                <div className="flex gap-6 text-center shrink-0">
                   <div>
                     <div className="font-bold">{countFor(j.id)}</div>
                     <div className="text-xs muted">applicants</div>

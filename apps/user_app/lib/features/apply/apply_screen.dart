@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/theme.dart';
+import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
 import '../../data/job.dart';
@@ -69,7 +70,8 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
           final j = d.job;
           final question = d.questions.isEmpty ? null : d.questions.first;
 
-          return ListView(
+          return ContentWidth.reading(
+            child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
             children: [
               Text(j.title,
@@ -193,6 +195,7 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                 ),
               ),
             ],
+            ),
           );
         },
       ),

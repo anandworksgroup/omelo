@@ -180,7 +180,7 @@ export default function JobForm({
 
       {/* 3 — Pay */}
       <Section n={3} title="Pay">
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="From">
             <input
               name="pay_min"
@@ -382,8 +382,8 @@ export default function JobForm({
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        <button className="btn btn-primary" disabled={pending}>
+      <div className="flex items-center gap-3 flex-wrap sticky bottom-0 surface py-3 -mx-1 px-1 border-t hairline">
+        <button className="btn btn-primary w-full sm:w-auto" disabled={pending}>
           {pending ? 'Saving…' : 'Save draft'}
         </button>
         <span className="text-sm muted">

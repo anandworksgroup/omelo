@@ -8,14 +8,14 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen">
-      <header className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="max-w-5xl mx-auto px-5 sm:px-6 py-5 sm:py-6 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <span className="text-xl font-black tracking-tight text-brand-600">
             Omelo
           </span>
           <span className="text-sm muted ml-2">for employers</span>
         </div>
-        <nav className="flex gap-3">
+        <nav className="flex gap-2 sm:gap-3">
           <Link href="/sign-in" className="btn btn-ghost">
             Sign in
           </Link>
@@ -25,16 +25,16 @@ export default async function Home() {
         </nav>
       </header>
 
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-20">
-        <h1 className="text-5xl font-black tracking-tight leading-[1.05] max-w-2xl">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-20">
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-[1.08] sm:leading-[1.05] max-w-2xl">
           Hire the people who are already near you.
         </h1>
-        <p className="mt-5 text-lg muted max-w-xl leading-relaxed">
+        <p className="mt-4 sm:mt-5 text-base sm:text-lg muted max-w-xl leading-relaxed">
           Omelo reaches workers by distance, not by keyword. Post a job in
           minutes — no HR department, no resume screening, no per-applicant
           fees.
         </p>
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8 flex flex-col sm:flex-row gap-3">
           <Link href="/sign-up" className="btn btn-primary">
             Post a job free
           </Link>
@@ -43,7 +43,7 @@ export default async function Home() {
           </Link>
         </div>
 
-        <div className="mt-20 grid gap-6 sm:grid-cols-3">
+        <div className="mt-14 sm:mt-20 grid gap-5 sm:gap-6 sm:grid-cols-3">
           {[
             {
               t: 'Reach people who can actually get there',
@@ -66,7 +66,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="max-w-5xl mx-auto px-6 py-10 border-t hairline text-sm muted">
+      <footer className="max-w-5xl mx-auto px-5 sm:px-6 py-10 border-t hairline text-sm muted">
         Omelo — a universal employment platform.
       </footer>
     </main>

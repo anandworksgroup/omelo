@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/responsive.dart';
 import '../../data/auth_repository.dart';
 
 /// Worker sign-in.
@@ -72,7 +73,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(_isSignUp ? 'Create account' : 'Sign in')),
-      body: ListView(
+      body: ContentWidth.reading(
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         children: [
           Text(
@@ -189,6 +191,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

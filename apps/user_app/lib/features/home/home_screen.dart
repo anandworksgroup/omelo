@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_state.dart';
 import '../../core/location.dart';
+import '../../core/responsive.dart';
 import '../discover/discover_controller.dart';
 import '../discover/job_card.dart';
 
@@ -27,8 +28,14 @@ class HomeScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () => ref.read(discoverProvider.notifier).load(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            padding: EdgeInsets.fromLTRB(
+                Breakpoints.of(context).gutter, 12,
+                Breakpoints.of(context).gutter, 32),
             children: [
+              ContentWidth(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               Text(
                 signedIn ? 'Your work' : 'Welcome to Omelo',
                 style: const TextStyle(
@@ -109,14 +116,18 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 )
               else
-                for (final job in state.jobs.take(5))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: JobCard(
-                      job: job,
-                      onTap: () => context.push('/job/${job.id}'),
-                    ),
-                  ),
+                ResponsiveCardGrid(
+                  children: [
+                    for (final job in state.jobs.take(6))
+                      JobCard(
+                        job: job,
+                        onTap: () => context.push('/job/${job.id}'),
+                      ),
+                  ],
+                ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

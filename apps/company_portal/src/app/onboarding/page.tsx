@@ -35,11 +35,11 @@ export default async function OnboardingPage() {
   }));
 
   return (
-    <main className="min-h-screen max-w-2xl mx-auto px-6 py-14">
+    <main className="min-h-screen max-w-2xl mx-auto px-5 sm:px-6 py-10 sm:py-14">
       <span className="text-xl font-black tracking-tight text-brand-600">
         Omelo
       </span>
-      <h1 className="text-3xl font-bold mt-8 mb-2">Set up your company</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mt-8 mb-2">Set up your company</h1>
       <p className="muted mb-8 leading-relaxed">
         This is what workers see on your jobs. You can change all of it later.
       </p>

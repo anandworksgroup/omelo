@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/location.dart';
+import '../../core/responsive.dart';
 import '../../data/jobs_repository.dart';
 import 'discover_controller.dart';
 import 'filters_sheet.dart';
@@ -48,17 +49,21 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _SearchBar(
+            ContentWidth(
+              child: Column(children: [
+                _SearchBar(
               controller: _searchCtl,
               onSubmit: (q) => ref.read(filtersProvider.notifier).state =
                   q.trim().isEmpty
                       ? filters.copyWith(clearSearch: true)
                       : filters.copyWith(search: q.trim()),
               onFilters: () => showFiltersSheet(context, ref),
-              activeFilters: filters.activeCount,
+                  activeFilters: filters.activeCount,
+                ),
+                _OriginBar(origin: origin),
+                _QuickChips(),
+              ]),
             ),
-            _OriginBar(origin: origin),
-            _QuickChips(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () => ref.read(discoverProvider.notifier).load(),
@@ -107,46 +112,51 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       );
     }
 
-    return ListView.separated(
-      controller: _scroll,
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      itemCount: state.jobs.length + 2,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, i) {
-        if (i == 0) {
-          return _ResultHeader(
-            count: state.jobs.length,
-            endReached: state.endReached,
-            widenedTo: state.widenedTo,
-          );
-        }
-        if (i == state.jobs.length + 1) {
-          if (state.loadingMore) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (state.endReached && state.jobs.length > 4) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 24),
-              child: Center(
-                child: Text(
-                  "That's every job matching this search.",
-                  style: TextStyle(color: scheme.onSurfaceVariant),
-                ),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        }
+    final gutter = Breakpoints.of(context).gutter;
 
-        final job = state.jobs[i - 1];
-        return JobCard(
-          job: job,
-          onTap: () => context.push('/job/${job.id}'),
-        );
-      },
+    return ListView(
+      controller: _scroll,
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+      children: [
+        ContentWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ResultHeader(
+                count: state.jobs.length,
+                endReached: state.endReached,
+                widenedTo: state.widenedTo,
+              ),
+              // One column on a phone, two on a tablet, three on a desktop
+              // browser. Cards keep a readable width instead of stretching.
+              ResponsiveCardGrid(
+                children: [
+                  for (final job in state.jobs)
+                    JobCard(
+                      job: job,
+                      onTap: () => context.push('/job/${job.id}'),
+                    ),
+                ],
+              ),
+              if (state.loadingMore)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (state.endReached && state.jobs.length > 4)
+                Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Center(
+                    child: Text(
+                      "That's every job matching this search.",
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -399,7 +409,8 @@ class _Message extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return ListView(
+    return ContentWidth.reading(
+      child: ListView(
       padding: const EdgeInsets.fromLTRB(32, 80, 32, 32),
       children: [
         Icon(icon, size: 56, color: scheme.onSurfaceVariant),
@@ -422,6 +433,7 @@ class _Message extends StatelessWidget {
           FilledButton(onPressed: onAction, child: Text(actionLabel!)),
         ],
       ],
+      ),
     );
   }
 }

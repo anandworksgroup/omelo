@@ -29,7 +29,7 @@ export default async function NewJobPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-bold mb-1">Post a job</h1>
+      <h1 className="text-xl sm:text-2xl font-bold mb-1">Post a job</h1>
       <p className="muted text-sm mb-8">
         Saved as a draft first. Nothing is visible to workers until you publish.
       </p>
