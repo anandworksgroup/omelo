@@ -95,7 +95,15 @@ or a trigger body, with `EXECUTE` revoked.
 |---|---|---|
 | `omelo_nearby_jobs(lat, lng, radius_km, category_id, work_types, limit)` | `anon`, `authenticated` | Distance-sorted job discovery. `SECURITY INVOKER` — RLS governs results. |
 | `omelo_profile_schema_for(work_identity_id)` | `authenticated` | Returns the adaptive profile fields for **one work identity**. Defaults to the caller's primary identity. Self-only. |
-| `omelo_mark_application_viewed(application_id)` | `authenticated` | The only path to opening an application. Writes the honest `viewed` state. |
+| `omelo_mark_application_viewed(application_id)` | `authenticated` | The only path to opening an application. Writes the honest `viewed` state. Idempotent. |
+| `omelo_company_slug(name)` | `authenticated` | URL-safe unique company slug. `SECURITY INVOKER`, reads only publicly readable rows. |
+| `omelo_pay_monthly(amount, period, country)` | `anon`, `authenticated` | Pure arithmetic so a daily wage compares fairly against a salary. |
+
+Run [`verify-invariants.sql`](verify-invariants.sql) after every migration. It
+checks all 14 invariants, each of which corresponds to a bug that actually
+shipped. **Structural checks are not enough** — the RLS bug below passed every
+one of them while being completely broken for real users, so always also test
+with an `anon` / `authenticated` key.
 
 ---
 
