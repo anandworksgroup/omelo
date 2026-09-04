@@ -34,7 +34,7 @@ loose SQL files in this folder.
 | 08 | `omelo_08_rls_policies` | Helper predicates and RLS on every table |
 | 09 | `omelo_09_seed_taxonomy` | 34 categories, 92 professions, 27 adaptive attributes, 10 licence types, 20 languages, 14 country policies |
 | 10 | `omelo_10_auth_functions_grants` | Signup trigger, adaptive profile resolver, nearby-jobs search, grants |
-| 11 | `omelo_11_lock_down_function_surface` | Function-surface hardening; only three RPCs reachable from a client |
+| 11 | `omelo_11_lock_down_function_surface` | Function-surface hardening. **Over-revoked** — see migration 19 |
 | 12 | `omelo_12_work_identities` | **Multiple work identities per person.** `work_identities` table, identity-scoping across 11 tables, owner and cap guards, removal of the duplicated identity columns from `persons` |
 | 13 | `omelo_13_work_identity_functions_and_rls` | Two-level consent (`omelo_is_identity_discoverable_to`), per-identity adaptive profile resolver, signup creates a default identity, RLS on `work_identities` |
 | 14 | `omelo_14_revoke_rls_auto_enable` | Removed `rls_auto_enable()` from the client-reachable API surface |
@@ -55,8 +55,7 @@ loose SQL files in this folder.
 >
 > The fix moves the predicates into `omelo_private`, a schema PostgREST does not expose.
 > Policies reference functions by OID, so `ALTER FUNCTION ... SET SCHEMA` keeps every policy
-> working. RLS now functions for real users, and the client-callable RPC surface is still
-> exactly three.
+> working. RLS now functions for real users, and no predicate is reachable from a client.
 >
 > **Lesson for every future migration: verify with an `anon`/`authenticated` key, never only
 > through the service role.**
@@ -88,8 +87,9 @@ supabase gen types typescript --project-id jfyqnlucoraazjkndbvm > src/types/data
 
 ## Client-callable functions
 
-Only three functions are reachable over PostgREST. Everything else is an internal predicate
-or a trigger body, with `EXECUTE` revoked.
+Five functions are reachable over PostgREST — three that carry real authority, plus two
+helpers. Everything else is an internal predicate or a trigger body, with `EXECUTE` revoked
+and the predicates moved out of the exposed schema entirely.
 
 | Function | Roles | Purpose |
 |---|---|---|
