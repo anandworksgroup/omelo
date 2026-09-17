@@ -57,3 +57,6 @@ coverage/
 .scratch/
 
 __pycache__/
+
+# ---- Local-only notes (credentials for dev demo accounts) --------
+*.local.md

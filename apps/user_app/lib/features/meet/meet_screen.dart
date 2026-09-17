@@ -32,9 +32,13 @@ enum _Stage {
 
 /// `/meet/:room` — Omelo Meet, the candidate's side.
 ///
-/// loading → too early (countdown) → pre-join (camera check) → waiting room
-/// → in the interview → completed / left. The server decides every step;
-/// this screen only follows and explains.
+/// loading (read the room) → too early (countdown) → pre-join (camera check)
+/// → waiting room → in the interview → completed / left.
+///
+/// Opening the link only READS the room. `meet-token` — which puts the
+/// candidate in the waiting room and tells the interviewers — is called only
+/// when the candidate taps "Join waiting room" after the device check, inside
+/// the join window. The server still decides every step after that.
 class MeetScreen extends ConsumerStatefulWidget {
   const MeetScreen({super.key, required this.roomName});
   final String roomName;
@@ -50,8 +54,13 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
 
   _Stage _stage = _Stage.loading;
   MeetInterviewInfo? _info;
-  DateTime? _opensAt;
-  DateTime? _scheduledAt;
+
+  /// Read directly from `interview_rooms` when the link opens.
+  InterviewRoom? _roomRow;
+
+  /// Set when the server said "too early" although this device thought the
+  /// window was open (clock skew): Join stays off until then.
+  DateTime? _retryAfter;
 
   String? _errorMessage;
   bool _errorRetryable = false;
@@ -109,42 +118,80 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
 
   // -- Flow -----------------------------------------------------------------
 
+  /// Reads the room only. Does NOT call meet-token, so the interviewers are
+  /// not told anything until the candidate taps Join.
   Future<void> _start() async {
     _go(_Stage.loading);
-    final r = await _repo.join(widget.roomName);
+    final ({InterviewRoom? room, MeetInterviewInfo? info}) found;
+    try {
+      found = await _repo.lookup(widget.roomName);
+    } catch (_) {
+      if (!mounted) return;
+      _errorMessage =
+          'Could not reach Omelo. Check your internet and try again.';
+      _errorRetryable = true;
+      _go(_Stage.error);
+      return;
+    }
     if (!mounted) return;
-    _remember(r);
-    switch (r) {
-      case MeetTooEarly():
-        _showTooEarly(r);
-      case MeetWaiting():
-        _registered = true;
+    _roomRow = found.room;
+    _info = found.info ?? _info;
+    _startTicker();
+
+    switch (meetEntryFor(found.room, DateTime.now())) {
+      case MeetEntry.notFound:
+        _errorMessage =
+            'We could not find this interview. Check the link and try again.';
+        _errorRetryable = false;
+        _go(_Stage.error);
+      case MeetEntry.closed:
+        _errorMessage = meetClosedMessage(found.room?.status);
+        _errorRetryable = false;
+        _go(_Stage.error);
+      case MeetEntry.countdown:
+        _go(_Stage.tooEarly);
+      case MeetEntry.check:
         _go(_Stage.preJoin);
-      case MeetAdmitted():
-        // Rejoining an interview already under way; still check devices first.
-        // The server already has us in the room, so leaving must be reported.
-        _registered = true;
-        _go(_Stage.preJoin);
-      case MeetUnavailable():
-        _registered = true;
-        _go(_Stage.unavailable);
-      case MeetJoinError():
-        _showError(r);
     }
   }
+
+  /// Redraws the countdown and turns Join on when the window opens.
+  void _startTicker() {
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && (_stage == _Stage.tooEarly || _stage == _Stage.preJoin)) {
+        setState(() {});
+      }
+    });
+  }
+
+  /// The join window: the room's times, else the scheduled time, and never
+  /// before the server's "too early" answer allows.
+  MeetWindow get _window => MeetWindow.forInterview(
+        room: _roomRow,
+        scheduledAt: _info?.scheduledAt,
+        durationMinutes: _info?.durationMinutes,
+      ).notBefore(_retryAfter);
 
   void _remember(MeetJoinResult r) {
     if (r.interview != null) _info = r.interview;
   }
 
+  /// The server says the room is not open yet (for example this phone's
+  /// clock is ahead). Keep the device check and count down to when it is.
   void _showTooEarly(MeetTooEarly r) {
-    _scheduledAt = r.scheduledAt ?? _info?.scheduledAt;
-    _opensAt = r.opensAt ?? _scheduledAt?.subtract(kMeetOpensBefore);
-    _ticker?.cancel();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && _stage == _Stage.tooEarly) setState(() {});
-    });
-    _go(_Stage.tooEarly);
+    final now = DateTime.now();
+    final retryAfter =
+        meetRetryAfterTooEarly(now: now, serverOpensAt: r.opensAt);
+    _retryAfter = retryAfter;
+    _startTicker();
+    if (_devices.asked) {
+      _go(_Stage.preJoin);
+      _snack('The waiting room is not open yet. Join will turn on in '
+          '${meetCountdown(retryAfter.difference(now))}.');
+    } else {
+      _go(_Stage.tooEarly);
+    }
   }
 
   void _showError(MeetJoinError r) {
@@ -153,9 +200,16 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
     _go(_Stage.error);
   }
 
-  /// Pre-join done: ask to come in.
+  /// Pre-join done: ask to come in. This is the first call to meet-token.
   Future<void> _requestEntry() async {
-    _ticker?.cancel();
+    if (!meetMayRequestEntry(
+      devicesChecked: _devices.asked,
+      window: _window,
+      now: DateTime.now(),
+      roomStatus: _roomRow?.status,
+    )) {
+      return;
+    }
     _go(_Stage.joining);
     final r = await _repo.join(widget.roomName);
     if (!mounted) return;
@@ -585,10 +639,12 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
   }
 
   void _retry() {
-    if (_registered || _devices.asked) {
+    if (_roomRow == null) {
+      _start();
+    } else if (_devices.asked) {
       _requestEntry();
     } else {
-      _start();
+      _go(_Stage.preJoin);
     }
   }
 
@@ -596,8 +652,10 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
 
   Widget _tooEarly(BuildContext context) {
     final now = DateTime.now();
-    final window = MeetWindow(opensAt: _opensAt, closesAt: null);
+    final window = _window;
     final canJoin = window.state(now) != MeetWindowState.notYet;
+    final scheduledAt =
+        _info?.scheduledAt ?? _roomRow?.opensAt?.add(kMeetOpensBefore);
     final scheme = Theme.of(context).colorScheme;
 
     return _Page(children: [
@@ -612,18 +670,20 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
         child: Column(
           children: [
             Text(
-              _scheduledAt == null
+              scheduledAt == null
                   ? 'Your interview has not started yet'
-                  : meetStartsInLabel(_scheduledAt!, now),
+                  : meetStartsInLabel(scheduledAt, now),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
             Text(
               canJoin
-                  ? 'The waiting room is open. You can go in now.'
-                  : 'You can join 15 minutes before it starts. '
-                      'This page will let you in when it is time.',
+                  ? 'The waiting room is open. Check your camera and '
+                      'microphone, then join.'
+                  : 'The waiting room opens in '
+                      '${meetCountdown(window.untilOpen(now))}. You can check '
+                      'your camera and microphone now.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 15.5, height: 1.4),
             ),
@@ -632,16 +692,9 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
       ),
       const SizedBox(height: 20),
       FilledButton.icon(
-        onPressed: canJoin
-            ? () {
-                _ticker?.cancel();
-                _go(_Stage.preJoin);
-              }
-            : null,
-        icon: const Icon(Icons.meeting_room_outlined),
-        label: Text(canJoin
-            ? 'Join waiting room'
-            : 'Opens in ${meetCountdown(window.untilOpen(now))}'),
+        onPressed: () => _go(_Stage.preJoin),
+        icon: const Icon(Icons.videocam_outlined),
+        label: const Text('Check camera and microphone'),
       ),
       const SizedBox(height: 24),
       const _Tips(),
@@ -653,6 +706,15 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
   Widget _preJoin(BuildContext context) {
     final d = _devices;
     final wide = Breakpoints.of(context).index >= WindowSize.expanded.index;
+    final now = DateTime.now();
+    final window = _window;
+    final windowState = window.state(now, roomStatus: _roomRow?.status);
+    final mayJoin = meetMayRequestEntry(
+      devicesChecked: d.asked,
+      window: window,
+      now: now,
+      roomStatus: _roomRow?.status,
+    );
 
     final explain = !d.asked
         ? [
@@ -679,10 +741,26 @@ class _MeetScreenState extends ConsumerState<MeetScreen>
             ..._deviceProblems(d),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: d.busy ? null : _requestEntry,
-              icon: const Icon(Icons.login),
-              label: const Text('Join interview'),
+              onPressed: d.busy || !mayJoin ? null : _requestEntry,
+              icon: Icon(windowState == MeetWindowState.open
+                  ? Icons.meeting_room_outlined
+                  : Icons.schedule),
+              label: Text(switch (windowState) {
+                MeetWindowState.open => 'Join waiting room',
+                MeetWindowState.notYet =>
+                  'Opens in ${meetCountdown(window.untilOpen(now))}',
+                MeetWindowState.closed => 'This interview is closed',
+              }),
             ),
+            if (windowState == MeetWindowState.notYet) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Join turns on by itself when the waiting room opens. '
+                'Keep this screen open.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13.5),
+              ),
+            ],
             if (!d.micOn) ...[
               const SizedBox(height: 8),
               const Text(

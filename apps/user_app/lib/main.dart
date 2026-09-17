@@ -9,6 +9,7 @@ import 'core/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  Env.logStartupCheck();
 
   await Supabase.initialize(
     url: Env.supabaseUrl,

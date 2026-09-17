@@ -5753,6 +5753,10 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: undefined
       }
+      omelo_mark_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: number
+      }
       omelo_meet_admit: {
         Args: { p_admit?: boolean; p_interview_id: string; p_person_id: string }
         Returns: undefined
@@ -5925,6 +5929,10 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_send_message: {
+        Args: { p_body: string; p_conversation_id: string }
+        Returns: number
+      }
       omelo_send_offer: {
         Args: {
           p_application_id: string
@@ -5936,6 +5944,10 @@ export type Database = {
           p_start_date: string
           p_title?: string
         }
+        Returns: string
+      }
+      omelo_start_conversation: {
+        Args: { p_application_id: string }
         Returns: string
       }
       omelo_view_offer: { Args: { p_offer_id: string }; Returns: undefined }
@@ -6144,6 +6156,7 @@ export type Database = {
         | "job_closing_soon"
         | "profile_reminder"
         | "system"
+        | "message_received"
       offer_status:
         | "draft"
         | "sent"
@@ -6615,6 +6628,7 @@ export const Constants = {
         "job_closing_soon",
         "profile_reminder",
         "system",
+        "message_received",
       ],
       offer_status: [
         "draft",

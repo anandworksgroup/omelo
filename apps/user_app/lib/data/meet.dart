@@ -222,6 +222,33 @@ class MeetInterviewInfo {
     );
   }
 
+  /// From an `interviews` row read directly (before meet-token is called),
+  /// with `applications ( jobs ( title ), companies ( display_name ) )`
+  /// embedded when readable.
+  static MeetInterviewInfo fromInterviewRow(
+    Map<String, dynamic> m, {
+    String? roomName,
+  }) {
+    final app = _map(m['applications']);
+    final job = _map(app?['jobs']);
+    final company = _map(app?['companies']);
+    return MeetInterviewInfo(
+      interviewId: _str(m['id']),
+      applicationId: _str(m['application_id']),
+      jobTitle: _str(job?['title']),
+      companyName: _str(company?['display_name']),
+      round: _num(m['round'])?.toInt(),
+      roundName: _str(m['round_name']),
+      meetingMode: _str(m['meeting_mode']),
+      scheduledAt: _date(m['scheduled_at']),
+      durationMinutes: _num(m['duration_minutes'])?.toInt(),
+      timezone: _str(m['timezone']),
+      locationText: _str(m['location_text']),
+      instructions: _str(m['instructions']),
+      roomName: roomName,
+    );
+  }
+
   /// "Omelo Meet · Technical Interview · Fresh Mart"
   String get title => [
         'Omelo Meet',
@@ -437,7 +464,81 @@ class MeetWindow {
     final d = opensAt!.difference(now);
     return d.isNegative ? Duration.zero : d;
   }
+
+  /// The same window, but not opening before [notBefore]. Used after the
+  /// server said "too early" while this device thought it was open.
+  MeetWindow notBefore(DateTime? notBefore) {
+    if (notBefore == null) return this;
+    if (opensAt != null && !opensAt!.isBefore(notBefore)) return this;
+    return MeetWindow(opensAt: notBefore, closesAt: closesAt);
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Before joining: nothing is sent to meet-token until the candidate asks
+// ---------------------------------------------------------------------------
+//
+// Calling meet-token puts the candidate in the waiting room and tells the
+// interviewers they are there. So opening the link only reads the room; the
+// camera and microphone check happens first; and meet-token is called when
+// the candidate taps "Join waiting room" inside the join window.
+
+/// What opening `/meet/:room` shows, decided from the room row alone.
+enum MeetEntry {
+  /// No room with that name that I can see.
+  notFound,
+
+  /// Ended, cancelled, expired, or past closes_at.
+  closed,
+
+  /// Before opens_at: countdown, and the device check is available.
+  countdown,
+
+  /// Inside the window: straight to the device check.
+  check,
+}
+
+MeetEntry meetEntryFor(InterviewRoom? room, DateTime now) {
+  if (room == null) return MeetEntry.notFound;
+  final w = MeetWindow(opensAt: room.opensAt, closesAt: room.closesAt);
+  return switch (w.state(now, roomStatus: room.status)) {
+    MeetWindowState.closed => MeetEntry.closed,
+    MeetWindowState.notYet => MeetEntry.countdown,
+    MeetWindowState.open => MeetEntry.check,
+  };
+}
+
+/// Whether tapping "Join waiting room" may call meet-token now.
+bool meetMayRequestEntry({
+  required bool devicesChecked,
+  required MeetWindow window,
+  required DateTime now,
+  String? roomStatus,
+}) =>
+    devicesChecked &&
+    window.state(now, roomStatus: roomStatus) == MeetWindowState.open;
+
+/// After meet-token answered too_early. If the server's opens_at is still in
+/// the future on this device, wait for it. If it is not, this device's clock
+/// is ahead of the server's; back off briefly instead of letting the
+/// candidate hammer the button.
+DateTime meetRetryAfterTooEarly({
+  required DateTime now,
+  DateTime? serverOpensAt,
+  Duration backoff = const Duration(seconds: 20),
+}) {
+  if (serverOpensAt != null && serverOpensAt.isAfter(now)) {
+    return serverOpensAt;
+  }
+  return now.add(backoff);
+}
+
+/// Why a closed room cannot be joined, in plain words.
+String meetClosedMessage(String? roomStatus) => switch (roomStatus) {
+      'cancelled' => 'This interview was cancelled.',
+      'ended' => 'This interview has ended.',
+      _ => 'This interview is closed.',
+    };
 
 /// "00:18:42". Hours keep counting past 24 ("26:05:00"); never negative.
 String meetCountdown(Duration d) {

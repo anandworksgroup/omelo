@@ -22,9 +22,13 @@ on. One platform, one schema, every trade.
 | **Phase 0 — Specification** | Frozen |
 | **Phase 1 — Database** | **Deployed.** 87 tables live on Supabase, RLS on all of them, taxonomy seeded, hiring loop and multi-identity model verified end to end |
 | **Phase 1 — Architecture** | **Frozen.** Four documents in [`architecture/`](architecture/) |
-| **Phase 1 — Applications** | Not started |
+| **Phase 1 — Applications** | **Built.** Employer portal (Next.js) and worker app (Flutter: Android, iOS, web) |
+| **Hiring loop** | **Built.** Matching v1 with explanations → review → shortlist → interviews → offer → hire → verified employment. Every transition goes through audited database functions |
+| **Omelo Meet** | **Built.** Native interview rooms: waiting room, host controls, chat, profession-specific questions, private structured feedback. Video switches on when LiveKit keys are added ([A6](architecture/A6-omelo-meet.md)) |
+| **Messaging & notifications** | **Built.** Job-context messaging, in-app inbox in both apps, transactional email outbox (sends when a Resend key is added) |
+| **Production readiness** | Ready to deploy — see [DEPLOYMENT.md](DEPLOYMENT.md). CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 
-Database: [`sql/README.md`](sql/README.md) · project `jfyqnlucoraazjkndbvm` · schema `public`
+Database: [`sql/README.md`](sql/README.md) · migrations in [`supabase/migrations`](supabase/migrations) · Edge Functions in [`supabase/functions`](supabase/functions) · end-to-end tests in [`tests/api`](tests/api)
 
 ---
 
@@ -56,9 +60,9 @@ No email confirmation — accounts work the moment you create them.
 
 | Role | Email | Password |
 |---|---|---|
-| Employer, owns *Sector 18 Kitchens* (1 job, 1 applicant) | `sarah@zippylogistics.in` | `OmeloDemo2026!` |
-| Employer, brand new, no company yet | `meera.hr@urbangrocers.in` | `UrbanGrocers2026!` |
-| Worker — Cook, Sector 62 Noida | `ravi.worker@omelo.dev` | `OmeloWorker2026!` |
+| Employer, owns *Sector 18 Kitchens* (1 job, 1 applicant) | `sarah@zippylogistics.in` | *see `DEMO_ACCOUNTS.local.md`* |
+| Employer, brand new, no company yet | `meera.hr@urbangrocers.in` | *see `DEMO_ACCOUNTS.local.md`* |
+| Worker — Cook, Sector 62 Noida | `ravi.worker@omelo.dev` | *see `DEMO_ACCOUNTS.local.md`* |
 
 ### A five-minute walkthrough of the whole loop
 

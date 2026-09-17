@@ -51,7 +51,11 @@ export default function JobForm({
   const [payMax, setPayMax] = useState('');
   const [noExp, setNoExp] = useState(true);
   const [minExpMonths, setMinExpMonths] = useState('');
-  const [preview, setPreview] = useState<PoolPreview | null>(null);
+  // Keyed by the profession it was computed for, so clearing or changing the
+  // profession hides a stale preview without resetting state in an effect.
+  const [poolPreview, setPoolPreview] = useState<{ professionId: string; data: PoolPreview } | null>(
+    null
+  );
   const [, startTransition] = useTransition();
 
   const filteredProfessions = useMemo(
@@ -62,10 +66,8 @@ export default function JobForm({
   const selectedProfession = professions.find((p) => p.id === professionId);
 
   useEffect(() => {
-    if (!professionId) {
-      setPreview(null);
-      return;
-    }
+    if (!professionId) return;
+    let current = true;
     startTransition(async () => {
       const p = await previewPool({
         professionId,
@@ -73,9 +75,15 @@ export default function JobForm({
         minExperienceMonths: noExp ? null : Number(minExpMonths) || null,
         acceptsNoExperience: noExp,
       });
-      setPreview(p);
+      // Ignore a response that finished after the inputs changed again.
+      if (current) setPoolPreview({ professionId, data: p });
     });
+    return () => {
+      current = false;
+    };
   }, [professionId, locationId, noExp, minExpMonths]);
+
+  const preview = poolPreview && poolPreview.professionId === professionId ? poolPreview.data : null;
 
   return (
     <form action={action} className="space-y-8 pb-16">

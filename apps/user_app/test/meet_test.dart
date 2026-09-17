@@ -191,6 +191,127 @@ void main() {
     });
   });
 
+  group('pre-join: opening the link never calls meet-token', () {
+    InterviewRoom r({String status = 'scheduled'}) => InterviewRoom(
+          interviewId: 'i1',
+          roomName: room,
+          status: status,
+          opensAt: DateTime(2026, 9, 17, 10, 15),
+          closesAt: DateTime(2026, 9, 17, 12, 0),
+        );
+
+    test('entry is decided from the room row alone', () {
+      expect(meetEntryFor(null, DateTime(2026, 9, 17, 10)), MeetEntry.notFound);
+      expect(meetEntryFor(r(), DateTime(2026, 9, 17, 10)), MeetEntry.countdown);
+      expect(meetEntryFor(r(), DateTime(2026, 9, 17, 10, 15)), MeetEntry.check);
+      expect(meetEntryFor(r(status: 'live'), DateTime(2026, 9, 17, 11)),
+          MeetEntry.check);
+      expect(meetEntryFor(r(), DateTime(2026, 9, 17, 12)), MeetEntry.closed);
+      expect(meetEntryFor(r(status: 'cancelled'), DateTime(2026, 9, 17, 10)),
+          MeetEntry.closed);
+      expect(meetEntryFor(r(status: 'ended'), DateTime(2026, 9, 17, 10, 30)),
+          MeetEntry.closed);
+    });
+
+    test('join needs the device check AND an open window', () {
+      final w = MeetWindow(
+        opensAt: DateTime(2026, 9, 17, 10, 15),
+        closesAt: DateTime(2026, 9, 17, 12, 0),
+      );
+      final open = DateTime(2026, 9, 17, 10, 20);
+      expect(
+          meetMayRequestEntry(devicesChecked: false, window: w, now: open),
+          isFalse);
+      expect(meetMayRequestEntry(devicesChecked: true, window: w, now: open),
+          isTrue);
+      expect(
+          meetMayRequestEntry(
+              devicesChecked: true,
+              window: w,
+              now: DateTime(2026, 9, 17, 10, 14)),
+          isFalse);
+      expect(
+          meetMayRequestEntry(
+              devicesChecked: true,
+              window: w,
+              now: DateTime(2026, 9, 17, 12, 1)),
+          isFalse);
+      expect(
+          meetMayRequestEntry(
+              devicesChecked: true,
+              window: w,
+              now: open,
+              roomStatus: 'cancelled'),
+          isFalse);
+    });
+
+    test('too_early from the server (clock skew) holds Join back', () {
+      final now = DateTime(2026, 9, 17, 10, 16);
+      // Server opens_at still ahead on this device: wait for it.
+      final serverOpens = DateTime(2026, 9, 17, 10, 17);
+      expect(meetRetryAfterTooEarly(now: now, serverOpensAt: serverOpens),
+          serverOpens);
+      // Server opens_at already past here: this clock is ahead; back off.
+      expect(
+          meetRetryAfterTooEarly(
+              now: now, serverOpensAt: DateTime(2026, 9, 17, 10, 15)),
+          now.add(const Duration(seconds: 20)));
+      expect(meetRetryAfterTooEarly(now: now), now.add(const Duration(seconds: 20)));
+
+      final w = MeetWindow(
+        opensAt: DateTime(2026, 9, 17, 10, 15),
+        closesAt: DateTime(2026, 9, 17, 12, 0),
+      ).notBefore(serverOpens);
+      expect(w.opensAt, serverOpens);
+      expect(w.closesAt, DateTime(2026, 9, 17, 12, 0));
+      expect(meetMayRequestEntry(devicesChecked: true, window: w, now: now),
+          isFalse);
+      expect(
+          meetMayRequestEntry(
+              devicesChecked: true, window: w, now: serverOpens),
+          isTrue);
+      // notBefore never moves the window earlier.
+      final later = MeetWindow(opensAt: DateTime(2026, 9, 17, 11), closesAt: null)
+          .notBefore(DateTime(2026, 9, 17, 10));
+      expect(later.opensAt, DateTime(2026, 9, 17, 11));
+    });
+
+    test('closed messages', () {
+      expect(meetClosedMessage('cancelled'), 'This interview was cancelled.');
+      expect(meetClosedMessage('ended'), 'This interview has ended.');
+      expect(meetClosedMessage('expired'), 'This interview is closed.');
+      expect(meetClosedMessage(null), 'This interview is closed.');
+    });
+
+    test('header info from a direct interviews read', () {
+      final info = MeetInterviewInfo.fromInterviewRow({
+        'id': 'i1',
+        'application_id': 'a1',
+        'round': 2,
+        'round_name': 'Technical Interview',
+        'meeting_mode': 'omelo_meet',
+        'scheduled_at': '2026-09-17T10:30:00Z',
+        'duration_minutes': 30,
+        'instructions': 'Keep your licence ready',
+        'applications': {
+          'jobs': {'title': 'Delivery driver'},
+          'companies': {'display_name': 'Fresh Mart'},
+        },
+      }, roomName: room);
+      expect(info.interviewId, 'i1');
+      expect(info.applicationId, 'a1');
+      expect(info.jobTitle, 'Delivery driver');
+      expect(info.companyName, 'Fresh Mart');
+      expect(info.scheduledAt, DateTime.utc(2026, 9, 17, 10, 30).toLocal());
+      expect(info.roomName, room);
+      expect(info.title, 'Omelo Meet · Technical Interview · Fresh Mart');
+      // Embeds that could not be read leave the header partial, not broken.
+      final bare = MeetInterviewInfo.fromInterviewRow({'id': 'i1'});
+      expect(bare.companyName, isNull);
+      expect(bare.title, 'Omelo Meet · Interview');
+    });
+  });
+
   group('device errors', () {
     test('sorted into what the person can do', () {
       expect(classifyDeviceError('NotAllowedError: Permission denied'),

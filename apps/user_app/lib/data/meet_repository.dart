@@ -21,6 +21,9 @@ class MeetRepository {
   String? get currentUserId => _db.auth.currentUser?.id;
 
   /// Asks `meet-token` to let us in. Never throws.
+  ///
+  /// This registers the candidate in the waiting room and notifies the
+  /// interviewers — call it only when the candidate taps Join.
   Future<MeetJoinResult> join(String roomName) async {
     if (!isValidRoomName(roomName)) {
       return const MeetJoinError(
@@ -44,6 +47,40 @@ class MeetRepository {
         message: 'Could not reach Omelo. Check your internet and try again.',
       );
     }
+  }
+
+  /// Reads the room and what the interview is, WITHOUT calling meet-token —
+  /// so opening the link never puts the candidate in the waiting room.
+  /// `room` is null when there is no such room (or it is not mine).
+  /// Throws on network failure.
+  Future<({InterviewRoom? room, MeetInterviewInfo? info})> lookup(
+      String roomName) async {
+    if (!isValidRoomName(roomName)) return (room: null, info: null);
+    final row = await _db
+        .from('interview_rooms')
+        .select('interview_id, room_name, status, opens_at, closes_at, '
+            'waiting_room, recording_enabled')
+        .eq('room_name', roomName)
+        .maybeSingle();
+    if (row == null) return (room: null, info: null);
+    final room = InterviewRoom.fromRow(row);
+
+    // The header is nice to have; the room alone is enough to continue.
+    MeetInterviewInfo? info;
+    try {
+      final i = await _db
+          .from('interviews')
+          .select('id, application_id, round, round_name, meeting_mode, '
+              'scheduled_at, duration_minutes, timezone, location_text, '
+              'instructions, '
+              'applications ( jobs ( title ), companies ( display_name ) )')
+          .eq('id', room.interviewId)
+          .maybeSingle();
+      if (i != null) {
+        info = MeetInterviewInfo.fromInterviewRow(i, roomName: roomName);
+      }
+    } catch (_) {}
+    return (room: room, info: info);
   }
 
   /// My own participant row for an interview. Null if it cannot be read.

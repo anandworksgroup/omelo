@@ -32,6 +32,7 @@ import {
 } from '../forms';
 import { ScheduleInterviewForm, type TeamMember } from '../schedule-form';
 import InterviewRounds, { type RoundFeedback, type RoundInterview } from './rounds';
+import MessageButton from './message-button';
 import type { PlannedRound } from '@/lib/meet';
 
 const HIRING_ROLES: string[] = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'];
@@ -420,15 +421,7 @@ export default async function CandidateReviewPage({
           <a href="#review" className="btn btn-ghost">
             Review
           </a>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled
-            title="Messaging is coming soon"
-            style={{ opacity: 0.55, cursor: 'not-allowed' }}
-          >
-            Message <span className="text-xs font-normal muted">coming soon</span>
-          </button>
+          {isHiringTeam && <MessageButton applicationId={app.id} />}
           {isPreOffer && isHiringTeam && (
             <ScheduleInterviewForm
               {...scheduleProps}

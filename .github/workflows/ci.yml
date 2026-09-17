@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portal:
+    name: Employer portal (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/company_portal
+    env:
+      # Build-time placeholders only. Real values come from the hosting
+      # provider's environment settings. Never a service role key.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/company_portal/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  worker_app:
+    name: Worker app (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/user_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.32.0
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release
+
+  edge_functions:
+    name: Edge Functions (Deno)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test supabase/functions/_shared/shared_test.ts
+      - run: deno check supabase/functions/meet-token/index.ts supabase/functions/meet-control/index.ts supabase/functions/comms-dispatch/index.ts supabase/functions/auth-signup/index.ts
+
+  secrets:
+    name: No secrets in the repo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail on service role keys or private keys
+        run: |
+          if grep -RInE "service_role\"?[[:space:]]*[:=][[:space:]]*\"?eyJ|sb_secret_|-----BEGIN (RSA |EC )?PRIVATE KEY-----|re_[A-Za-z0-9]{20,}" \
+               --exclude-dir=.git --exclude-dir=node_modules --exclude=ci.yml . ; then
+            echo "Possible secret committed"; exit 1
+          fi

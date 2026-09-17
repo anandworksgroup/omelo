@@ -12,6 +12,9 @@ import '../features/discover/discover_screen.dart';
 import '../features/discover/job_detail_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/meet/meet_screen.dart';
+import '../features/messages/messages_screen.dart';
+import '../features/messages/thread_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -67,13 +70,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       // and come straight back here.
       GoRoute(
         path: '/meet/:room',
-        redirect: (_, state) {
-          if (Supabase.instance.client.auth.currentUser != null) return null;
-          final back = Uri.encodeComponent(state.uri.toString());
-          return '/sign-in?next=$back';
-        },
+        redirect: _requireSignIn,
         builder: (_, state) =>
             MeetScreen(roomName: state.pathParameters['room']!),
+      ),
+      // Job conversations (notification deeplink `/messages/<id>`). Full
+      // screen so the composer owns the bottom of the window.
+      GoRoute(
+        path: '/messages/:id',
+        redirect: _requireSignIn,
+        builder: (_, state) =>
+            ThreadScreen(conversationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/notifications',
+        redirect: _requireSignIn,
+        builder: (_, __) => const NotificationsScreen(),
       ),
       ShellRoute(
         builder: (_, __, child) => AppShell(child: child),
@@ -89,15 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/messages',
-            builder: (_, __) => const NotBuiltYetScreen(
-              title: 'Messages',
-              icon: Icons.chat_bubble_outline,
-              summary:
-                  'Job-anchored conversations with employers, with structured '
-                  'actions, block and report always one tap away.',
-              specRef: 'A1 §10',
-              needsAccount: true,
-            ),
+            builder: (_, __) => const MessagesScreen(),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         ],
@@ -105,6 +109,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Signed-out visitors sign in first and come straight back to the same link.
+String? _requireSignIn(BuildContext _, GoRouterState state) {
+  if (Supabase.instance.client.auth.currentUser != null) return null;
+  final back = Uri.encodeComponent(state.uri.toString());
+  return '/sign-in?next=$back';
+}
 
 /// Decides where a cold start lands. Onboarding runs once.
 class _Boot extends ConsumerWidget {

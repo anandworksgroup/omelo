@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/location.dart';
 import '../../core/responsive.dart';
 import '../../data/jobs_repository.dart';
@@ -216,6 +217,7 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
           ),
+          const NotificationBell(),
         ],
       ),
     );

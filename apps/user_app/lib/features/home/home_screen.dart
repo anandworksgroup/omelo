@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/app_state.dart';
 import '../../core/location.dart';
 import '../../core/responsive.dart';
@@ -36,10 +37,17 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-              Text(
-                signedIn ? 'Your work' : 'Welcome to Omelo',
-                style: const TextStyle(
-                    fontSize: 26, fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      signedIn ? 'Your work' : 'Welcome to Omelo',
+                      style: const TextStyle(
+                          fontSize: 26, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  const NotificationBell(),
+                ],
               ),
               const SizedBox(height: 4),
               Text(

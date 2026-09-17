@@ -1,16 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCompanyContext, getUser } from '@/lib/supabase/server';
+import NotificationBell from '@/components/notifications/bell';
 import { signOut } from '../auth/actions';
-
-const NAV = [
-  { href: '/dashboard', label: 'Overview' },
-  { href: '/dashboard/jobs', label: 'Jobs' },
-  { href: '/dashboard/candidates', label: 'Candidates' },
-  { href: '/dashboard/interviews', label: 'Interviews' },
-  { href: '/dashboard/offers', label: 'Offers' },
-  { href: '/dashboard/company', label: 'Company' },
-];
+import DashboardNav from './nav';
 
 export default async function DashboardLayout({
   children,
@@ -40,19 +33,10 @@ export default async function DashboardLayout({
             )}
           </span>
 
-          <nav className="hidden md:flex gap-1 ml-2">
-            {NAV.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-70"
-              >
-                {n.label}
-              </Link>
-            ))}
-          </nav>
+          <DashboardNav companyId={ctx.companyId} variant="desktop" />
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <NotificationBell personId={user.id} />
             <span className="text-sm muted hidden lg:inline">{user.email}</span>
             <form action={signOut}>
               <button className="text-sm underline muted">Sign out</button>
@@ -60,17 +44,7 @@ export default async function DashboardLayout({
           </div>
         </div>
 
-        <nav className="md:hidden flex gap-1 px-4 pb-2 overflow-x-auto -mx-0">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap surface"
-            >
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+        <DashboardNav companyId={ctx.companyId} variant="mobile" />
       </header>
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">

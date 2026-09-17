@@ -151,6 +151,18 @@ export function renderEmail(template: string, p: Payload, links: Links): Rendere
         text: `${title}\n\n${d.text}\n\n${button.label}: ${button.href}`,
       };
     }
+    case "new_message": {
+      const title = `New message from ${company}`;
+      const body = `<p style="font-size:15px;line-height:1.6">About your application for <b>${esc(job)}</b>:</p>
+<blockquote style="margin:12px 0;padding:10px 14px;border-left:3px solid #0f766e;background:#f4f5f7;font-size:15px;line-height:1.6">${esc(p.preview)}</blockquote>`;
+      const href = p.conversation_id ? `${links.workerAppUrl}/messages/${p.conversation_id}` : appUrl;
+      const button = { label: "Reply in Omelo", href };
+      return {
+        subject: `New message from ${company} about ${job}`,
+        html: layout(title, body, button),
+        text: `${title}\n\nAbout your application for ${job}:\n"${p.preview ?? ""}"\n\n${button.label}: ${button.href}`,
+      };
+    }
     default:
       return null;
   }

@@ -16,7 +16,7 @@ never appear in this app**).
 ## Demo account
 
 ```
-sarah@zippylogistics.in  /  OmeloDemo2026!
+sarah@zippylogistics.in  /  (password in DEMO_ACCOUNTS.local.md at the repo root)
 ```
 
 Owns *Sector 18 Kitchens* with one published job and one real applicant.

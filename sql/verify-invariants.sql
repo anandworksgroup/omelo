@@ -91,7 +91,9 @@ with checks as (
                           -- Omelo Meet (28)
                           'omelo_save_interview_feedback','omelo_interview_question_suggestions',
                           'omelo_meet_join','omelo_meet_admit','omelo_meet_leave','omelo_meet_remove',
-                          'omelo_meet_end','omelo_report_meet_abuse')
+                          'omelo_meet_end','omelo_report_meet_abuse',
+                          -- Messaging (32)
+                          'omelo_start_conversation','omelo_send_message','omelo_mark_conversation_read')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -269,7 +271,7 @@ with checks as (
   from pg_policies
   where schemaname = 'public'
     and tablename in ('interview_feedback','interview_answers','interview_questions')
-    and (coalesce(qual, '') || coalesce(with_check, '')) ~* '(is_interview_candidate|person_id = auth\.uid\(\)|was_admitted)'
+    and (coalesce(qual, '') || coalesce(with_check, '')) ~* '(is_interview_candidate|person_id = (\( SELECT )?auth\.uid\(\)|was_admitted)'
 
   union all
   select 23, 'Email outbox is server-only',
@@ -292,6 +294,27 @@ with checks as (
               else 'FAIL: ' || count(*)::text || ' rooms past closes_at still open (is omelo-meet-housekeeping scheduled?)' end
   from interview_rooms
   where status in ('scheduled','live') and closes_at < now() - interval '10 minutes'
+
+  -- ---------------------------------------------------------------
+  -- MESSAGING + NOTIFICATIONS (migration 32)
+  -- ---------------------------------------------------------------
+  union all
+  select 26, 'Conversations and messages are only written through functions',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and ((tablename = 'messages' and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+      or (tablename = 'conversations' and cmd in ('INSERT','DELETE','ALL'))
+      or (tablename = 'notifications' and cmd in ('INSERT','ALL')))
+
+  union all
+  select 27, 'Policies evaluate auth.uid() once per statement, not per row',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and (coalesce(qual, '') || coalesce(with_check, '')) ~ '(?<!SELECT )auth\.uid\(\)'
 )
 select n as "#", invariant, result from checks order by n;
 
@@ -312,5 +335,6 @@ select n as "#", invariant, result from checks order by n;
 --        PATCH identity_snapshot       -> rejected
 --        PATCH person_id               -> rejected
 --        DELETE application_events     -> 403
---        PATCH stage_id                -> succeeds, state follows the mapping
+--        PATCH state / stage_id        -> rejected (use omelo_move_application)
+--   8. python tests/api/hiring_loop_e2e.py, messaging_e2e.py, meet_e2e.py -> ALL PASSED
 -- ============================================================

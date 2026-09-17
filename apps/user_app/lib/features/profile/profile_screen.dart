@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/theme.dart';
 import '../../core/responsive.dart';
 import '../../data/auth_repository.dart';
@@ -23,7 +24,10 @@ class ProfileScreen extends ConsumerWidget {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('My Omelo')),
+        appBar: AppBar(
+        title: const Text('My Omelo'),
+        actions: const [NotificationBell(), SizedBox(width: 8)],
+      ),
         body: ContentWidth.reading(
           child: ListView(
           padding: const EdgeInsets.fromLTRB(32, 60, 32, 32),
@@ -56,7 +60,10 @@ class ProfileScreen extends ConsumerWidget {
     final name = (user.userMetadata?['full_name'] as String?)?.trim();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Omelo')),
+      appBar: AppBar(
+        title: const Text('My Omelo'),
+        actions: const [NotificationBell(), SizedBox(width: 8)],
+      ),
       body: ContentWidth.reading(
         child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),

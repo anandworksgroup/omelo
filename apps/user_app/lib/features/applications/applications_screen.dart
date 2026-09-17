@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/app_state.dart';
 import '../../core/format.dart';
 import '../../core/responsive.dart';
@@ -37,7 +38,10 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
 
     if (!signedIn) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Applications')),
+        appBar: AppBar(
+          title: const Text('Applications'),
+          actions: const [NotificationBell(), SizedBox(width: 8)],
+        ),
         body: const _Empty(
           icon: Icons.assignment_outlined,
           title: 'Track every application here',
@@ -51,7 +55,10 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
     final async = ref.watch(myApplicationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Applications')),
+      appBar: AppBar(
+          title: const Text('Applications'),
+          actions: const [NotificationBell(), SizedBox(width: 8)],
+        ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => Center(

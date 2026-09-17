@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_state.dart';
 import '../../core/responsive.dart';
+import '../../data/messaging.dart' show badgeLabel;
+import '../messages/inbox_providers.dart';
 
 /// Five destinations, presented differently by window size.
 ///
@@ -36,6 +38,18 @@ class AppShell extends ConsumerWidget {
     final index = _indexFor(location);
     final size = Breakpoints.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final signedIn = ref.watch(isSignedInProvider);
+    final unread = signedIn ? ref.watch(unreadMessagesProvider) : 0;
+
+    /// Unread employer messages on the Messages tab.
+    Widget icon(String path, IconData data) {
+      final label = path == '/messages' ? badgeLabel(unread) : null;
+      if (label == null) return Icon(data);
+      return Badge(label: Text(label), child: Icon(data));
+    }
+
+    String tooltip(String path, String label) =>
+        path == '/messages' && unread > 0 ? '$label, $unread unread' : label;
 
     if (!size.usesNavigationRail) {
       return Scaffold(
@@ -44,12 +58,12 @@ class AppShell extends ConsumerWidget {
           selectedIndex: index,
           onDestinationSelected: (i) => context.go(_tabs[i].$1),
           destinations: [
-            for (final (_, icon, selectedIcon, label) in _tabs)
+            for (final (path, iconData, selectedIcon, label) in _tabs)
               NavigationDestination(
-                icon: Icon(icon),
-                selectedIcon: Icon(selectedIcon),
+                icon: icon(path, iconData),
+                selectedIcon: icon(path, selectedIcon),
                 label: label,
-                tooltip: label,
+                tooltip: tooltip(path, label),
               ),
           ],
         ),
@@ -91,11 +105,11 @@ class AppShell extends ConsumerWidget {
                   : Icon(Icons.work_outline, color: scheme.primary),
             ),
             destinations: [
-              for (final (_, icon, selectedIcon, label) in _tabs)
+              for (final (path, iconData, selectedIcon, label) in _tabs)
                 NavigationRailDestination(
-                  icon: Icon(icon),
-                  selectedIcon: Icon(selectedIcon),
-                  label: Text(label),
+                  icon: icon(path, iconData),
+                  selectedIcon: icon(path, selectedIcon),
+                  label: Text(label, semanticsLabel: tooltip(path, label)),
                 ),
             ],
           ),

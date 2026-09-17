@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
-import { STATE_LABEL, timeAgo } from '@/lib/format';
+import { STATE_LABEL, daysSince, timeAgo } from '@/lib/format';
 
 export default async function DashboardPage() {
   const ctx = (await getCompanyContext())!;
@@ -34,9 +34,7 @@ export default async function DashboardPage() {
   const stale = all.filter((a) => {
     if (['hired', 'rejected', 'withdrawn', 'expired', 'declined_by_candidate'].includes(a.state))
       return false;
-    const days =
-      (Date.now() - new Date(a.last_activity_at).getTime()) / 86_400_000;
-    return days >= STALE_DAYS;
+    return daysSince(a.last_activity_at) >= STALE_DAYS;
   }).length;
 
   const stats = [

@@ -10,6 +10,8 @@ import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/applications_repository.dart';
+import '../../data/messaging_repository.dart'
+    show messagingRepositoryProvider, messagingError;
 import 'applications_screen.dart';
 import 'hiring_widgets.dart';
 
@@ -35,6 +37,7 @@ class ApplicationDetailScreen extends ConsumerStatefulWidget {
 class _ApplicationDetailScreenState
     extends ConsumerState<ApplicationDetailScreen> {
   bool _busy = false;
+  bool _openingChat = false;
   bool _justHired = false;
   final _viewedOffers = <String>{};
 
@@ -180,6 +183,17 @@ class _ApplicationDetailScreenState
                 ),
               ),
               const SizedBox(height: 6),
+              OutlinedButton.icon(
+                onPressed: _openingChat ? null : () => _messageEmployer(a),
+                icon: _openingChat
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.5))
+                    : const Icon(Icons.chat_bubble_outline),
+                label: const Text('Message employer'),
+              ),
+              const SizedBox(height: 14),
 
               if (_justHired || a.isHired)
                 _HiredBanner(celebrate: _justHired)
@@ -296,6 +310,22 @@ class _ApplicationDetailScreenState
         setState(() => _busy = false);
         _reload();
       }
+    }
+  }
+
+  /// Opens (or starts) the conversation about this application.
+  Future<void> _messageEmployer(ApplicationSummary a) async {
+    setState(() => _openingChat = true);
+    try {
+      final id = await ref.read(messagingRepositoryProvider).start(a.id);
+      if (!mounted) return;
+      await context.push('/messages/$id');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(messagingError(e))));
+    } finally {
+      if (mounted) setState(() => _openingChat = false);
     }
   }
 

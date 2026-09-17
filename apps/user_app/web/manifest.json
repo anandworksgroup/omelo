@@ -1,6 +1,6 @@
 {
-    "name": "omelo_user_app",
-    "short_name": "omelo_user_app",
+    "name": "Omelo",
+    "short_name": "Omelo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,0 +1,43 @@
+# Supabase CLI configuration for Omelo.
+#
+#   supabase link --project-ref <ref>
+#   supabase db push                 # applies supabase/migrations in order
+#   supabase functions deploy        # deploys every function below
+#
+# See DEPLOYMENT.md for the full production checklist.
+
+project_id = "omelo"
+
+[api]
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+major_version = 17
+
+[auth]
+# Email + password without confirmation emails: accounts are created
+# pre-confirmed by the auth-signup Edge Function. Revisit before a public
+# launch (see DEPLOYMENT.md → Auth).
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+# ---- Edge Functions -------------------------------------------------------
+# verify_jwt defaults to true. Two functions are deliberately public; each
+# documents why at the top of its source.
+
+[functions.auth-signup]
+verify_jwt = false        # caller is not signed in yet; own validation + rate limit
+
+[functions.comms-dispatch]
+verify_jwt = false        # no input; only sends messages already due; idempotent
+
+[functions.meet-token]
+verify_jwt = true
+
+[functions.meet-control]
+verify_jwt = true

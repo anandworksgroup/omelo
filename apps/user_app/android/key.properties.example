@@ -1,0 +1,16 @@
+# Release signing for the Omelo worker app.
+#
+# Copy this file to android/key.properties (gitignored) and fill it in.
+# Never commit key.properties or the keystore itself.
+#
+# Create an upload keystore once (keep it and its passwords somewhere safe —
+# losing it means you cannot update the app):
+#   keytool -genkey -v -keystore ~/omelo-upload.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias upload
+#
+# storeFile is resolved relative to android/app/ (or give an absolute path).
+
+storeFile=/absolute/path/to/omelo-upload.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

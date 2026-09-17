@@ -1,7 +1,13 @@
 # Omelo Database
 
-**The live schema is the source of truth.** It is deployed to Supabase, not maintained as
-loose SQL files in this folder.
+**[`supabase/migrations/`](../supabase/migrations) is the source of truth.** It holds every
+migration exactly as it was applied to the live project (md5-verified against
+`supabase_migrations.schema_migrations`), in version order, so `supabase db push` rebuilds the
+database on a new project. See [DEPLOYMENT.md](../DEPLOYMENT.md).
+
+[`annotated/`](annotated) keeps the commented source of migrations 24–33 (why each guard
+exists, what was exploited). Their statements are the same as the canonical files; read them
+for the reasoning, apply the canonical ones.
 
 | | |
 |---|---|
@@ -87,7 +93,7 @@ supabase gen types typescript --project-id jfyqnlucoraazjkndbvm > src/types/data
 
 ## Client-callable functions
 
-Twenty-eight functions are reachable over PostgREST. Every `SECURITY DEFINER` one authorises
+Thirty-one functions are reachable over PostgREST. Every `SECURITY DEFINER` one authorises
 the caller as its first statement; the hiring functions are the **only** way application,
 interview, offer and employment state can change. Everything else is an internal predicate or a trigger body, with `EXECUTE` revoked
 and the predicates moved out of the exposed schema entirely.
@@ -115,6 +121,7 @@ and the predicates moved out of the exposed schema entirely.
 | `omelo_meet_join(room_name)` | `authenticated` | Called by `meet-token` as the user: `too_early` / `waiting` / `admitted`, with audit and rate limit. |
 | `omelo_meet_admit`, `omelo_meet_remove`, `omelo_meet_end` | `authenticated` (panel, hiring team) | Waiting room and host controls. Remove/end are also pushed to the media server by `meet-control`. |
 | `omelo_meet_leave`, `omelo_report_meet_abuse` | `authenticated` (participants) | Presence and safety. |
+| `omelo_start_conversation(application_id)`, `omelo_send_message(conversation_id, body)`, `omelo_mark_conversation_read(conversation_id)` | `authenticated` (candidate, hiring roles) | Job-context messaging; the only write path to conversations and messages. |
 | `omelo_comms_claim`, `omelo_comms_mark` | **`service_role` only** | Used by `comms-dispatch`. Invariant 23 fails if a client can call them. |
 
 ### Edge Functions
@@ -219,6 +226,9 @@ The employer -> job -> worker loop is proven end to end against RLS.
 | 29 | `29_interview_question_bank` | Seeds 188 questions: general, software, drivers, nurses, cooks, security, electricians/plumbers, retail, warehouse, reception, teaching, domestic help, accounting, engineering, plus category fallbacks. Resolution: profession → category → general. |
 | 30 | `30_meet_schedules` | `pg_cron`: `omelo-comms-dispatch` every minute (calls the `comms-dispatch` Edge Function via `pg_net`), `omelo-meet-housekeeping` every 5 minutes (expires rooms nobody ended). |
 | 31 | `31_panel_candidate_access` | **Fix.** A teammate with only the `interviewer` role could join the room but not read the candidate's profile, experience, skills or match — so they needed another app during the call. Access now extends to people named on the panel of a non-cancelled interview with that candidate, only while they are active members of the company, and the match only for that job. Tested, including revocation on deactivation. |
+| 32 | `32_job_messaging_and_notifications` | **Security fix + feature.** Any company member (even `viewer`) could open a conversation with *any* person, senders could set `sender_type` to impersonate the other side, and clients could post `action` messages or forge notifications. Conversations are now anchored to an application and written only through `omelo_start_conversation` / `omelo_send_message` / `omelo_mark_conversation_read` (hiring roles only; employers cannot keep messaging a candidate who withdrew; 20 msgs/min). Recipients get an in-app notification; candidates also a throttled email (one per conversation per 30 min). Notifications become an inbox: read, mark read, delete — never create or rewrite. |
+| 33 | `33_production_hardening` | Every policy's `auth.uid()` wrapped as `(select auth.uid())` so it is evaluated once per statement (73 policies); an index for every foreign key (105); the Edge Function base URL used by `pg_cron` moved from code to `omelo_private.app_settings`. All three end-to-end suites re-run green afterwards. |
+| 34 | `34_rename_meet_message_stamp` | Renamed the meet-chat trigger (`omelo_guard_meet_message` → `omelo_stamp_meet_message`): it is intentionally `SECURITY DEFINER` (stamps the sender name, flood limit) and must not carry the `omelo_guard_*` prefix that invariant 16 requires to be invoker-rights. |
 ### Holes closed by migration 25
 
 Proven as real users through the publishable key before the fix, and re-run
@@ -243,8 +253,8 @@ created directly in `auth.users`. To enable self-serve signup, turn off
 
 | Role | Email | Password |
 |---|---|---|
-| Employer (owner of *Sector 18 Kitchens*) | `sarah@zippylogistics.in` | `OmeloDemo2026!` |
-| Worker (Cook, Sector 62 Noida) | `ravi.worker@omelo.dev` | `OmeloWorker2026!` |
+| Employer (owner of *Sector 18 Kitchens*) | `sarah@zippylogistics.in` | *see `DEMO_ACCOUNTS.local.md`* |
+| Worker (Cook, Sector 62 Noida) | `ravi.worker@omelo.dev` | *see `DEMO_ACCOUNTS.local.md`* |
 
 **Worker phone OTP is not available** — the Supabase phone provider is disabled
 and needs an SMS provider (Twilio) configured. Both apps use email + password
