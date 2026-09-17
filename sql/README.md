@@ -87,7 +87,7 @@ supabase gen types typescript --project-id jfyqnlucoraazjkndbvm > src/types/data
 
 ## Client-callable functions
 
-Twenty functions are reachable over PostgREST. Every `SECURITY DEFINER` one authorises
+Twenty-eight functions are reachable over PostgREST. Every `SECURITY DEFINER` one authorises
 the caller as its first statement; the hiring functions are the **only** way application,
 interview, offer and employment state can change. Everything else is an internal predicate or a trigger body, with `EXECUTE` revoked
 and the predicates moved out of the exposed schema entirely.
@@ -109,6 +109,24 @@ and the predicates moved out of the exposed schema entirely.
 | `omelo_confirm_interview(interview_id)` | `authenticated` (worker) | Candidate confirmation. |
 | `omelo_send_offer(...)`, `omelo_withdraw_offer(offer_id, reason)` | `authenticated` (employer) | One open offer per application. Terms are frozen once sent. |
 | `omelo_view_offer(offer_id)`, `omelo_respond_to_offer(offer_id, accept, reason?)` | `authenticated` (worker) | Accept creates the employment and the verified experience in the same transaction. |
+| `omelo_schedule_interview(...)` *(28 signature)* | `authenticated` (hiring team) | Round, format (`omelo_meet`/`phone`/`in_person`), panel, questions, email + notification. Creates the Meet room. |
+| `omelo_interview_question_suggestions(job_id, round_kind?)` | `authenticated` | Profession → category → general question bank. |
+| `omelo_save_interview_feedback(...)` | `authenticated` (panel, hiring team) | Draft/submit private feedback, competencies, skills demonstrated, per-question answers. |
+| `omelo_meet_join(room_name)` | `authenticated` | Called by `meet-token` as the user: `too_early` / `waiting` / `admitted`, with audit and rate limit. |
+| `omelo_meet_admit`, `omelo_meet_remove`, `omelo_meet_end` | `authenticated` (panel, hiring team) | Waiting room and host controls. Remove/end are also pushed to the media server by `meet-control`. |
+| `omelo_meet_leave`, `omelo_report_meet_abuse` | `authenticated` (participants) | Presence and safety. |
+| `omelo_comms_claim`, `omelo_comms_mark` | **`service_role` only** | Used by `comms-dispatch`. Invariant 23 fails if a client can call them. |
+
+### Edge Functions
+
+| Function | JWT | Purpose |
+|---|---|---|
+| `auth-signup` | no | Email + password signup without confirmation, rate limited per IP. |
+| `meet-token` | yes | The only way into an Omelo Meet room. Asks the database (as the user) and mints a 10-minute LiveKit token only when admitted. `503 meet_not_configured` until LiveKit secrets are set. |
+| `meet-control` | yes | Remove participant / end interview: database first (authorised, audited), then the media server. |
+| `comms-dispatch` | no — takes no input, only sends messages already due, idempotent | Sends queued emails through Resend. Reports `configured:false` until `RESEND_API_KEY` is set. |
+
+Source lives in [`supabase/functions`](../supabase/functions). Secrets (Supabase dashboard → Edge Functions → Secrets): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `WORKER_APP_URL`.
 
 Run [`verify-invariants.sql`](verify-invariants.sql) after every migration. It
 checks all 20 invariants, each of which corresponds to a bug that actually
@@ -197,6 +215,9 @@ The employer -> job -> worker loop is proven end to end against RLS.
 | 26 | `26_domain_events` (+`26b`) | **Event spine.** Append-only `domain_events` outbox written in the same transaction: `WorkerApplied`, `ApplicationViewed`, `CandidateShortlisted`, `CandidateRejected`, `InterviewScheduled/Confirmed/Rescheduled/Cancelled/Completed`, `OfferSent/Accepted/Declined/Withdrawn`, `WorkerHired`, `EmploymentVerified`, `JobPublished/Paused/Closed/Expired`. Server-side only (no client privileges). `26b` lets the foreign keys' `ON DELETE SET NULL` through so deleting an account is never blocked. |
 | 27 | `27_interview_policy_recursion` | **Fix.** `interviews` and `interview_interviewers` policies referenced each other, so every direct `select` on interviews failed with *infinite recursion detected in policy*. The hiring functions (definer) never hit it; the portal's candidate review page did, as a real employer. Cross-table checks moved to `omelo_private` definer predicates. The e2e test now also reads interviews and offers directly as employer, worker and a rival company. |
 
+| 28 | `28_omelo_meet` (+`28b`) | **Omelo Meet + communications** ([A6](../architecture/A6-omelo-meet.md)). Interviews become rounds (`round_name`, `round_kind`, `meeting_mode`) with a planned process per job (`job_interview_rounds`). Native interview rooms (`interview_rooms`, unguessable `room_name`, 15-min-early → 60-min-late window, waiting room on, **recording impossible by constraint**), presence (`interview_participants`), sessions, in-room chat (`meet_messages`, rate limited), room audit (`meet_events`), abuse reports, profession-specific questions (`interview_question_templates` → `interview_questions`), and **private structured feedback** (`interview_feedback`, `interview_answers`) that candidates have no read path to. Transactional email outbox (`outbound_messages`) written in the same transaction as the action: invitation, next-round, reschedule, cancellation, 24 h + 1 h reminders (re-queued on reschedule), completion, offer. `28b`: scheduling falls back to the job's planned round for format and duration. |
+| 29 | `29_interview_question_bank` | Seeds 188 questions: general, software, drivers, nurses, cooks, security, electricians/plumbers, retail, warehouse, reception, teaching, domestic help, accounting, engineering, plus category fallbacks. Resolution: profession → category → general. |
+| 30 | `30_meet_schedules` | `pg_cron`: `omelo-comms-dispatch` every minute (calls the `comms-dispatch` Edge Function via `pg_net`), `omelo-meet-housekeeping` every 5 minutes (expires rooms nobody ended). |
 ### Holes closed by migration 25
 
 Proven as real users through the publishable key before the fix, and re-run

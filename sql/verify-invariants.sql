@@ -67,6 +67,9 @@ with checks as (
   --   omelo_schedule / reschedule / confirm / cancel / complete_interview,
   --   omelo_send / withdraw / view_offer, omelo_respond_to_offer
   --                                the hiring loop (25) — the ONLY way state moves
+  --   omelo_meet_* / save_interview_feedback / question_suggestions / report_meet_abuse
+  --                                Omelo Meet (28). omelo_comms_claim/mark are service_role ONLY
+  --                                and must never appear here.
   union all
   select 4, 'Client-callable RPC surface is exactly the approved set',
          case when count(*) = 0 then 'OK'
@@ -84,7 +87,11 @@ with checks as (
                           'omelo_schedule_interview','omelo_reschedule_interview','omelo_confirm_interview',
                           'omelo_cancel_interview','omelo_complete_interview',
                           'omelo_send_offer','omelo_withdraw_offer','omelo_view_offer',
-                          'omelo_respond_to_offer')
+                          'omelo_respond_to_offer',
+                          -- Omelo Meet (28)
+                          'omelo_save_interview_feedback','omelo_interview_question_suggestions',
+                          'omelo_meet_join','omelo_meet_admit','omelo_meet_leave','omelo_meet_remove',
+                          'omelo_meet_end','omelo_report_meet_abuse')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -243,6 +250,48 @@ with checks as (
                and not has_table_privilege('authenticated', 'public.domain_events', 'select')
                and not has_table_privilege('authenticated', 'public.domain_events', 'insert')
               then 'OK' else 'FAIL: client role has privileges on domain_events' end
+
+  -- ---------------------------------------------------------------
+  -- OMELO MEET (migration 28)
+  -- ---------------------------------------------------------------
+  union all
+  select 21, 'Interviews cannot be recorded (no consent flow exists yet)',
+         case when exists (select 1 from pg_constraint
+                            where conrelid = 'public.interview_rooms'::regclass
+                              and pg_get_constraintdef(oid) ilike '%recording_enabled = false%')
+               and not exists (select 1 from interview_rooms where recording_enabled)
+              then 'OK' else 'FAIL: recording can be enabled' end
+
+  union all
+  select 22, 'Candidates have no read path to questions, feedback or answers',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in ('interview_feedback','interview_answers','interview_questions')
+    and (coalesce(qual, '') || coalesce(with_check, '')) ~* '(is_interview_candidate|person_id = auth\.uid\(\)|was_admitted)'
+
+  union all
+  select 23, 'Email outbox is server-only',
+         case when not has_table_privilege('authenticated', 'public.outbound_messages', 'select')
+               and not has_table_privilege('anon', 'public.outbound_messages', 'select')
+               and not has_function_privilege('authenticated', 'public.omelo_comms_claim(integer)', 'execute')
+               and not has_function_privilege('authenticated', 'public.omelo_comms_mark(uuid, boolean, text, text)', 'execute')
+              then 'OK' else 'FAIL: clients can reach the outbox' end
+
+  union all
+  select 24, 'Every Omelo Meet interview has exactly one room',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' Omelo Meet interviews without a room' end
+  from interviews i
+  where i.meeting_mode = 'omelo_meet' and not exists (select 1 from interview_rooms r where r.interview_id = i.id)
+
+  union all
+  select 25, 'No room stays joinable after it closes',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' rooms past closes_at still open (is omelo-meet-housekeeping scheduled?)' end
+  from interview_rooms
+  where status in ('scheduled','live') and closes_at < now() - interval '10 minutes'
 )
 select n as "#", invariant, result from checks order by n;
 

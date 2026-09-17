@@ -125,7 +125,7 @@ s, d = rpc("omelo_move_application", {"p_application_id": aid, "p_state": "short
 
 print("\n4. INTERVIEW")
 when = (dt.datetime.utcnow() + dt.timedelta(days=2)).replace(microsecond=0).isoformat() + "Z"
-s, iid = rpc("omelo_schedule_interview", {"p_application_id": aid, "p_type": "in_person", "p_scheduled_at": when,
+s, iid = rpc("omelo_schedule_interview", {"p_application_id": aid, "p_meeting_mode": "in_person", "p_scheduled_at": when,
              "p_duration_minutes": 30, "p_location_text": "Sector 18 kitchen, back entrance"}, emp_tok)
 check("schedule interview", s == 200 and isinstance(iid, str), f"{s} {msg(iid)}")
 # The apps read these tables directly (not via RPC) — RLS must let them.
@@ -141,12 +141,12 @@ s, d = patch(f"/rest/v1/interviews?id=eq.{iid}", {"status": "completed"}, emp_to
 s, d = rpc("omelo_confirm_interview", {"p_interview_id": iid}, emp_tok); blocked("employer confirms on the worker's behalf", s, d)
 s, d = rpc("omelo_confirm_interview", {"p_interview_id": iid}, wrk_tok); check("worker confirms interview", s in (200, 204), f"{s} {msg(d)}")
 s, d = rpc("omelo_complete_interview", {"p_interview_id": iid, "p_outcome": "completed", "p_rating": 4,
-           "p_recommendation": "strong_yes", "p_notes": "Fast and clean knife work."}, emp_tok)
+           "p_recommendation": "strong_hire", "p_notes": "Fast and clean knife work."}, emp_tok)
 check("complete interview with scorecard", s in (200, 204), f"{s} {msg(d)}")
-s, d = get(f"/rest/v1/application_notes?select=body&application_id=eq.{aid}", wrk_tok)
+s, d = get(f"/rest/v1/interview_feedback?select=recommendation&application_id=eq.{aid}", wrk_tok)
 check("worker cannot read the private scorecard", s == 200 and d == [], f"{s} {d}")
-s, d = get(f"/rest/v1/application_notes?select=body&application_id=eq.{aid}", emp_tok)
-check("employer sees the scorecard", s == 200 and d and "Rating: 4/5" in d[0]["body"], f"{s} {d}")
+s, d = get(f"/rest/v1/interview_feedback?select=recommendation,overall_rating,status&application_id=eq.{aid}", emp_tok)
+check("employer sees the scorecard", s == 200 and d and d[0]["overall_rating"] == 4 and d[0]["status"] == "submitted", f"{s} {d}")
 
 print("\n5. OFFER")
 start = (dt.date.today() + dt.timedelta(days=7)).isoformat()
