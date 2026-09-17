@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/applications/application_detail_screen.dart';
 import '../features/applications/applications_screen.dart';
@@ -10,6 +11,7 @@ import '../features/company/company_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/discover/job_detail_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/meet/meet_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -59,6 +61,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/applications/:id',
         builder: (_, state) => ApplicationDetailScreen(
             applicationId: state.pathParameters['id']!),
+      ),
+      // Omelo Meet interview rooms (email and in-app "Join Interview" links).
+      // Full screen, outside the tab shell. Signed-out visitors sign in first
+      // and come straight back here.
+      GoRoute(
+        path: '/meet/:room',
+        redirect: (_, state) {
+          if (Supabase.instance.client.auth.currentUser != null) return null;
+          final back = Uri.encodeComponent(state.uri.toString());
+          return '/sign-in?next=$back';
+        },
+        builder: (_, state) =>
+            MeetScreen(roomName: state.pathParameters['room']!),
       ),
       ShellRoute(
         builder: (_, __, child) => AppShell(child: child),

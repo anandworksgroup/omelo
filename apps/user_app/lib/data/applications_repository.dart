@@ -57,7 +57,12 @@ class ApplicationsRepository {
   static const _interviewSelect =
       'id, application_id, type, status, round, scheduled_at, duration_minutes, '
       'timezone, meeting_url, location_text, instructions, '
-      'candidate_confirmed_at, cancel_reason';
+      'candidate_confirmed_at, cancel_reason, round_name, round_kind, '
+      'meeting_mode, completed_at';
+
+  static const _roomSelect =
+      'interview_id, room_name, status, opens_at, closes_at, waiting_room, '
+      'recording_enabled';
 
   static const _offerSelect =
       'id, application_id, status, title, pay_amount, pay_period, pay_currency, '
@@ -143,14 +148,38 @@ class ApplicationsRepository {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
 
-    final app = ApplicationSummary.fromRow(Map<String, dynamic>.from(row))
-        .copyWith(
-      interviews: maps(results[0]).map(Interview.fromRow).toList(),
+    final interviews = maps(results[0]).map(Interview.fromRow).toList();
+    final base = ApplicationSummary.fromRow(Map<String, dynamic>.from(row));
+
+    // Rooms and the planned process add to the page; if either read fails
+    // the interviews still show, just without a Join button or ○ steps.
+    final extras = await Future.wait([
+      interviews.any((i) => i.isOmeloMeet)
+          ? _safeList(() => _db
+              .from('interview_rooms')
+              .select(_roomSelect)
+              .inFilter('interview_id', [for (final i in interviews) i.id]))
+          : Future.value(const <Map<String, dynamic>>[]),
+      base.jobId.isEmpty
+          ? Future.value(const <Map<String, dynamic>>[])
+          : _safeList(() => _db
+              .from('job_interview_rounds')
+              .select('position, name, kind, meeting_mode, duration_minutes')
+              .eq('job_id', base.jobId)
+              .order('position')),
+    ]);
+    final rooms = {
+      for (final r in extras[0].map(InterviewRoom.fromRow)) r.interviewId: r,
+    };
+
+    final app = base.copyWith(
+      interviews: [for (final i in interviews) i.withRoom(rooms[i.id])],
       offers: maps(results[1]).map(Offer.fromRow).toList(),
     );
     return ApplicationDetail(
       application: app,
       events: maps(results[2]).map(ApplicationEvent.fromRow).toList(),
+      plannedRounds: extras[1].map(PlannedRound.fromRow).toList(),
     );
   }
 

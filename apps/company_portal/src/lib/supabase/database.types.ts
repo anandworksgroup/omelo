@@ -1789,6 +1789,147 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_answers: {
+        Row: {
+          created_at: string
+          evaluation: string | null
+          id: string
+          interview_id: string
+          interviewer_id: string
+          notes: string | null
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evaluation?: string | null
+          id?: string
+          interview_id: string
+          interviewer_id: string
+          notes?: string | null
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evaluation?: string | null
+          id?: string
+          interview_id?: string
+          interviewer_id?: string
+          notes?: string | null
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_answers_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_answers_interviewer_id_fkey"
+            columns: ["interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_feedback: {
+        Row: {
+          application_id: string
+          company_id: string
+          competencies: Json
+          concerns: string | null
+          created_at: string
+          id: string
+          interview_id: string
+          interviewer_id: string
+          notes: string | null
+          overall_rating: number | null
+          recommendation: string | null
+          skills_assessed: Json
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          company_id: string
+          competencies?: Json
+          concerns?: string | null
+          created_at?: string
+          id?: string
+          interview_id: string
+          interviewer_id: string
+          notes?: string | null
+          overall_rating?: number | null
+          recommendation?: string | null
+          skills_assessed?: Json
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          company_id?: string
+          competencies?: Json
+          concerns?: string | null
+          created_at?: string
+          id?: string
+          interview_id?: string
+          interviewer_id?: string
+          notes?: string | null
+          overall_rating?: number | null
+          recommendation?: string | null
+          skills_assessed?: Json
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_feedback_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_feedback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_feedback_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_feedback_interviewer_id_fkey"
+            columns: ["interviewer_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_interviewers: {
         Row: {
           interview_id: string
@@ -1818,6 +1959,233 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_participants: {
+        Row: {
+          admitted_at: string | null
+          admitted_by: string | null
+          display_name: string | null
+          id: string
+          interview_id: string
+          invited_at: string
+          joined_at: string | null
+          left_at: string | null
+          person_id: string
+          remove_reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          requested_at: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          admitted_at?: string | null
+          admitted_by?: string | null
+          display_name?: string | null
+          id?: string
+          interview_id: string
+          invited_at?: string
+          joined_at?: string | null
+          left_at?: string | null
+          person_id: string
+          remove_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          requested_at?: string | null
+          role: string
+          status?: string
+        }
+        Update: {
+          admitted_at?: string | null
+          admitted_by?: string | null
+          display_name?: string | null
+          id?: string
+          interview_id?: string
+          invited_at?: string
+          joined_at?: string | null
+          left_at?: string | null
+          person_id?: string
+          remove_reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          requested_at?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_participants_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_participants_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_question_templates: {
+        Row: {
+          category: string
+          category_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          locale: string
+          position: number
+          profession_id: string | null
+          question: string
+          round_kind: string | null
+        }
+        Insert: {
+          category?: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locale?: string
+          position?: number
+          profession_id?: string | null
+          question: string
+          round_kind?: string | null
+        }
+        Update: {
+          category?: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          locale?: string
+          position?: number
+          profession_id?: string | null
+          question?: string
+          round_kind?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_question_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_question_templates_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "professions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_questions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          interview_id: string
+          position: number
+          question: string
+          required: boolean
+          source: string
+          template_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          interview_id: string
+          position?: number
+          question: string
+          required?: boolean
+          source?: string
+          template_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          interview_id?: string
+          position?: number
+          question?: string
+          required?: boolean
+          source?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_questions_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "interview_question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_rooms: {
+        Row: {
+          closes_at: string
+          created_at: string
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          interview_id: string
+          opens_at: string
+          recording_enabled: boolean
+          room_name: string
+          started_at: string | null
+          status: string
+          waiting_room: boolean
+        }
+        Insert: {
+          closes_at: string
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          interview_id: string
+          opens_at: string
+          recording_enabled?: boolean
+          room_name?: string
+          started_at?: string | null
+          status?: string
+          waiting_room?: boolean
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          interview_id?: string
+          opens_at?: string
+          recording_enabled?: boolean
+          room_name?: string
+          started_at?: string | null
+          status?: string
+          waiting_room?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_rooms_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: true
+            referencedRelation: "interviews"
             referencedColumns: ["id"]
           },
         ]
@@ -1876,6 +2244,48 @@ export type Database = {
           },
         ]
       }
+      interview_sessions: {
+        Row: {
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          interview_id: string
+          room_id: string
+          started_at: string
+        }
+        Insert: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          interview_id: string
+          room_id: string
+          started_at?: string
+        }
+        Update: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          interview_id?: string
+          room_id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_sessions_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_sessions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "interview_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interviews: {
         Row: {
           application_id: string
@@ -1892,9 +2302,12 @@ export type Database = {
           instructions: string | null
           job_id: string
           location_text: string | null
+          meeting_mode: string
           meeting_url: string | null
           person_id: string
           round: number
+          round_kind: string | null
+          round_name: string | null
           scheduled_at: string | null
           status: Database["public"]["Enums"]["interview_status"]
           timezone: string | null
@@ -1915,9 +2328,12 @@ export type Database = {
           instructions?: string | null
           job_id: string
           location_text?: string | null
+          meeting_mode?: string
           meeting_url?: string | null
           person_id: string
           round?: number
+          round_kind?: string | null
+          round_name?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["interview_status"]
           timezone?: string | null
@@ -1938,9 +2354,12 @@ export type Database = {
           instructions?: string | null
           job_id?: string
           location_text?: string | null
+          meeting_mode?: string
           meeting_url?: string | null
           person_id?: string
           round?: number
+          round_kind?: string | null
+          round_name?: string | null
           scheduled_at?: string | null
           status?: Database["public"]["Enums"]["interview_status"]
           timezone?: string | null
@@ -2143,6 +2562,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_documents_required_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_interview_rounds: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          job_id: string
+          kind: string
+          meeting_mode: string
+          name: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          job_id: string
+          kind?: string
+          meeting_mode?: string
+          name: string
+          position: number
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          job_id?: string
+          kind?: string
+          meeting_mode?: string
+          name?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_interview_rounds_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
@@ -2916,6 +3376,141 @@ export type Database = {
           },
         ]
       }
+      meet_abuse_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          interview_id: string
+          reason: string
+          reported_person_id: string | null
+          reporter_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          interview_id: string
+          reason: string
+          reported_person_id?: string | null
+          reporter_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          interview_id?: string
+          reason?: string
+          reported_person_id?: string | null
+          reporter_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_abuse_reports_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_abuse_reports_reported_person_id_fkey"
+            columns: ["reported_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_abuse_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meet_events: {
+        Row: {
+          actor_id: string | null
+          event: string
+          id: number
+          interview_id: string
+          metadata: Json
+          occurred_at: string
+          subject_person_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          event: string
+          id?: never
+          interview_id: string
+          metadata?: Json
+          occurred_at?: string
+          subject_person_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          event?: string
+          id?: never
+          interview_id?: string
+          metadata?: Json
+          occurred_at?: string
+          subject_person_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_events_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meet_messages: {
+        Row: {
+          body: string
+          id: number
+          interview_id: string
+          sender_id: string
+          sender_name: string | null
+          sent_at: string
+        }
+        Insert: {
+          body: string
+          id?: never
+          interview_id: string
+          sender_id: string
+          sender_name?: string | null
+          sent_at?: string
+        }
+        Update: {
+          body?: string
+          id?: never
+          interview_id?: string
+          sender_id?: string
+          sender_name?: string | null
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meet_messages_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meet_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           action_payload: Json | null
@@ -3254,6 +3849,68 @@ export type Database = {
           },
           {
             foreignKeyName: "offers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outbound_messages: {
+        Row: {
+          attempts: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          last_error: string | null
+          payload: Json
+          person_id: string | null
+          provider_message_id: string | null
+          send_after: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template: string
+          to_address: string | null
+        }
+        Insert: {
+          attempts?: number
+          channel: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          person_id?: string | null
+          provider_message_id?: string | null
+          send_after?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template: string
+          to_address?: string | null
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          person_id?: string | null
+          provider_message_id?: string | null
+          send_after?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template?: string
+          to_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_messages_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
@@ -5030,14 +5687,51 @@ export type Database = {
         Args: { p_interview_id: string; p_reason: string }
         Returns: undefined
       }
+      omelo_comms_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          last_error: string | null
+          payload: Json
+          person_id: string | null
+          provider_message_id: string | null
+          send_after: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template: string
+          to_address: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "outbound_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      omelo_comms_mark: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_ok: boolean
+          p_provider_id?: string
+        }
+        Returns: undefined
+      }
       omelo_company_slug: { Args: { p_name: string }; Returns: string }
       omelo_complete_interview: {
         Args: {
+          p_concerns?: string
           p_interview_id: string
           p_notes?: string
           p_outcome?: Database["public"]["Enums"]["interview_status"]
           p_rating?: number
           p_recommendation?: string
+          p_strengths?: string
         }
         Returns: undefined
       }
@@ -5045,9 +5739,30 @@ export type Database = {
         Args: { p_interview_id: string }
         Returns: undefined
       }
+      omelo_interview_question_suggestions: {
+        Args: { p_job_id: string; p_round_kind?: string }
+        Returns: {
+          category: string
+          id: string
+          position: number
+          question: string
+          rank: number
+        }[]
+      }
       omelo_mark_application_viewed: {
         Args: { p_application_id: string }
         Returns: undefined
+      }
+      omelo_meet_admit: {
+        Args: { p_admit?: boolean; p_interview_id: string; p_person_id: string }
+        Returns: undefined
+      }
+      omelo_meet_end: { Args: { p_interview_id: string }; Returns: string }
+      omelo_meet_join: { Args: { p_room_name: string }; Returns: Json }
+      omelo_meet_leave: { Args: { p_interview_id: string }; Returns: undefined }
+      omelo_meet_remove: {
+        Args: { p_interview_id: string; p_person_id: string; p_reason?: string }
+        Returns: string
       }
       omelo_move_application: {
         Args: {
@@ -5155,8 +5870,18 @@ export type Database = {
         Args: { p_application_id: string; p_reason: string }
         Returns: undefined
       }
+      omelo_report_meet_abuse: {
+        Args: {
+          p_details?: string
+          p_interview_id: string
+          p_reason: string
+          p_reported_person_id?: string
+        }
+        Returns: string
+      }
       omelo_reschedule_interview: {
         Args: {
+          p_duration_minutes?: number
           p_interview_id: string
           p_reason?: string
           p_scheduled_at: string
@@ -5167,16 +5892,36 @@ export type Database = {
         Args: { p_accept: boolean; p_offer_id: string; p_reason?: string }
         Returns: Json
       }
+      omelo_save_interview_feedback: {
+        Args: {
+          p_answers?: Json
+          p_competencies?: Json
+          p_concerns?: string
+          p_interview_id: string
+          p_notes?: string
+          p_rating?: number
+          p_recommendation?: string
+          p_skills?: Json
+          p_strengths?: string
+          p_submit?: boolean
+        }
+        Returns: string
+      }
       omelo_schedule_interview: {
         Args: {
           p_application_id: string
           p_duration_minutes?: number
           p_instructions?: string
+          p_interviewer_ids?: string[]
           p_location_text?: string
-          p_meeting_url?: string
+          p_meeting_mode?: string
+          p_questions?: Json
+          p_round_kind?: string
+          p_round_name?: string
           p_scheduled_at: string
+          p_send_email?: boolean
+          p_send_notification?: boolean
           p_timezone?: string
-          p_type: Database["public"]["Enums"]["interview_type"]
         }
         Returns: string
       }

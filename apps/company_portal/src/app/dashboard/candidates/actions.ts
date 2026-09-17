@@ -3,12 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import type { ActionState } from '../actions';
-import type {
-  ApplicationState,
-  InterviewStatus,
-  InterviewType,
-  PayPeriod,
-} from '@/lib/hiring';
+import type { ApplicationState, InterviewStatus, PayPeriod } from '@/lib/hiring';
+import { RECOMMENDATION_OPTIONS } from '@/lib/meet';
 
 /*
  * Every hiring-loop mutation goes through a SECURITY DEFINER RPC. Direct
@@ -92,28 +88,79 @@ export async function rejectApplication(_prev: ActionState, fd: FormData): Promi
 /* Interviews                                                          */
 /* ------------------------------------------------------------------ */
 
+const MODES = ['omelo_meet', 'phone', 'in_person'];
+const KINDS = ['screening', 'technical', 'practical', 'hiring_manager', 'culture', 'final', 'general'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type QuestionInput = { question: string; category?: string; required?: boolean; template_id?: string };
+
+function parseQuestions(raw: string): QuestionInput[] | null {
+  if (!raw) return null;
+  try {
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return null;
+    const out = list
+      .filter((q) => q && typeof q.question === 'string' && q.question.trim().length >= 3)
+      .slice(0, 30)
+      .map((q) => {
+        const item: QuestionInput = { question: String(q.question).trim().slice(0, 500) };
+        if (typeof q.category === 'string' && q.category) item.category = q.category;
+        if (q.required === true) item.required = true;
+        // Only an unedited template keeps its template link.
+        if (typeof q.template_id === 'string' && UUID.test(q.template_id)) item.template_id = q.template_id;
+        return item;
+      });
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function scheduleInterview(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const c = await client();
   if ('error' in c) return { error: c.error };
 
-  // The client converts the datetime-local value to an absolute instant, so
-  // the server's own timezone never leaks into the scheduled time.
+  // The client converts date + time to an absolute instant, so the server's
+  // own timezone never leaks into the scheduled time.
   const at = str(fd, 'scheduled_at_iso');
   if (!at || Number.isNaN(Date.parse(at))) return { error: 'Choose a date and time.' };
 
+  const mode = str(fd, 'meeting_mode');
+  if (mode && !MODES.includes(mode)) return { error: 'Choose a format.' };
+  const kind = str(fd, 'round_kind');
+  if (kind && !KINDS.includes(kind)) return { error: 'Choose an interview type.' };
+  const roundName = str(fd, 'round_name');
+  if (roundName && (roundName.length < 2 || roundName.length > 80))
+    return { error: 'Give the interview a name between 2 and 80 characters.' };
+  if (mode === 'in_person' && !str(fd, 'location_text'))
+    return { error: 'Add the address for an in-person interview.' };
+
+  const interviewers = fd
+    .getAll('interviewer_ids')
+    .map(String)
+    .filter((v) => UUID.test(v));
+  if (interviewers.length === 0) return { error: 'Choose at least one interviewer.' };
+  const duration = Number(str(fd, 'duration_minutes'));
+  const questions = parseQuestions(str(fd, 'questions_json'));
+
   const { error } = await c.supabase.rpc('omelo_schedule_interview', {
     p_application_id: str(fd, 'application_id'),
-    p_type: (str(fd, 'type') || 'in_person') as InterviewType,
     p_scheduled_at: at,
-    p_duration_minutes: Number(str(fd, 'duration_minutes')) || 30,
+    p_duration_minutes: duration > 0 ? duration : undefined,
+    p_round_name: roundName || undefined,
+    p_round_kind: kind || undefined,
+    p_meeting_mode: mode || undefined,
     p_timezone: str(fd, 'timezone') || undefined,
-    p_meeting_url: str(fd, 'meeting_url') || undefined,
     p_location_text: str(fd, 'location_text') || undefined,
     p_instructions: str(fd, 'instructions') || undefined,
+    p_interviewer_ids: interviewers,
+    p_questions: questions ?? undefined,
+    p_send_email: fd.get('send_email') === 'on',
+    p_send_notification: fd.get('send_notification') === 'on',
   });
   if (error) return { error: error.message };
   refresh();
-  return { ok: true, message: 'Interview scheduled. The candidate has been asked to confirm.' };
+  return { ok: true, message: 'Invitation sent. The candidate has been asked to confirm.' };
 }
 
 export async function rescheduleInterview(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -121,11 +168,13 @@ export async function rescheduleInterview(_prev: ActionState, fd: FormData): Pro
   if ('error' in c) return { error: c.error };
   const at = str(fd, 'scheduled_at_iso');
   if (!at || Number.isNaN(Date.parse(at))) return { error: 'Choose a new date and time.' };
+  const duration = Number(str(fd, 'duration_minutes'));
 
   const { error } = await c.supabase.rpc('omelo_reschedule_interview', {
     p_interview_id: str(fd, 'interview_id'),
     p_scheduled_at: at,
     p_reason: str(fd, 'reason') || undefined,
+    p_duration_minutes: duration > 0 ? duration : undefined,
   });
   if (error) return { error: error.message };
   refresh();
@@ -155,12 +204,17 @@ export async function completeInterview(_prev: ActionState, fd: FormData): Promi
   const outcome = (str(fd, 'outcome') || 'completed') as InterviewStatus;
   if (!OUTCOMES.includes(outcome)) return { error: 'Choose an outcome.' };
   const rating = Number(str(fd, 'rating'));
+  const recommendation = str(fd, 'recommendation');
+  if (recommendation && !RECOMMENDATION_OPTIONS.some((r) => r.value === recommendation))
+    return { error: 'Choose a recommendation.' };
 
   const { error } = await c.supabase.rpc('omelo_complete_interview', {
     p_interview_id: str(fd, 'interview_id'),
     p_outcome: outcome,
     p_rating: rating >= 1 && rating <= 5 ? rating : undefined,
-    p_recommendation: str(fd, 'recommendation') || undefined,
+    p_recommendation: recommendation || undefined,
+    p_strengths: str(fd, 'strengths') || undefined,
+    p_concerns: str(fd, 'concerns') || undefined,
     p_notes: str(fd, 'notes') || undefined,
   });
   if (error) return { error: error.message };

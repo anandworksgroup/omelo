@@ -47,6 +47,14 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Omelo uses your location to show jobs near you, sorted by distance. You can use Omelo without sharing your location.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Omelo uses your camera so the employer can see you during a video interview. It is only used while you are in the interview.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Omelo uses your microphone so the employer can hear you during a video interview. It is only used while you are in the interview.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

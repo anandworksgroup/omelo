@@ -115,3 +115,104 @@ class SectionHeading extends StatelessWidget {
         ],
       );
 }
+
+/// ✓ Applied · ✓ Employer viewed · ✓ Shortlisted · ● Technical Interview ·
+/// ○ Offer · ○ Hired — a vertical stepper that reads top to bottom on any
+/// screen width.
+class ProcessStepper extends StatelessWidget {
+  const ProcessStepper({super.key, required this.steps});
+  final List<ProcessStep> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < steps.length; i++)
+          _ProcessStepTile(step: steps[i], last: i == steps.length - 1),
+      ],
+    );
+  }
+}
+
+class _ProcessStepTile extends StatelessWidget {
+  const _ProcessStepTile({required this.step, required this.last});
+  final ProcessStep step;
+  final bool last;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (Color color, IconData icon, String spoken) = switch (step.state) {
+      ProcessStepState.done => (OmeloTheme.verified, Icons.check_circle, 'done'),
+      ProcessStepState.current =>
+        (scheme.primary, Icons.radio_button_checked, 'you are here'),
+      ProcessStepState.upcoming =>
+        (scheme.outline, Icons.radio_button_unchecked, 'still to come'),
+      ProcessStepState.skipped =>
+        (scheme.onSurfaceVariant, Icons.remove_circle_outline, 'did not happen'),
+      ProcessStepState.closed =>
+        (scheme.onSurfaceVariant, Icons.do_not_disturb_on, 'closed'),
+    };
+    final current = step.state == ProcessStepState.current;
+
+    return Semantics(
+      label: '${step.label}, $spoken${step.detail == null ? '' : ', ${step.detail}'}',
+      excludeSemantics: true,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 28,
+              child: Column(
+                children: [
+                  Icon(icon, size: 24, color: color),
+                  if (!last)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        color: step.state == ProcessStepState.done
+                            ? OmeloTheme.verified.withValues(alpha: 0.5)
+                            : scheme.outlineVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: last ? 0 : 14, top: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      step.label,
+                      style: TextStyle(
+                        fontSize: current ? 16 : 15,
+                        fontWeight: current ? FontWeight.w800 : FontWeight.w600,
+                        color: step.state == ProcessStepState.upcoming
+                            ? scheme.onSurfaceVariant
+                            : null,
+                      ),
+                    ),
+                    if (step.detail != null)
+                      Text(
+                        step.detail!,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: current ? scheme.primary : scheme.onSurfaceVariant,
+                          fontWeight: current ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

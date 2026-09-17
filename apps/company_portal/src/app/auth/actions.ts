@@ -12,7 +12,9 @@ export async function signIn(
 ): Promise<AuthState> {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
-  const next = String(formData.get('next') ?? '/dashboard');
+  // Only same-site paths: never redirect to another origin (open redirect).
+  const rawNext = String(formData.get('next') ?? '/dashboard');
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\') ? rawNext : '/dashboard';
 
   if (!email || !password) return { error: 'Enter your email and password.' };
 

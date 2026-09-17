@@ -73,6 +73,27 @@ No email confirmation — accounts work the moment you create them.
 4. **Portal** → **Candidates**. The applicant is there.
 5. Back in the **worker app** → **Applications**. The timeline shows
    *Employer viewed* the moment they open it, and the employer cannot undo that.
+6. **Portal** → open the candidate → **Schedule Interview** (Omelo Meet, pick a
+   time a few minutes from now). Questions are pre-filled for the profession.
+7. **Worker app** → the application shows the hiring process and a countdown →
+   **Join Interview** 15 minutes before → waiting room.
+8. **Portal** → **Join** → admit the candidate → run the interview with the
+   profile, match, questions and private evaluation beside the video →
+   **End interview** → submit feedback → **Move to next round**, **Send offer**
+   or **Reject**.
+
+### Turning on Omelo Meet video and email
+
+Everything above works without these; video joins show "not switched on yet"
+and emails wait in the outbox. Add in Supabase → Edge Functions → Secrets:
+
+| Secret | Where to get it |
+|---|---|
+| `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | A LiveKit Cloud project (cloud.livekit.io → Settings → Keys), or your own LiveKit server |
+| `RESEND_API_KEY`, `EMAIL_FROM` | resend.com (verify a sending domain for real recipients) |
+| `WORKER_APP_URL` | Where the worker web app is served, e.g. `http://localhost:5173/#` |
+
+No redeploy is needed. See [A6 — Omelo Meet](architecture/A6-omelo-meet.md).
 
 ---
 

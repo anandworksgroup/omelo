@@ -12,6 +12,7 @@ import {
   timeAgo,
 } from '@/lib/format';
 import { closeJob, pauseJob, publishJob } from '../../actions';
+import RoundsEditor from './rounds-editor';
 
 export default async function JobDetailPage({
   params,
@@ -47,6 +48,13 @@ export default async function JobDetailPage({
     .select('id, state, applied_at, last_activity_at, match_score')
     .eq('job_id', id)
     .order('applied_at', { ascending: false });
+
+  const { data: plannedRounds, error: roundsError } = await supabase
+    .from('job_interview_rounds')
+    .select('id, position, name, kind, meeting_mode, duration_minutes')
+    .eq('job_id', id)
+    .order('position');
+  const canEditRounds = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(ctx.role);
 
   const stages = [...(job.job_stages ?? [])].sort((a, b) => a.position - b.position);
   const required = (job.job_skills ?? []).filter((s) => s.requirement_level === 'required');
@@ -187,6 +195,18 @@ export default async function JobDetailPage({
           </div>
         )}
       </section>
+
+      {/* Interview process */}
+      {roundsError ? (
+        <section className="card p-5">
+          <h2 className="font-bold mb-1">Interview process</h2>
+          <p className="text-sm" style={{ color: 'var(--color-danger)' }}>
+            Could not load the interview process: <span className="muted">{roundsError.message}</span>
+          </p>
+        </section>
+      ) : (
+        <RoundsEditor jobId={job.id} rounds={plannedRounds ?? []} canEdit={canEditRounds} />
+      )}
 
       {/* Pipeline */}
       <section className="card p-5">

@@ -44,9 +44,12 @@ export async function proxy(request: NextRequest) {
   );
 
   if (!user && !isPublic) {
+    // Keep the full return path (e.g. /meet/<room> from an invitation or a
+    // "Candidate is waiting" notification) so sign-in lands back there.
     const url = request.nextUrl.clone();
     url.pathname = '/sign-in';
-    url.searchParams.set('next', path);
+    url.search = '';
+    url.searchParams.set('next', path + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

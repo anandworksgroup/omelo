@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -101,6 +103,23 @@ class _ApplicationDetailScreenState
         return ux ? dx.compareTo(dy) : dy.compareTo(dx);
       });
 
+    final process = HiringProcess.steps(a,
+        events: d.events, plannedRounds: d.plannedRounds, now: now);
+
+    // The most recent completed round says "Final review" while the employer
+    // decides.
+    Interview? lastCompleted;
+    for (final i in a.interviews.where((i) => i.isCompleted)) {
+      if (lastCompleted == null ||
+          (i.scheduledAt ?? DateTime(0))
+              .isAfter(lastCompleted.scheduledAt ?? DateTime(0))) {
+        lastCompleted = i;
+      }
+    }
+    final inFinalReview = a.state == 'interview' &&
+        lastCompleted != null &&
+        a.nextInterview(now) == null;
+
     final timeline = d.events
         .map((e) => HiringCopy.event(e, a.companyName))
         .whereType<TimelineEntry>()
@@ -179,6 +198,11 @@ class _ApplicationDetailScreenState
                 ),
               ],
 
+              const SizedBox(height: 28),
+              const SectionHeading('Hiring process'),
+              const SizedBox(height: 12),
+              ProcessStepper(steps: process),
+
               if (offer != null) ...[
                 const SizedBox(height: 28),
                 const SectionHeading('Your offer'),
@@ -200,9 +224,11 @@ class _ApplicationDetailScreenState
                 for (final i in interviews) ...[
                   _InterviewCard(
                     interview: i,
-                    now: now,
+                    showFinalReview:
+                        inFinalReview && identical(i, lastCompleted),
                     onConfirm: () => _confirm(i),
                     onCantAttend: () => _cantAttend(i),
+                    onJoin: i.room == null ? null : () => _join(i.room!),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -271,6 +297,11 @@ class _ApplicationDetailScreenState
         _reload();
       }
     }
+  }
+
+  Future<void> _join(InterviewRoom room) async {
+    await context.push('/meet/${room.roomName}');
+    if (mounted) _reload();
   }
 
   Future<void> _confirm(Interview i) async {
@@ -432,22 +463,66 @@ class _HiredBanner extends StatelessWidget {
   }
 }
 
-class _InterviewCard extends StatelessWidget {
+class _InterviewCard extends StatefulWidget {
   const _InterviewCard({
     required this.interview,
-    required this.now,
+    required this.showFinalReview,
     required this.onConfirm,
     required this.onCantAttend,
+    required this.onJoin,
   });
 
   final Interview interview;
-  final DateTime now;
+  final bool showFinalReview;
   final VoidCallback onConfirm;
   final VoidCallback onCantAttend;
 
+  /// Null when the room could not be read.
+  final VoidCallback? onJoin;
+
+  @override
+  State<_InterviewCard> createState() => _InterviewCardState();
+}
+
+class _InterviewCardState extends State<_InterviewCard> {
+  Timer? _tick;
+
+  bool get _live => widget.interview.isOmeloMeet && widget.interview.isOpen;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _InterviewCard old) {
+    super.didUpdateWidget(old);
+    _syncTimer();
+  }
+
+  void _syncTimer() {
+    if (_live && _tick == null) {
+      // The countdown ticks and the Join button turns on by itself.
+      _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else if (!_live) {
+      _tick?.cancel();
+      _tick = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final i = interview;
+    final i = widget.interview;
+    final now = DateTime.now();
     final scheme = Theme.of(context).colorScheme;
     final upcoming = i.isUpcoming(now);
     final when = i.scheduledAt;
@@ -462,6 +537,16 @@ class _InterviewCard extends StatelessWidget {
       _ => ('Please confirm', OmeloTheme.warning),
     };
 
+    final format = i.meetingMode == null
+        ? HiringCopy.interviewType(i.type)
+        : MeetCopy.meetingMode(i.meetingMode, locationText: i.locationText);
+    final formatIcon = switch (i.meetingMode) {
+      'omelo_meet' => Icons.videocam_outlined,
+      'phone' => Icons.phone_outlined,
+      'in_person' => Icons.place_outlined,
+      _ => Icons.work_outline,
+    };
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -472,8 +557,9 @@ class _InterviewCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '${HiringCopy.interviewType(i.type)}'
-                    '${(i.round ?? 1) > 1 ? ' · Round ${i.round}' : ''}',
+                    i.roundName ??
+                        '${HiringCopy.interviewType(i.type)}'
+                            '${(i.round ?? 1) > 1 ? ' · Round ${i.round}' : ''}',
                     style: const TextStyle(
                         fontSize: 16, fontWeight: FontWeight.w700),
                   ),
@@ -489,41 +575,168 @@ class _InterviewCard extends StatelessWidget {
                 Icons.event,
                 HiringCopy.dayTime(when),
                 sub: [
-                  if (i.durationMinutes != null) 'About ${i.durationMinutes} minutes',
+                  if (i.durationMinutes != null)
+                    'About ${i.durationMinutes} minutes',
                   'Your local time',
                 ].join(' · '),
               ),
-            if (i.locationText != null)
+            _Line(
+              formatIcon,
+              format,
+              copyable: i.meetingMode == 'in_person' && i.locationText != null,
+              copyText: i.locationText,
+            ),
+            if (i.meetingMode != 'in_person' &&
+                i.meetingMode != 'omelo_meet' &&
+                i.locationText != null)
               _Line(Icons.place_outlined, i.locationText!, copyable: true),
-            if (i.meetingUrl != null)
+            if (i.meetingUrl != null && !i.isOmeloMeet)
               _Line(Icons.videocam_outlined, i.meetingUrl!,
                   copyable: true, sub: 'Copy this link and open it at the time'),
             if (i.instructions != null)
               _Line(Icons.info_outline, i.instructions!),
             if (i.status == 'cancelled' && i.cancelReason != null)
               _Line(Icons.notes, 'Reason: ${i.cancelReason}'),
+            if (i.isCompleted) ...[
+              const SizedBox(height: 4),
+              _CompletedNote(showFinalReview: widget.showFinalReview),
+            ],
+            if (_live) ...[
+              const SizedBox(height: 4),
+              _MeetJoin(interview: i, now: now, onJoin: widget.onJoin),
+            ],
             if (upcoming) ...[
               const SizedBox(height: 8),
               if (!i.isConfirmed) ...[
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
-                    onPressed: onConfirm,
-                    child: const Text("Confirm I'll attend"),
-                  ),
+                  // With a Join button above, confirming is the secondary action.
+                  child: _live
+                      ? OutlinedButton(
+                          onPressed: widget.onConfirm,
+                          child: const Text("Confirm I'll attend"),
+                        )
+                      : FilledButton(
+                          onPressed: widget.onConfirm,
+                          child: const Text("Confirm I'll attend"),
+                        ),
                 ),
                 const SizedBox(height: 8),
               ],
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: onCantAttend,
+                  onPressed: widget.onCantAttend,
                   child: const Text("I can't attend"),
                 ),
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Countdown and the Join Interview button for an Omelo Meet round.
+class _MeetJoin extends StatelessWidget {
+  const _MeetJoin({
+    required this.interview,
+    required this.now,
+    required this.onJoin,
+  });
+
+  final Interview interview;
+  final DateTime now;
+  final VoidCallback? onJoin;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = interview;
+    final scheme = Theme.of(context).colorScheme;
+    final state = i.meetWindow.state(now, roomStatus: i.room?.status);
+    if (state == MeetWindowState.closed) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text('This interview room is closed.',
+            style: TextStyle(fontSize: 14.5, color: scheme.onSurfaceVariant)),
+      );
+    }
+
+    final open = state == MeetWindowState.open;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (i.scheduledAt != null)
+            Text(
+              meetStartsInLabel(i.scheduledAt!, now),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+            ),
+          const SizedBox(height: 4),
+          Text(
+            open
+                ? 'The waiting room is open.'
+                : 'You can join 15 minutes before it starts.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14.5),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: open ? onJoin : null,
+            icon: const Icon(Icons.videocam),
+            label: const Text('Join Interview'),
+          ),
+          if (open && onJoin == null) ...[
+            const SizedBox(height: 6),
+            const Text('Pull down to refresh if the button stays grey.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Opens inside Omelo. No other app needed. ${MeetCopy.notRecorded}',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletedNote extends StatelessWidget {
+  const _CompletedNote({required this.showFinalReview});
+  final bool showFinalReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: OmeloTheme.verified.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle, color: OmeloTheme.verified, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Interview completed ✓ — submitted to the employer.'
+              '${showFinalReview ? ' ${MeetCopy.finalReview}.' : ''}',
+              style: const TextStyle(fontSize: 15, height: 1.4),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -645,11 +858,13 @@ class _OfferCard extends StatelessWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line(this.icon, this.text, {this.sub, this.copyable = false});
+  const _Line(this.icon, this.text,
+      {this.sub, this.copyable = false, this.copyText});
   final IconData icon;
   final String text;
   final String? sub;
   final bool copyable;
+  final String? copyText;
 
   @override
   Widget build(BuildContext context) {
@@ -682,7 +897,7 @@ class _Line extends StatelessWidget {
               tooltip: 'Copy',
               icon: const Icon(Icons.copy, size: 18),
               onPressed: () {
-                Clipboard.setData(ClipboardData(text: text));
+                Clipboard.setData(ClipboardData(text: copyText ?? text));
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Copied')));
               },

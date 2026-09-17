@@ -142,12 +142,7 @@ export const REJECTION_REASONS = [
   "Skills don't match this role right now",
 ];
 
-export const RECOMMENDATIONS = [
-  { value: 'strong_yes', label: 'Strong yes' },
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-  { value: 'strong_no', label: 'Strong no' },
-] as const;
+/** Interview recommendations live in lib/meet.ts (RECOMMENDATION_OPTIONS). */
 
 /* ------------------------------------------------------------------ */
 /* Match explanation (matches.feature_vector, engine v1.0)            */
@@ -292,11 +287,18 @@ export function describeTimeline(
         } else if (m.rescheduled_from) {
           out.push({ ...base, title: 'Interview rescheduled', detail: e.reason, tone: 'warn' });
         } else {
-          const type = INTERVIEW_TYPE_LABEL[m.type as InterviewType];
+          const format =
+            m.meeting_mode === 'omelo_meet'
+              ? 'Omelo Meet'
+              : m.meeting_mode === 'phone'
+                ? 'Phone'
+                : m.meeting_mode === 'in_person'
+                  ? 'In person'
+                  : INTERVIEW_TYPE_LABEL[m.type as InterviewType];
           out.push({
             ...base,
-            title: 'Interview scheduled',
-            detail: [type, m.round ? `round ${m.round}` : null].filter(Boolean).join(' · ') || null,
+            title: m.round_name ? `${String(m.round_name)} scheduled` : 'Interview scheduled',
+            detail: [m.round ? `Interview #${m.round}` : null, format].filter(Boolean).join(' · ') || null,
             tone: 'neutral',
           });
         }
@@ -317,7 +319,12 @@ export function describeTimeline(
         } else if (outcome === 'no_show_employer') {
           out.push({ ...base, title: 'Interview missed by your team', tone: 'bad' });
         } else {
-          out.push({ ...base, title: 'Interview completed', tone: 'good' });
+          out.push({
+            ...base,
+            title: m.round_name ? `${String(m.round_name)} completed` : 'Interview completed',
+            detail: m.via === 'omelo_meet' ? 'On Omelo Meet' : null,
+            tone: 'good',
+          });
         }
         break;
       }

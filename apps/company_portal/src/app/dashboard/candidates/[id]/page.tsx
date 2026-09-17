@@ -4,8 +4,6 @@ import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import { BENEFIT_LABEL, STATE_LABEL, formatPay, timeAgo } from '@/lib/format';
 import {
   CLOSED_STATES,
-  INTERVIEW_STATUS_LABEL,
-  INTERVIEW_TYPE_LABEL,
   OFFER_STATUS_LABEL,
   OPEN_OFFER_STATUSES,
   OPEN_STATES,
@@ -25,17 +23,19 @@ import {
 } from '@/lib/hiring';
 import LocalTime from '../../local-time';
 import {
-  CancelInterviewForm,
-  CompleteInterviewForm,
   MoveButton,
   NoteForm,
   RejectForm,
-  RescheduleForm,
   RescoreButton,
-  ScheduleInterviewForm,
   SendOfferForm,
   WithdrawOfferForm,
 } from '../forms';
+import { ScheduleInterviewForm, type TeamMember } from '../schedule-form';
+import InterviewRounds, { type RoundFeedback, type RoundInterview } from './rounds';
+import type { PlannedRound } from '@/lib/meet';
+
+const HIRING_ROLES: string[] = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'];
+const PANEL_ROLES = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr', 'interviewer'] as const;
 
 type Snapshot = {
   person?: { display_name?: string; location_text?: string };
@@ -157,6 +157,9 @@ export default async function CandidateReviewPage({
     interviewRes,
     offerRes,
     employmentRes,
+    roundsRes,
+    teamRes,
+    feedbackRes,
   ] = await Promise.all([
     supabase
       .from('matches')
@@ -199,10 +202,12 @@ export default async function CandidateReviewPage({
     supabase
       .from('interviews')
       .select(
-        'id, type, status, round, scheduled_at, duration_minutes, timezone, meeting_url, location_text, instructions, candidate_confirmed_at, completed_at, cancelled_at, cancel_reason'
+        `id, status, round, round_name, round_kind, meeting_mode, scheduled_at, duration_minutes, timezone,
+         location_text, instructions, candidate_confirmed_at, completed_at, cancelled_at, cancel_reason,
+         interview_rooms ( room_name, status, opens_at, closes_at, started_at, ended_at )`
       )
       .eq('application_id', app.id)
-      .order('round', { ascending: false }),
+      .order('round', { ascending: true }),
     supabase
       .from('offers')
       .select(
@@ -215,6 +220,24 @@ export default async function CandidateReviewPage({
       .select('id, title, started_on, status')
       .eq('application_id', app.id)
       .maybeSingle(),
+    supabase
+      .from('job_interview_rounds')
+      .select('id, position, name, kind, meeting_mode, duration_minutes')
+      .eq('job_id', app.job_id)
+      .order('position'),
+    supabase
+      .from('company_members')
+      .select('person_id, role, persons!company_members_person_id_fkey ( display_name )')
+      .eq('company_id', ctx.companyId)
+      .eq('is_active', true)
+      .in('role', [...PANEL_ROLES]),
+    supabase
+      .from('interview_feedback')
+      .select(
+        'id, interview_id, interviewer_id, recommendation, overall_rating, strengths, concerns, notes, competencies, skills_assessed, status, submitted_at, updated_at'
+      )
+      .eq('application_id', app.id)
+      .order('updated_at', { ascending: true }),
   ]);
 
   const job = app.jobs as unknown as {
@@ -251,7 +274,55 @@ export default async function CandidateReviewPage({
   const gateFailures = match?.gate_failures ?? fv?.gate_failures ?? [];
   const missingSkills = (fv?.missing_skills ?? []).map(skillName).filter(Boolean);
 
-  const interviews = interviewRes.data ?? [];
+  const interviews: RoundInterview[] = (interviewRes.data ?? []).map(({ interview_rooms, ...iv }) => ({
+    ...iv,
+    room: (interview_rooms as unknown as RoundInterview['room']) ?? null,
+  }));
+  const interviewIds = interviews.map((iv) => iv.id);
+
+  // Panels, and the names people had when invited: teammates' person rows
+  // are not readable to each other, but the participant snapshot is.
+  const [panelRes, participantRes] = interviewIds.length
+    ? await Promise.all([
+        supabase
+          .from('interview_interviewers')
+          .select('interview_id, person_id, is_lead')
+          .in('interview_id', interviewIds),
+        supabase
+          .from('interview_participants')
+          .select('person_id, display_name')
+          .in('interview_id', interviewIds),
+      ])
+    : [{ data: null }, { data: null }];
+  const panels: Record<string, string[]> = {};
+  for (const p of [...(panelRes.data ?? [])].sort((a, b) => Number(b.is_lead) - Number(a.is_lead))) {
+    (panels[p.interview_id] ??= []).push(p.person_id);
+  }
+  const names: Record<string, string> = {};
+  for (const p of participantRes.data ?? []) if (p.display_name) names[p.person_id] = p.display_name;
+
+  const plannedRounds: PlannedRound[] = roundsRes.data ?? [];
+  const team: TeamMember[] = (teamRes.data ?? []).map((m) => {
+    const pn = (m.persons as unknown as { display_name: string | null } | null)?.display_name ?? null;
+    return {
+      personId: m.person_id,
+      role: m.role,
+      name: pn ?? names[m.person_id] ?? null,
+      isYou: m.person_id === user?.id,
+    };
+  });
+  if (user && !team.some((m) => m.isYou) && (PANEL_ROLES as readonly string[]).includes(ctx.role)) {
+    team.unshift({ personId: user.id, role: ctx.role, name: null, isYou: true });
+  }
+  for (const m of team) if (m.name && !names[m.personId]) names[m.personId] = m.name;
+  team.sort((a, b) => Number(b.isYou) - Number(a.isYou));
+
+  const feedback: RoundFeedback[] = feedbackRes.data ?? [];
+  const isHiringTeam = HIRING_ROLES.includes(ctx.role);
+  const nextRound = (interviews.at(-1)?.round ?? 0) + 1;
+  const nextPlanned = plannedRounds.find((r) => r.position === nextRound) ?? null;
+  const hasLiveInterview = interviews.some((iv) => iv.status === 'scheduled' || iv.status === 'rescheduled');
+  const lastInterview = interviews.at(-1) ?? null;
   const offers = offerRes.data ?? [];
   const openOffer = offers.find((o) => OPEN_OFFER_STATUSES.includes(o.status)) ?? null;
   const latestOffer = offers[0] ?? null;
@@ -261,6 +332,23 @@ export default async function CandidateReviewPage({
   const isOpen = OPEN_STATES.includes(state);
   const isPreOffer = PRE_OFFER_STATES.includes(state);
   const isClosed = (CLOSED_STATES as string[]).includes(state);
+  // After a completed round with nothing booked, the next step is a decision.
+  const decisionDue =
+    isPreOffer && isHiringTeam && !hasLiveInterview && lastInterview?.status === 'completed';
+  const scheduleProps = {
+    applicationId: app.id,
+    jobId: app.job_id,
+    defaultLocation: job?.location_text ?? null,
+    plannedRounds,
+    nextRound,
+    team,
+  };
+  const offerDefaults = {
+    title: job?.title ?? '',
+    payAmount: job?.pay_max ?? job?.pay_min ?? null,
+    payPeriod: job?.pay_period ?? null,
+    currency: job?.pay_currency ?? null,
+  };
 
   const timeline = describeTimeline(eventRes.data ?? [], user?.id ?? null).reverse();
 
@@ -328,6 +416,26 @@ export default async function CandidateReviewPage({
           </div>
           <div className="text-xs muted mt-1">match</div>
         </div>
+        <div className="basis-full flex flex-wrap gap-2 items-start border-t hairline pt-4">
+          <a href="#review" className="btn btn-ghost">
+            Review
+          </a>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled
+            title="Messaging is coming soon"
+            style={{ opacity: 0.55, cursor: 'not-allowed' }}
+          >
+            Message <span className="text-xs font-normal muted">coming soon</span>
+          </button>
+          {isPreOffer && isHiringTeam && (
+            <ScheduleInterviewForm
+              {...scheduleProps}
+              primary={['shortlisted', 'screening', 'assessment'].includes(state)}
+            />
+          )}
+        </div>
       </header>
 
       {/* ------------------------------------------------------ Action bar */}
@@ -343,27 +451,19 @@ export default async function CandidateReviewPage({
             {(['applied', 'viewed', 'shortlisted', 'screening'] as ApplicationState[]).includes(state) && (
               <MoveButton applicationId={app.id} state="assessment" label="Move to assessment" />
             )}
-            {isPreOffer && (
-              <ScheduleInterviewForm
-                applicationId={app.id}
-                defaultLocation={job?.location_text ?? null}
-                primary={['shortlisted', 'screening', 'assessment'].includes(state)}
-              />
+            {isPreOffer && !openOffer && !decisionDue && (
+              <SendOfferForm applicationId={app.id} primary={state === 'interview'} defaults={offerDefaults} />
             )}
-            {isPreOffer && !openOffer && (
-              <SendOfferForm
-                applicationId={app.id}
-                primary={state === 'interview'}
-                defaults={{
-                  title: job?.title ?? '',
-                  payAmount: job?.pay_max ?? job?.pay_min ?? null,
-                  payPeriod: job?.pay_period ?? null,
-                  currency: job?.pay_currency ?? null,
-                }}
-              />
-            )}
-            <RejectForm applicationId={app.id} />
+            {!decisionDue && <RejectForm applicationId={app.id} />}
           </div>
+          {decisionDue && (
+            <p className="text-sm muted mt-3">
+              <a href="#feedback" className="underline">
+                Decide the next step
+              </a>{' '}
+              under Interview rounds.
+            </p>
+          )}
           {state === 'offer' && (
             <p className="text-sm muted mt-3">
               Waiting for the candidate to reply to your offer. You can withdraw it below.
@@ -422,8 +522,52 @@ export default async function CandidateReviewPage({
       <div className="grid gap-6 lg:grid-cols-3 items-start">
         {/* ============================================== Main column */}
         <div className="space-y-6 lg:col-span-2 min-w-0">
+          {/* ------------------------------------------ Interview rounds */}
+          <section className="card p-5 scroll-mt-6" id="feedback">
+            <SectionTitle>Interview rounds</SectionTitle>
+            {interviewRes.error ? (
+              <ErrorNote label="interviews" message={interviewRes.error.message} />
+            ) : interviews.length === 0 ? (
+              <p className="text-sm muted">
+                No interviews yet.
+                {nextPlanned ? ` The first planned round is ${nextPlanned.name}.` : ''}
+              </p>
+            ) : (
+              <InterviewRounds
+                interviews={interviews}
+                feedback={feedback}
+                panels={panels}
+                names={names}
+                userId={user?.id ?? null}
+                isHiringTeam={isHiringTeam}
+                jobId={app.job_id}
+                canManage={isHiringTeam}
+              />
+            )}
+            {feedbackRes.error && <ErrorNote label="feedback" message={feedbackRes.error.message} />}
+
+            {decisionDue && (
+              <div className="mt-5 border-t hairline pt-4">
+                <p className="font-semibold text-sm mb-1">Decision</p>
+                <p className="text-sm muted mb-3">
+                  {lastInterview?.round_name ?? 'The interview'} is complete. What happens next?
+                </p>
+                <div className="flex flex-wrap gap-2 items-start">
+                  <ScheduleInterviewForm
+                    {...scheduleProps}
+                    label={nextPlanned ? `Move to ${nextPlanned.name}` : 'Schedule next round'}
+                    defaultRoundName={nextPlanned?.name ?? null}
+                    primary
+                  />
+                  {!openOffer && <SendOfferForm applicationId={app.id} defaults={offerDefaults} />}
+                  <RejectForm applicationId={app.id} />
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* -------------------------------------------- Why this match */}
-          <section className="card p-5">
+          <section className="card p-5 scroll-mt-6" id="review">
             <SectionTitle
               aside={job && match ? <RescoreButton jobId={job.id} /> : undefined}
             >
@@ -652,78 +796,6 @@ export default async function CandidateReviewPage({
 
         {/* ============================================== Side column */}
         <div className="space-y-6 min-w-0">
-          {/* -------------------------------------------------- Interviews */}
-          <section className="card p-5">
-            <SectionTitle>Interviews</SectionTitle>
-            {interviewRes.error ? (
-              <ErrorNote label="interviews" message={interviewRes.error.message} />
-            ) : interviews.length === 0 ? (
-              <p className="text-sm muted">None scheduled.</p>
-            ) : (
-              <ul className="space-y-4">
-                {interviews.map((iv) => {
-                  const live = iv.status === 'scheduled' || iv.status === 'rescheduled';
-                  const safeUrl = iv.meeting_url && /^https?:\/\//i.test(iv.meeting_url) ? iv.meeting_url : null;
-                  return (
-                    <li key={iv.id} className="space-y-2 border-b hairline pb-4 last:border-0 last:pb-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">
-                          {INTERVIEW_TYPE_LABEL[iv.type] ?? iv.type} · round {iv.round}
-                        </span>
-                        <span
-                          className="pill"
-                          style={{
-                            color: live
-                              ? 'var(--fg)'
-                              : iv.status === 'completed'
-                                ? 'var(--color-verified)'
-                                : 'var(--color-danger)',
-                          }}
-                        >
-                          {INTERVIEW_STATUS_LABEL[iv.status]}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <LocalTime iso={iv.scheduled_at} />
-                        {iv.duration_minutes ? <span className="muted"> · {iv.duration_minutes} min</span> : null}
-                      </div>
-                      {live && (
-                        <div
-                          className="text-xs font-semibold"
-                          style={{ color: iv.candidate_confirmed_at ? 'var(--color-verified)' : 'var(--color-warn)' }}
-                        >
-                          {iv.candidate_confirmed_at ? '✓ Confirmed by candidate' : 'Awaiting confirmation'}
-                        </div>
-                      )}
-                      {iv.location_text && <p className="text-sm muted break-words">{iv.location_text}</p>}
-                      {iv.meeting_url &&
-                        (safeUrl ? (
-                          <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="text-sm underline break-all">
-                            {safeUrl}
-                          </a>
-                        ) : (
-                          <p className="text-sm muted break-all">{iv.meeting_url}</p>
-                        ))}
-                      {iv.instructions && (
-                        <p className="text-sm muted whitespace-pre-line break-words">{iv.instructions}</p>
-                      )}
-                      {iv.status === 'cancelled' && iv.cancel_reason && (
-                        <p className="text-sm muted">Cancelled: “{iv.cancel_reason}”</p>
-                      )}
-                      {live && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <CompleteInterviewForm interviewId={iv.id} />
-                          <RescheduleForm interviewId={iv.id} />
-                          <CancelInterviewForm interviewId={iv.id} />
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-
           {/* ------------------------------------------------------ Offer */}
           {(offerRes.error || offers.length > 0) && (
             <section className="card p-5">

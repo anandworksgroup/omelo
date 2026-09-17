@@ -1,6 +1,9 @@
 import 'package:intl/intl.dart';
 
 import 'job.dart';
+import 'meet.dart';
+
+export 'meet.dart';
 
 /// Hiring loop models and the plain-words copy that explains them.
 ///
@@ -76,6 +79,11 @@ class Interview {
     this.instructions,
     this.candidateConfirmedAt,
     this.cancelReason,
+    this.roundName,
+    this.roundKind,
+    this.meetingMode,
+    this.completedAt,
+    this.room,
   });
 
   final String id;
@@ -91,6 +99,34 @@ class Interview {
   final String? instructions;
   final DateTime? candidateConfirmedAt;
   final String? cancelReason;
+
+  /// "Technical Interview". Null on interviews scheduled before rounds existed.
+  final String? roundName;
+  final String? roundKind;
+
+  /// omelo_meet | phone | in_person. Null on older interviews.
+  final String? meetingMode;
+  final DateTime? completedAt;
+
+  /// Only for Omelo Meet interviews, and only when the room could be read.
+  final InterviewRoom? room;
+
+  bool get isOmeloMeet => meetingMode == 'omelo_meet';
+  bool get isCompleted => status == 'completed';
+  bool get isCancelled => status == 'cancelled';
+  bool get isMissed =>
+      status == 'no_show_candidate' || status == 'no_show_employer';
+
+  /// "Technical Interview" · "Interview round 2" · "Interview"
+  String get title =>
+      roundName ?? ((round ?? 1) > 1 ? 'Interview round $round' : 'Interview');
+
+  /// When the Join button is on, for Omelo Meet interviews.
+  MeetWindow get meetWindow => MeetWindow.forInterview(
+        room: room,
+        scheduledAt: scheduledAt,
+        durationMinutes: durationMinutes,
+      );
 
   bool get isOpen => kOpenInterviewStatuses.contains(status);
   bool get isConfirmed => candidateConfirmedAt != null;
@@ -117,6 +153,35 @@ class Interview {
         instructions: _str(m['instructions']),
         candidateConfirmedAt: _date(m['candidate_confirmed_at']),
         cancelReason: _str(m['cancel_reason']),
+        roundName: _str(m['round_name']),
+        roundKind: _str(m['round_kind']),
+        meetingMode: _str(m['meeting_mode']),
+        completedAt: _date(m['completed_at']),
+        room: switch (_embed(m['interview_rooms'])) {
+          final r? => InterviewRoom.fromRow(r),
+          null => null,
+        },
+      );
+
+  Interview withRoom(InterviewRoom? room) => Interview(
+        id: id,
+        applicationId: applicationId,
+        type: type,
+        status: status,
+        round: round,
+        scheduledAt: scheduledAt,
+        durationMinutes: durationMinutes,
+        timezone: timezone,
+        meetingUrl: meetingUrl,
+        locationText: locationText,
+        instructions: instructions,
+        candidateConfirmedAt: candidateConfirmedAt,
+        cancelReason: cancelReason,
+        roundName: roundName,
+        roundKind: roundKind,
+        meetingMode: meetingMode,
+        completedAt: completedAt,
+        room: room,
       );
 }
 
@@ -366,11 +431,184 @@ class ApplicationSummary {
 }
 
 class ApplicationDetail {
-  ApplicationDetail({required this.application, required this.events});
+  ApplicationDetail({
+    required this.application,
+    required this.events,
+    this.plannedRounds = const [],
+  });
   final ApplicationSummary application;
 
   /// Oldest first.
   final List<ApplicationEvent> events;
+
+  /// The employer's planned interview rounds for this job, by position.
+  final List<PlannedRound> plannedRounds;
+}
+
+// ---------------------------------------------------------------------------
+// Hiring process stepper
+// ---------------------------------------------------------------------------
+
+enum ProcessStepState {
+  /// ✓ happened.
+  done,
+
+  /// ● where the application is now.
+  current,
+
+  /// ○ still to come.
+  upcoming,
+
+  /// A round that did not happen (cancelled or missed).
+  skipped,
+
+  /// The application ended here (not selected, withdrawn…).
+  closed,
+}
+
+class ProcessStep {
+  const ProcessStep(this.label, this.state, {this.detail});
+  final String label;
+  final ProcessStepState state;
+  final String? detail;
+
+  @override
+  String toString() =>
+      'ProcessStep($label, ${state.name}${detail == null ? '' : ', $detail'})';
+}
+
+class HiringProcess {
+  static const _rank = {
+    'applied': 0,
+    'viewed': 1,
+    'shortlisted': 2,
+    'screening': 3,
+    'assessment': 3,
+    'interview': 4,
+    'offer': 5,
+    'hired': 6,
+  };
+
+  static const notScheduled = 'Not scheduled yet';
+  static const finalReview = 'Final review';
+
+  /// ✓ Applied · ✓ Employer viewed · ✓ Shortlisted · one step per interview
+  /// round · ○ Offer · ○ Hired.
+  ///
+  /// Rounds come from interviews actually booked plus the employer's planned
+  /// rounds not booked yet. An open application has exactly one current step;
+  /// a closed one ends with a closed step instead of Offer and Hired.
+  static List<ProcessStep> steps(
+    ApplicationSummary a, {
+    List<ApplicationEvent> events = const [],
+    List<PlannedRound> plannedRounds = const [],
+    required DateTime now,
+  }) {
+    // How far did it get? A closed application has lost its pipeline state,
+    // so the history counts too.
+    var reached = _rank[a.state] ?? 0;
+    for (final e in events) {
+      final r = _rank[e.toState] ?? _rank[e.eventType];
+      if (r != null && r > reached) reached = r;
+    }
+    if (a.firstViewedAt != null && reached < 1) reached = 1;
+    if (a.interviews.isNotEmpty && reached < 2) reached = 2;
+
+    ProcessStepState doneIf(bool v) =>
+        v ? ProcessStepState.done : ProcessStepState.upcoming;
+
+    final steps = <ProcessStep>[
+      const ProcessStep('Applied', ProcessStepState.done),
+      ProcessStep('Employer viewed', doneIf(reached >= 1)),
+      ProcessStep('Shortlisted', doneIf(reached >= 2)),
+    ];
+
+    // One step per round number. If a round was cancelled and booked again,
+    // the live booking wins.
+    final byRound = <int, Interview>{};
+    for (final i in a.interviews) {
+      final n = i.round ?? 1;
+      final existing = byRound[n];
+      if (existing == null || _prefer(i, existing)) byRound[n] = i;
+    }
+    final planned = {for (final p in plannedRounds) p.position: p};
+    final rounds = {...byRound.keys, ...planned.keys}.toList()..sort();
+
+    var firstBooked = -1;
+    var allRoundsDone = rounds.isNotEmpty;
+    var anyRoundDone = false;
+    for (final n in rounds) {
+      final i = byRound[n];
+      final label = i?.roundName ?? planned[n]?.name ?? 'Interview round $n';
+      final ProcessStep step;
+      if (i == null) {
+        step = ProcessStep(label, ProcessStepState.upcoming,
+            detail: notScheduled);
+      } else if (i.isCompleted) {
+        step = ProcessStep(label, ProcessStepState.done,
+            detail: 'Interview completed');
+      } else if (i.isCancelled) {
+        step = ProcessStep(label, ProcessStepState.skipped, detail: 'Cancelled');
+      } else if (i.isMissed) {
+        step = ProcessStep(label, ProcessStepState.skipped,
+            detail: i.status == 'no_show_candidate'
+                ? 'Missed'
+                : 'The employer did not come');
+      } else {
+        if (firstBooked == -1) firstBooked = steps.length;
+        step = ProcessStep(label, ProcessStepState.upcoming,
+            detail: i.scheduledAt == null
+                ? 'Scheduled'
+                : HiringCopy.dayTime(i.scheduledAt!));
+      }
+      if (step.state == ProcessStepState.upcoming) allRoundsDone = false;
+      if (step.state == ProcessStepState.done) anyRoundDone = true;
+      steps.add(step);
+    }
+
+    if (a.isTerminal) {
+      steps.add(ProcessStep(
+          HiringCopy.statusLabel(a.state), ProcessStepState.closed));
+      return steps;
+    }
+
+    final offerIndex = steps.length;
+    steps
+      ..add(ProcessStep('Offer', doneIf(a.isHired)))
+      ..add(ProcessStep('Hired', doneIf(a.isHired)));
+    if (a.isHired) return steps;
+
+    // Exactly one current step.
+    int current;
+    String? detail;
+    if (a.state == 'offer') {
+      current = offerIndex;
+    } else if (firstBooked != -1) {
+      current = firstBooked;
+    } else if (allRoundsDone && anyRoundDone) {
+      current = offerIndex;
+      detail = finalReview;
+    } else {
+      current = steps.indexWhere((s) => s.state == ProcessStepState.upcoming);
+      // Shortlisted with no interview planned: they are still at Shortlisted,
+      // not waiting on an offer.
+      if (current == offerIndex) {
+        current = steps.lastIndexWhere((s) => s.state == ProcessStepState.done);
+      }
+    }
+    final s = steps[current];
+    steps[current] = ProcessStep(s.label, ProcessStepState.current,
+        detail: detail ?? s.detail);
+    return steps;
+  }
+
+  static bool _prefer(Interview candidate, Interview existing) {
+    int weight(Interview i) => i.isOpen || i.isCompleted ? 1 : 0;
+    final w = weight(candidate) - weight(existing);
+    if (w != 0) return w > 0;
+    return (candidate.scheduledAt ?? DateTime(0))
+        .isAfter(existing.scheduledAt ?? DateTime(0));
+  }
 }
 
 class OfferResponse {
@@ -587,10 +825,11 @@ class HiringCopy {
           StepTone.action,
         );
       }
+      final verb = interview.isOmeloMeet ? 'join video interview' : 'attend interview';
       return NextStep(
         when == null
-            ? 'Next: attend your interview'
-            : 'Next: attend interview ${dayTime(when)}',
+            ? 'Next: ${interview.isOmeloMeet ? 'join your video interview' : 'attend your interview'}'
+            : 'Next: $verb ${dayTime(when)}',
         StepTone.waiting,
       );
     }

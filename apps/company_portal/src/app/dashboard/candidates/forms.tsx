@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useId, useState } from 'react';
 import type { ActionState } from '../actions';
 import {
   addNote,
@@ -10,23 +10,17 @@ import {
   rankApplicants,
   rejectApplication,
   rescheduleInterview,
-  scheduleInterview,
   sendOffer,
   withdrawOffer,
 } from './actions';
-import {
-  INTERVIEW_TYPE_LABEL,
-  PAY_PERIODS,
-  RECOMMENDATIONS,
-  REJECTION_REASONS,
-  type InterviewType,
-} from '@/lib/hiring';
+import { PAY_PERIODS, REJECTION_REASONS } from '@/lib/hiring';
+import { DURATIONS, RECOMMENDATION_OPTIONS } from '@/lib/meet';
 
 /* ------------------------------------------------------------------ */
 /* Building blocks                                                     */
 /* ------------------------------------------------------------------ */
 
-function Message({ state }: { state: ActionState }) {
+export function Message({ state }: { state: ActionState }) {
   if (state.error)
     return (
       <p className="text-sm" role="alert" style={{ color: 'var(--color-danger)' }}>
@@ -46,19 +40,24 @@ function Message({ state }: { state: ActionState }) {
  * A button that unfolds a small form beneath it. Native <details>, so it
  * works before hydration and needs no open/close state.
  */
-function Panel({
+export function Panel({
   label,
   tone = 'ghost',
+  onOpen,
   children,
 }: {
   label: string;
   tone?: 'ghost' | 'primary' | 'danger';
+  onOpen?: () => void;
   children: React.ReactNode;
 }) {
   const cls =
     tone === 'primary' ? 'btn btn-primary' : 'btn btn-ghost';
   return (
-    <details className="group open:basis-full open:w-full">
+    <details
+      className="group open:basis-full open:w-full"
+      onToggle={onOpen ? (e) => (e.currentTarget.open ? onOpen() : undefined) : undefined}
+    >
       <summary
         className={`${cls} list-none [&::-webkit-details-marker]:hidden select-none`}
         style={tone === 'danger' ? { color: 'var(--color-danger)' } : undefined}
@@ -71,7 +70,7 @@ function Panel({
 }
 
 /** datetime-local is wall-clock time in the browser; send an absolute instant. */
-function withInstant(fd: FormData) {
+export function withInstant(fd: FormData) {
   const local = String(fd.get('scheduled_at') ?? '');
   if (local) {
     const d = new Date(local);
@@ -148,6 +147,7 @@ export function MoveButton({
 export function RejectForm({ applicationId }: { applicationId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(rejectApplication, {});
   const [preset, setPreset] = useState('');
+  const uid = useId();
 
   return (
     <Panel label="Not moving forward" tone="danger">
@@ -183,11 +183,11 @@ export function RejectForm({ applicationId }: { applicationId: string }) {
         </fieldset>
         {preset === 'other' && (
           <div>
-            <label className="label" htmlFor="reason_other">
+            <label className="label" htmlFor={`${uid}reason_other`}>
               Your reason
             </label>
             <textarea
-              id="reason_other"
+              id={`${uid}reason_other`}
               name="reason_other"
               rows={2}
               minLength={3}
@@ -219,106 +219,6 @@ export function RejectForm({ applicationId }: { applicationId: string }) {
 /* Interviews                                                          */
 /* ------------------------------------------------------------------ */
 
-const REMOTE_TYPES: InterviewType[] = ['phone', 'video'];
-
-export function ScheduleInterviewForm({
-  applicationId,
-  defaultLocation,
-  primary = false,
-}: {
-  applicationId: string;
-  defaultLocation: string | null;
-  primary?: boolean;
-}) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(scheduleInterview, {});
-  const [type, setType] = useState<InterviewType>('in_person');
-  const remote = REMOTE_TYPES.includes(type);
-
-  return (
-    <Panel label="Schedule interview" tone={primary ? 'primary' : 'ghost'}>
-      <form action={(fd) => action(withInstant(fd))} className="space-y-4">
-        <input type="hidden" name="application_id" value={applicationId} />
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label" htmlFor="iv_type">
-              Type
-            </label>
-            <select
-              id="iv_type"
-              name="type"
-              className="input"
-              value={type}
-              onChange={(e) => setType(e.target.value as InterviewType)}
-            >
-              {Object.entries(INTERVIEW_TYPE_LABEL).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label" htmlFor="iv_duration">
-              Duration
-            </label>
-            <select id="iv_duration" name="duration_minutes" className="input" defaultValue="30">
-              {[15, 30, 45, 60, 90, 120, 240, 480].map((m) => (
-                <option key={m} value={m}>
-                  {m < 60 ? `${m} min` : `${m / 60} hour${m === 60 ? '' : 's'}`}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="label" htmlFor="iv_at">
-            Date and time
-          </label>
-          <input id="iv_at" type="datetime-local" name="scheduled_at" className="input" required />
-          <p className="hint">In your local time.</p>
-        </div>
-        {remote ? (
-          <div>
-            <label className="label" htmlFor="iv_url">
-              {type === 'phone' ? 'Phone number or call link (optional)' : 'Meeting link'}
-            </label>
-            <input id="iv_url" name="meeting_url" className="input" placeholder="https://" />
-          </div>
-        ) : (
-          <div>
-            <label className="label" htmlFor="iv_loc">
-              Address
-            </label>
-            <input
-              id="iv_loc"
-              name="location_text"
-              className="input"
-              defaultValue={defaultLocation ?? ''}
-              placeholder="Where should the candidate come?"
-            />
-          </div>
-        )}
-        <div>
-          <label className="label" htmlFor="iv_instr">
-            Instructions for the candidate (optional)
-          </label>
-          <textarea
-            id="iv_instr"
-            name="instructions"
-            rows={2}
-            className="input"
-            placeholder="What to bring, who to ask for, what to wear…"
-          />
-        </div>
-        <Message state={state} />
-        <button className="btn btn-primary w-full sm:w-auto" disabled={pending}>
-          {pending ? 'Scheduling…' : 'Send invitation'}
-        </button>
-      </form>
-    </Panel>
-  );
-}
-
 export function RescheduleForm({ interviewId }: { interviewId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(rescheduleInterview, {});
   return (
@@ -336,6 +236,19 @@ export function RescheduleForm({ interviewId }: { interviewId: string }) {
             className="input"
             required
           />
+        </div>
+        <div>
+          <label className="label" htmlFor={`rs_dur_${interviewId}`}>
+            Duration
+          </label>
+          <select id={`rs_dur_${interviewId}`} name="duration_minutes" className="input" defaultValue="">
+            <option value="">Keep current length</option>
+            {DURATIONS.map((m) => (
+              <option key={m} value={m}>
+                {m} min
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="label" htmlFor={`rs_reason_${interviewId}`}>
@@ -384,16 +297,21 @@ export function CancelInterviewForm({ interviewId }: { interviewId: string }) {
 export function CompleteInterviewForm({ interviewId }: { interviewId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(completeInterview, {});
   const [outcome, setOutcome] = useState('completed');
+  const uid = useId();
   return (
-    <Panel label="Record outcome" tone="primary">
+    <Panel label="Record outcome">
       <form action={action} className="space-y-4">
         <input type="hidden" name="interview_id" value={interviewId} />
+        <p className="hint !mt-0">
+          For phone and in-person rounds, or to record a no-show. Omelo Meet
+          rounds complete when the host ends the interview.
+        </p>
         <div>
-          <label className="label" htmlFor={`oc_${interviewId}`}>
+          <label className="label" htmlFor={`${uid}oc`}>
             What happened?
           </label>
           <select
-            id={`oc_${interviewId}`}
+            id={`${uid}oc`}
             name="outcome"
             className="input"
             value={outcome}
@@ -407,7 +325,17 @@ export function CompleteInterviewForm({ interviewId }: { interviewId: string }) 
         {outcome === 'completed' && (
           <>
             <fieldset>
-              <legend className="label">Rating</legend>
+              <legend className="label">Recommendation</legend>
+              <div className="flex flex-wrap gap-3">
+                {RECOMMENDATION_OPTIONS.map((r) => (
+                  <label key={r.value} className="flex items-center gap-1.5 text-sm">
+                    <input type="radio" name="recommendation" value={r.value} /> {r.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="label">Overall rating</legend>
               <div className="flex flex-wrap gap-3">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <label key={n} className="flex items-center gap-1.5 text-sm">
@@ -416,24 +344,29 @@ export function CompleteInterviewForm({ interviewId }: { interviewId: string }) 
                 ))}
               </div>
             </fieldset>
-            <fieldset>
-              <legend className="label">Recommendation</legend>
-              <div className="flex flex-wrap gap-3">
-                {RECOMMENDATIONS.map((r) => (
-                  <label key={r.value} className="flex items-center gap-1.5 text-sm">
-                    <input type="radio" name="recommendation" value={r.value} /> {r.label}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <div>
+              <label className="label" htmlFor={`${uid}st`}>
+                Candidate strengths
+              </label>
+              <textarea id={`${uid}st`} name="strengths" rows={2} className="input" />
+            </div>
+            <div>
+              <label className="label" htmlFor={`${uid}co`}>
+                Concerns
+              </label>
+              <textarea id={`${uid}co`} name="concerns" rows={2} className="input" />
+            </div>
           </>
         )}
         <div>
-          <label className="label" htmlFor={`on_${interviewId}`}>
+          <label className="label" htmlFor={`${uid}no`}>
             Notes
           </label>
-          <textarea id={`on_${interviewId}`} name="notes" rows={3} className="input" />
-          <p className="hint">Private to your team. Saved as a scorecard note.</p>
+          <textarea id={`${uid}no`} name="notes" rows={3} className="input" />
+          <p className="hint">
+            Private to your hiring team — the candidate never sees feedback.
+            With a recommendation, your feedback is submitted.
+          </p>
         </div>
         <Message state={state} />
         <button className="btn btn-primary w-full sm:w-auto" disabled={pending}>
@@ -463,23 +396,24 @@ export function SendOfferForm({
   primary?: boolean;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(sendOffer, {});
+  const uid = useId();
   return (
     <Panel label="Send offer" tone={primary ? 'primary' : 'ghost'}>
       <form action={action} className="space-y-4">
         <input type="hidden" name="application_id" value={applicationId} />
         <div>
-          <label className="label" htmlFor="of_title">
+          <label className="label" htmlFor={`${uid}of_title`}>
             Job title
           </label>
-          <input id="of_title" name="title" className="input" defaultValue={defaults.title} />
+          <input id={`${uid}of_title`} name="title" className="input" defaultValue={defaults.title} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label" htmlFor="of_pay">
+            <label className="label" htmlFor={`${uid}of_pay`}>
               Pay ({defaults.currency ?? 'INR'})
             </label>
             <input
-              id="of_pay"
+              id={`${uid}of_pay`}
               name="pay_amount"
               type="number"
               min={1}
@@ -491,11 +425,11 @@ export function SendOfferForm({
             />
           </div>
           <div>
-            <label className="label" htmlFor="of_period">
+            <label className="label" htmlFor={`${uid}of_period`}>
               Period
             </label>
             <select
-              id="of_period"
+              id={`${uid}of_period`}
               name="pay_period"
               className="input"
               defaultValue={defaults.payPeriod ?? 'month'}
@@ -510,16 +444,16 @@ export function SendOfferForm({
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
-            <label className="label" htmlFor="of_start">
+            <label className="label" htmlFor={`${uid}of_start`}>
               Start date
             </label>
-            <input id="of_start" name="start_date" type="date" required className="input" />
+            <input id={`${uid}of_start`} name="start_date" type="date" required className="input" />
           </div>
           <div>
-            <label className="label" htmlFor="of_exp">
+            <label className="label" htmlFor={`${uid}of_exp`}>
               Candidate must reply within
             </label>
-            <select id="of_exp" name="expires_days" className="input" defaultValue="7">
+            <select id={`${uid}of_exp`} name="expires_days" className="input" defaultValue="7">
               <option value="2">2 days</option>
               <option value="3">3 days</option>
               <option value="7">7 days</option>
@@ -528,11 +462,11 @@ export function SendOfferForm({
           </div>
         </div>
         <div>
-          <label className="label" htmlFor="of_cond">
+          <label className="label" htmlFor={`${uid}of_cond`}>
             Conditions (optional)
           </label>
           <textarea
-            id="of_cond"
+            id={`${uid}of_cond`}
             name="conditions"
             rows={2}
             className="input"
