@@ -87,8 +87,9 @@ supabase gen types typescript --project-id jfyqnlucoraazjkndbvm > src/types/data
 
 ## Client-callable functions
 
-Five functions are reachable over PostgREST — three that carry real authority, plus two
-helpers. Everything else is an internal predicate or a trigger body, with `EXECUTE` revoked
+Twenty functions are reachable over PostgREST. Every `SECURITY DEFINER` one authorises
+the caller as its first statement; the hiring functions are the **only** way application,
+interview, offer and employment state can change. Everything else is an internal predicate or a trigger body, with `EXECUTE` revoked
 and the predicates moved out of the exposed schema entirely.
 
 | Function | Roles | Purpose |
@@ -98,9 +99,19 @@ and the predicates moved out of the exposed schema entirely.
 | `omelo_mark_application_viewed(application_id)` | `authenticated` | The only path to opening an application. Writes the honest `viewed` state. Idempotent. |
 | `omelo_company_slug(name)` | `authenticated` | URL-safe unique company slug. `SECURITY INVOKER`, reads only publicly readable rows. |
 | `omelo_pay_monthly(amount, period, country)` | `anon`, `authenticated` | Pure arithmetic so a daily wage compares fairly against a salary. |
+| `omelo_rank_applicants(job_id)` | `authenticated` | Scores every applicant for a job the caller can access; stores explanations. |
+| `omelo_my_match(job_id, work_identity_id?)` | `authenticated` | "Why does this job match me?" Self-only, published jobs only. |
+| `omelo_recommend_jobs(lat, lng, radius_km, limit, work_identity_id?)` | `authenticated` | Nearby jobs, scored and explained, eligible and best first. |
+| `omelo_move_application(application_id, state)` | `authenticated` (employer) | viewed / shortlisted / screening / assessment / interview for open applications. |
+| `omelo_reject_application(application_id, reason)` | `authenticated` (employer) | Reason required. Cancels interviews, withdraws offers, notifies the worker. |
+| `omelo_withdraw_application(application_id, reason?)` | `authenticated` (worker) | Also cancels interviews and declines open offers. |
+| `omelo_schedule_interview(...)`, `omelo_reschedule_interview`, `omelo_cancel_interview`, `omelo_complete_interview` | `authenticated` (employer; cancel: either party) | Interview lifecycle. Scorecard is written to employer-only `application_notes`. |
+| `omelo_confirm_interview(interview_id)` | `authenticated` (worker) | Candidate confirmation. |
+| `omelo_send_offer(...)`, `omelo_withdraw_offer(offer_id, reason)` | `authenticated` (employer) | One open offer per application. Terms are frozen once sent. |
+| `omelo_view_offer(offer_id)`, `omelo_respond_to_offer(offer_id, accept, reason?)` | `authenticated` (worker) | Accept creates the employment and the verified experience in the same transaction. |
 
 Run [`verify-invariants.sql`](verify-invariants.sql) after every migration. It
-checks all 14 invariants, each of which corresponds to a bug that actually
+checks all 20 invariants, each of which corresponds to a bug that actually
 shipped. **Structural checks are not enough** — the RLS bug below passed every
 one of them while being completely broken for real users, so always also test
 with an `anon` / `authenticated` key.
@@ -181,6 +192,25 @@ anonymous worker discovery  -> FINDS IT: "Cook - Test Kitchen" 0km,
 The employer -> job -> worker loop is proven end to end against RLS.
 
 | 23 | `omelo_23_protect_application_immutables` | **Fix.** Employers could `PATCH first_viewed_at` back to `NULL` and erase the fact they had opened an application — breaking FR-331, the promise `viewed` cannot be suppressed. RLS has no column-level rules, so a trigger now makes `first_viewed_at` monotonic and `job_id`/`person_id`/`company_id`/`work_identity_id`/`applied_at`/`identity_snapshot` immutable after submission. Also made `omelo_mark_application_viewed()` idempotent. |
+| 24 | `24_matching_engine_v1` | **Matching Engine v1.** Deterministic, explainable scorer: 3 gates (job open, work authorisation, expired required licence) + 17 factors, weights from `weight_profiles` by job category. *Unknown is not zero* — a missing profile fact scores a neutral 0.5 and is labelled unknown. Score + full explanation stored in `matches.feature_vector` (`engine_version` is in the unique key, so a newer engine never rewrites an explanation someone was shown). Applications are scored at submission. Adds `omelo_rank_applicants`, `omelo_my_match`, `omelo_recommend_jobs`. |
+| 25 | `25_hiring_loop_integrity` (+`25b`) | **Security fix + hiring loop.** Seven holes were proven with real logins (below) and closed. Guard triggers are `SECURITY INVOKER` and treat `current_user` as the authority, so a client request is `authenticated` and only the `SECURITY DEFINER` hiring functions can move state. Adds the only paths through the loop: move / reject (reason required) / withdraw, schedule / reschedule / confirm / cancel / complete interview (private scorecard), send / withdraw / view offer, respond to offer. **Accept → hired → employment → verified experience on the identity the worker applied with.** Workers are notified at each step and every transition is attributed in `application_events`. `25b` removed a comparison against the generated `is_archived` column (null in a BEFORE trigger), which had blocked candidate withdrawal. |
+| 26 | `26_domain_events` (+`26b`) | **Event spine.** Append-only `domain_events` outbox written in the same transaction: `WorkerApplied`, `ApplicationViewed`, `CandidateShortlisted`, `CandidateRejected`, `InterviewScheduled/Confirmed/Rescheduled/Cancelled/Completed`, `OfferSent/Accepted/Declined/Withdrawn`, `WorkerHired`, `EmploymentVerified`, `JobPublished/Paused/Closed/Expired`. Server-side only (no client privileges). `26b` lets the foreign keys' `ON DELETE SET NULL` through so deleting an account is never blocked. |
+
+### Holes closed by migration 25
+
+Proven as real users through the publishable key before the fix, and re-run
+after it by [`tests/api/hiring_loop_e2e.py`](../tests/api/hiring_loop_e2e.py):
+
+| # | Attack (before) | Result before | After |
+|---|---|---|---|
+| H1 | Employer `PATCH applications.state = 'hired'` | 200, hired with no offer | 403 |
+| H2 | Employer rejects with no reason | 200 | 403 direct; function requires a reason |
+| H3 | Employer `POST employments` for any worker | 201 — **forged verified work history** | 403 |
+| H4 | Worker inserts `experiences.is_verified = true` / skill `employer_verified` | 201 | 403 |
+| H5 | Employer `PATCH companies.is_verified = true` | 200 — forged badge, unlocks talent-search gate | 403 |
+| H6 | Candidate `PATCH offers` pay while accepting | allowed by policy | 403 (policy removed) |
+| H7 | Either party `POST application_events` | allowed by policy — forged audit trail | 403 (policy removed) |
+
 
 ## Demo accounts (development)
 

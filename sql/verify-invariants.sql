@@ -28,6 +28,10 @@ with checks as (
   from pg_proc p
   join pg_namespace ns on ns.oid = p.pronamespace
   where ns.nspname = 'omelo_private'
+    and p.proname in ('omelo_is_company_member','omelo_has_company_role',
+                      'omelo_can_access_job','omelo_has_application_from',
+                      'omelo_is_interviewer_for','omelo_is_platform_admin',
+                      'omelo_is_discoverable_to','omelo_is_identity_discoverable_to')
     and has_function_privilege('authenticated', p.oid, 'execute')
     and has_function_privilege('anon', p.oid, 'execute')
 
@@ -57,6 +61,12 @@ with checks as (
   --   omelo_mark_application_viewed the only path to opening an application
   --   omelo_company_slug           slug generation, INVOKER, reads public data
   --   omelo_pay_monthly            pure arithmetic helper
+  --   omelo_rank_applicants / omelo_my_match / omelo_recommend_jobs
+  --                                Matching v1 (24), each authorises first
+  --   omelo_move_application / reject / withdraw_application,
+  --   omelo_schedule / reschedule / confirm / cancel / complete_interview,
+  --   omelo_send / withdraw / view_offer, omelo_respond_to_offer
+  --                                the hiring loop (25) — the ONLY way state moves
   union all
   select 4, 'Client-callable RPC surface is exactly the approved set',
          case when count(*) = 0 then 'OK'
@@ -68,7 +78,13 @@ with checks as (
          or has_function_privilege('authenticated', p.oid, 'execute'))
     and p.proname not in ('omelo_nearby_jobs','omelo_profile_schema_for',
                           'omelo_mark_application_viewed','omelo_company_slug',
-                          'omelo_pay_monthly')
+                          'omelo_pay_monthly',
+                          'omelo_rank_applicants','omelo_my_match','omelo_recommend_jobs',
+                          'omelo_move_application','omelo_reject_application','omelo_withdraw_application',
+                          'omelo_schedule_interview','omelo_reschedule_interview','omelo_confirm_interview',
+                          'omelo_cancel_interview','omelo_complete_interview',
+                          'omelo_send_offer','omelo_withdraw_offer','omelo_view_offer',
+                          'omelo_respond_to_offer')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -171,6 +187,62 @@ with checks as (
     group by w.name
     having round(sum(v.value::numeric), 4) <> 1.0000
   ) bad
+
+  -- ---------------------------------------------------------------
+  -- HIRING LOOP INTEGRITY (migration 25). Each was exploited with real
+  -- logins before the fix: see sql/README.md.
+  -- ---------------------------------------------------------------
+  union all
+  select 15, 'Hiring guard triggers are installed',
+         case when count(*) = 12 then 'OK'
+              else 'FAIL: only ' || count(*)::text || ' of 12 guard triggers present' end
+  from pg_trigger
+  where not tgisinternal and tgname in (
+    'applications_guard_transitions','applications_guard_insert','offers_guard','interviews_guard',
+    'employments_guard','companies_guard_trust','experiences_guard_trust','person_skills_guard_trust',
+    'educations_guard_trust','person_credentials_guard_trust','person_licenses_guard_trust',
+    'work_authorizations_guard_trust')
+
+  union all
+  select 16, 'Guards are SECURITY INVOKER (current_user must be the caller)',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: definer guard — ' || string_agg(p.proname, ', ') end
+  from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+  where ns.nspname = 'omelo_private' and p.prosecdef
+    and (p.proname like 'omelo_guard_%' or p.proname = 'omelo_is_privileged')
+
+  union all
+  select 17, 'Clients cannot write the audit trail or create employments',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and ((tablename = 'application_events' and cmd in ('INSERT','ALL','UPDATE','DELETE'))
+      or (tablename = 'employments' and cmd in ('INSERT','ALL')))
+
+  union all
+  select 18, 'Every hire went through an accepted offer',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' hired applications with no accepted offer + employment' end
+  from applications a
+  where a.state = 'hired'
+    and not exists (select 1 from offers o join employments e on e.offer_id = o.id
+                     where o.application_id = a.id and o.status = 'accepted')
+
+  union all
+  select 19, 'Verified experiences trace to a real employment',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' verified experiences with no employment' end
+  from experiences x
+  where x.is_verified
+    and not exists (select 1 from employments e where e.id = x.verified_employment_id)
+
+  union all
+  select 20, 'Domain events are not reachable from the client API',
+         case when not has_table_privilege('anon', 'public.domain_events', 'select')
+               and not has_table_privilege('authenticated', 'public.domain_events', 'select')
+               and not has_table_privilege('authenticated', 'public.domain_events', 'insert')
+              then 'OK' else 'FAIL: client role has privileges on domain_events' end
 )
 select n as "#", invariant, result from checks order by n;
 
