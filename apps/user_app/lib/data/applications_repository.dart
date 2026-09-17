@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_repository.dart';
+import 'hiring.dart';
 import 'jobs_repository.dart' show supabaseProvider;
+
+export 'hiring.dart';
 
 final applicationsRepositoryProvider = Provider<ApplicationsRepository>(
   (ref) => ApplicationsRepository(
@@ -31,40 +34,6 @@ const kTerminalStates = {
   'declined_by_candidate',
 };
 
-class ApplicationSummary {
-  ApplicationSummary({
-    required this.id,
-    required this.jobId,
-    required this.jobTitle,
-    required this.companyName,
-    required this.state,
-    required this.appliedAt,
-    required this.lastActivityAt,
-    required this.firstViewedAt,
-    required this.rejectionReason,
-    required this.medianResponseHours,
-  });
-
-  final String id;
-  final String jobId;
-  final String jobTitle;
-  final String companyName;
-  final String state;
-  final DateTime appliedAt;
-  final DateTime lastActivityAt;
-  final DateTime? firstViewedAt;
-  final String? rejectionReason;
-  final int? medianResponseHours;
-
-  bool get isTerminal => kTerminalStates.contains(state);
-
-  int get daysSinceActivity =>
-      DateTime.now().difference(lastActivityAt).inDays;
-
-  /// PR-4: silence is a displayed state, not an absence of one.
-  bool get isSilent => !isTerminal && daysSinceActivity >= 5;
-}
-
 class ApplyOutcome {
   const ApplyOutcome({this.error, this.applicationId});
   final String? error;
@@ -77,45 +46,124 @@ class ApplicationsRepository {
   final SupabaseClient _db;
   final AuthRepository _auth;
 
+  static const _summarySelect = '''
+          id, job_id, company_id, work_identity_id, state, match_score,
+          applied_at, first_viewed_at, last_activity_at, closed_at,
+          rejection_reason, withdrawal_reason,
+          jobs ( title, pay_min, pay_max, pay_period, pay_currency, location_text ),
+          companies ( display_name, slug, logo_url, median_response_hours )
+        ''';
+
+  static const _interviewSelect =
+      'id, application_id, type, status, round, scheduled_at, duration_minutes, '
+      'timezone, meeting_url, location_text, instructions, '
+      'candidate_confirmed_at, cancel_reason';
+
+  static const _offerSelect =
+      'id, application_id, status, title, pay_amount, pay_period, pay_currency, '
+      'start_date, expires_at, conditions, benefits, sent_at, responded_at';
+
+  /// My applications, newest first, with their interviews and offers so the
+  /// list can say what happens next without a round trip per card.
   Future<List<ApplicationSummary>> mine() async {
     final uid = _auth.currentUser?.id;
     if (uid == null) return [];
 
     final rows = await _db
         .from('applications')
-        .select('''
-          id, state, applied_at, last_activity_at, first_viewed_at,
-          rejection_reason, job_id,
-          jobs ( title ),
-          companies ( display_name, median_response_hours )
-        ''')
+        .select(_summarySelect)
         .eq('person_id', uid)
         .order('applied_at', ascending: false);
 
-    return (rows as List).map((r) {
-      final m = Map<String, dynamic>.from(r as Map);
-      final job = m['jobs'] == null
-          ? null
-          : Map<String, dynamic>.from(m['jobs'] as Map);
-      final co = m['companies'] == null
-          ? null
-          : Map<String, dynamic>.from(m['companies'] as Map);
-      return ApplicationSummary(
-        id: m['id'] as String,
-        jobId: m['job_id'] as String,
-        jobTitle: (job?['title'] ?? 'Job') as String,
-        companyName: (co?['display_name'] ?? '') as String,
-        state: (m['state'] ?? 'applied') as String,
-        appliedAt: DateTime.parse(m['applied_at'].toString()).toLocal(),
-        lastActivityAt:
-            DateTime.parse(m['last_activity_at'].toString()).toLocal(),
-        firstViewedAt: m['first_viewed_at'] == null
-            ? null
-            : DateTime.parse(m['first_viewed_at'].toString()).toLocal(),
-        rejectionReason: m['rejection_reason'] as String?,
-        medianResponseHours: (co?['median_response_hours'] as num?)?.toInt(),
-      );
-    }).toList();
+    final apps = (rows as List)
+        .map((r) =>
+            ApplicationSummary.fromRow(Map<String, dynamic>.from(r as Map)))
+        .toList();
+    if (apps.isEmpty) return apps;
+
+    final ids = apps.map((a) => a.id).toList();
+    // Interviews and offers sharpen the "Next:" line. If either read fails the
+    // list still loads and falls back to state-only wording.
+    final interviews = await _safeList(() => _db
+        .from('interviews')
+        .select(_interviewSelect)
+        .inFilter('application_id', ids)
+        .order('scheduled_at'));
+    final offers = await _safeList(() => _db
+        .from('offers')
+        .select(_offerSelect)
+        .inFilter('application_id', ids)
+        .order('sent_at', ascending: false));
+
+    return apps
+        .map((a) => a.copyWith(
+              interviews: interviews
+                  .where((m) => m['application_id']?.toString() == a.id)
+                  .map(Interview.fromRow)
+                  .toList(),
+              offers: offers
+                  .where((m) => m['application_id']?.toString() == a.id)
+                  .map(Offer.fromRow)
+                  .toList(),
+            ))
+        .toList();
+  }
+
+  /// One application with everything the worker can see about it.
+  /// Returns null when it does not exist or is not theirs (RLS).
+  Future<ApplicationDetail?> detail(String applicationId) async {
+    final row = await _db
+        .from('applications')
+        .select(_summarySelect)
+        .eq('id', applicationId)
+        .maybeSingle();
+    if (row == null) return null;
+
+    final results = await Future.wait([
+      _db
+          .from('interviews')
+          .select(_interviewSelect)
+          .eq('application_id', applicationId)
+          .order('scheduled_at'),
+      _db
+          .from('offers')
+          .select(_offerSelect)
+          .eq('application_id', applicationId)
+          .order('sent_at', ascending: false),
+      // The timeline is helpful, not essential; never block the actions on it.
+      _safeList(() => _db
+          .from('application_events')
+          .select('event_type, actor_type, from_state, to_state, reason, '
+              'metadata, occurred_at')
+          .eq('application_id', applicationId)
+          .order('occurred_at')),
+    ]);
+
+    List<Map<String, dynamic>> maps(dynamic v) => (v as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    final app = ApplicationSummary.fromRow(Map<String, dynamic>.from(row))
+        .copyWith(
+      interviews: maps(results[0]).map(Interview.fromRow).toList(),
+      offers: maps(results[1]).map(Offer.fromRow).toList(),
+    );
+    return ApplicationDetail(
+      application: app,
+      events: maps(results[2]).map(ApplicationEvent.fromRow).toList(),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _safeList(
+      Future<dynamic> Function() query) async {
+    try {
+      final rows = await query();
+      return (rows as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<bool> hasApplied(String jobId) async {
@@ -218,10 +266,92 @@ class ApplicationsRepository {
     }
   }
 
+  // -- Hiring loop actions --------------------------------------------------
+  //
+  // State changes only happen through these RPCs; the database rejects direct
+  // updates. Failures throw PostgrestException with a readable message — show
+  // it with [HiringActionError.message].
+
+  /// Withdraw. The server also cancels interviews and declines open offers.
   Future<void> withdraw(String applicationId, {String? reason}) async {
-    await _db
-        .from('applications')
-        .update({'state': 'withdrawn', 'withdrawal_reason': reason})
-        .eq('id', applicationId);
+    await _db.rpc('omelo_withdraw_application', params: {
+      'p_application_id': applicationId,
+      'p_reason': _clean(reason),
+    });
+  }
+
+  Future<void> confirmInterview(String interviewId) async {
+    await _db.rpc('omelo_confirm_interview',
+        params: {'p_interview_id': interviewId});
+  }
+
+  /// "I can't attend". The server requires a reason of 3+ characters.
+  Future<void> cancelInterview(String interviewId, String reason) async {
+    await _db.rpc('omelo_cancel_interview', params: {
+      'p_interview_id': interviewId,
+      'p_reason': reason.trim(),
+    });
+  }
+
+  /// Marks the offer as seen by the worker. Safe to call repeatedly.
+  Future<void> viewOffer(String offerId) async {
+    await _db.rpc('omelo_view_offer', params: {'p_offer_id': offerId});
+  }
+
+  Future<OfferResponse> respondToOffer(
+    String offerId, {
+    required bool accept,
+    String? reason,
+  }) async {
+    final res = await _db.rpc('omelo_respond_to_offer', params: {
+      'p_offer_id': offerId,
+      'p_accept': accept,
+      'p_reason': _clean(reason),
+    });
+    return OfferResponse.fromJson(res);
+  }
+
+  /// Why this job fits me. Throws when signed out or the job is not published.
+  Future<MatchResult> myMatch(String jobId, {String? workIdentityId}) async {
+    final res = await _db.rpc('omelo_my_match', params: {
+      'p_job_id': jobId,
+      if (workIdentityId != null) 'p_work_identity_id': workIdentityId,
+    });
+    return MatchResult.fromJson(res);
+  }
+
+  /// Best-first recommendations near a point.
+  Future<List<RecommendedJob>> recommendJobs({
+    required double lat,
+    required double lng,
+    int radiusKm = 25,
+    int limit = 20,
+    String? workIdentityId,
+  }) async {
+    final rows = await _db.rpc('omelo_recommend_jobs', params: {
+      'p_lat': lat,
+      'p_lng': lng,
+      'p_radius_km': radiusKm,
+      'p_limit': limit,
+      if (workIdentityId != null) 'p_work_identity_id': workIdentityId,
+    });
+    return (rows as List)
+        .map((r) => RecommendedJob.fromRow(Map<String, dynamic>.from(r as Map)))
+        .toList();
+  }
+
+  static String? _clean(String? s) {
+    final t = s?.trim();
+    return (t == null || t.isEmpty) ? null : t;
+  }
+}
+
+/// Turns any failure from a hiring action into a sentence for the worker.
+class HiringActionError {
+  static String message(Object e) {
+    if (e is PostgrestException && e.message.trim().isNotEmpty) {
+      return e.message;
+    }
+    return 'That did not go through. Check your connection and try again.';
   }
 }

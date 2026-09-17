@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1214,6 +1214,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "documents_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      domain_events: {
+        Row: {
+          actor_id: string | null
+          aggregate_id: string
+          aggregate_type: string
+          company_id: string | null
+          event_type: string
+          id: number
+          occurred_at: string
+          payload: Json
+          person_id: string | null
+          processed_at: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          aggregate_id: string
+          aggregate_type: string
+          company_id?: string | null
+          event_type: string
+          id?: never
+          occurred_at?: string
+          payload?: Json
+          person_id?: string | null
+          processed_at?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          aggregate_id?: string
+          aggregate_type?: string
+          company_id?: string | null
+          event_type?: string
+          id?: never
+          occurred_at?: string
+          payload?: Json
+          person_id?: string | null
+          processed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domain_events_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
@@ -4972,10 +5026,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      omelo_cancel_interview: {
+        Args: { p_interview_id: string; p_reason: string }
+        Returns: undefined
+      }
       omelo_company_slug: { Args: { p_name: string }; Returns: string }
+      omelo_complete_interview: {
+        Args: {
+          p_interview_id: string
+          p_notes?: string
+          p_outcome?: Database["public"]["Enums"]["interview_status"]
+          p_rating?: number
+          p_recommendation?: string
+        }
+        Returns: undefined
+      }
+      omelo_confirm_interview: {
+        Args: { p_interview_id: string }
+        Returns: undefined
+      }
       omelo_mark_application_viewed: {
         Args: { p_application_id: string }
         Returns: undefined
+      }
+      omelo_move_application: {
+        Args: {
+          p_application_id: string
+          p_state: Database["public"]["Enums"]["application_state"]
+        }
+        Returns: Database["public"]["Enums"]["application_state"]
+      }
+      omelo_my_match: {
+        Args: { p_job_id: string; p_work_identity_id?: string }
+        Returns: Json
       }
       omelo_nearby_jobs: {
         Args: {
@@ -5042,6 +5125,82 @@ export type Database = {
           slug: string
           sort_position: number
         }[]
+      }
+      omelo_rank_applicants: {
+        Args: { p_job_id: string }
+        Returns: {
+          application_id: string
+          eligible: boolean
+          score: number
+        }[]
+      }
+      omelo_recommend_jobs: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lng: number
+          p_radius_km?: number
+          p_work_identity_id?: string
+        }
+        Returns: {
+          distance_km: number
+          eligible: boolean
+          gaps: Json
+          job_id: string
+          score: number
+          strengths: Json
+        }[]
+      }
+      omelo_reject_application: {
+        Args: { p_application_id: string; p_reason: string }
+        Returns: undefined
+      }
+      omelo_reschedule_interview: {
+        Args: {
+          p_interview_id: string
+          p_reason?: string
+          p_scheduled_at: string
+        }
+        Returns: undefined
+      }
+      omelo_respond_to_offer: {
+        Args: { p_accept: boolean; p_offer_id: string; p_reason?: string }
+        Returns: Json
+      }
+      omelo_schedule_interview: {
+        Args: {
+          p_application_id: string
+          p_duration_minutes?: number
+          p_instructions?: string
+          p_location_text?: string
+          p_meeting_url?: string
+          p_scheduled_at: string
+          p_timezone?: string
+          p_type: Database["public"]["Enums"]["interview_type"]
+        }
+        Returns: string
+      }
+      omelo_send_offer: {
+        Args: {
+          p_application_id: string
+          p_benefits?: Json
+          p_conditions?: string
+          p_expires_at?: string
+          p_pay_amount: number
+          p_pay_period: Database["public"]["Enums"]["pay_period"]
+          p_start_date: string
+          p_title?: string
+        }
+        Returns: string
+      }
+      omelo_view_offer: { Args: { p_offer_id: string }; Returns: undefined }
+      omelo_withdraw_application: {
+        Args: { p_application_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      omelo_withdraw_offer: {
+        Args: { p_offer_id: string; p_reason: string }
+        Returns: undefined
       }
     }
     Enums: {
@@ -5389,12 +5548,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5418,11 +5577,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5443,11 +5602,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5468,11 +5627,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5485,11 +5644,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

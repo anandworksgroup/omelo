@@ -190,6 +190,8 @@ class _Content extends StatelessWidget {
           if ((j.openings ?? 0) > 1) '${j.openings} openings',
         ]),
 
+        _MatchSection(jobId: j.id),
+
         if (j.benefits.isNotEmpty) ...[
           const SizedBox(height: 24),
           const _Heading('What you get'),
@@ -394,6 +396,100 @@ class _Row extends StatelessWidget {
               child: Text(text,
                   style: const TextStyle(fontSize: 15, height: 1.35))),
         ],
+      ),
+    );
+  }
+}
+
+/// Why this job fits the signed-in worker. Null when signed out or when the
+/// match could not be computed — discovery must never break on it.
+final myMatchProvider =
+    FutureProvider.autoDispose.family<MatchResult?, String>((ref, jobId) async {
+  ref.watch(authStateProvider);
+  if (!ref.watch(authRepositoryProvider).isSignedIn) return null;
+  try {
+    return await ref.watch(applicationsRepositoryProvider).myMatch(jobId);
+  } catch (_) {
+    return null;
+  }
+});
+
+class _MatchSection extends ConsumerWidget {
+  const _MatchSection({required this.jobId});
+  final String jobId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final m = ref.watch(myMatchProvider(jobId)).valueOrNull;
+    if (m == null) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final strengths = HiringCopy.topStrengths(m);
+    final gaps = HiringCopy.topGaps(m);
+    final tips = HiringCopy.tips(m);
+    final color = m.score >= 70
+        ? OmeloTheme.verified
+        : m.score >= 45
+            ? scheme.primary
+            : scheme.onSurfaceVariant;
+
+    Widget line(IconData icon, Color c, String text) => Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(icon, size: 18, color: c),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text(text,
+                      style: const TextStyle(fontSize: 14.5, height: 1.35))),
+            ],
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(child: _Heading('Why this job matches you')),
+                Semantics(
+                  label: '${m.score} percent match',
+                  child: Text('${m.score}%',
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: color)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            for (final g in m.gateFailures)
+              line(Icons.error_outline, OmeloTheme.warning,
+                  HiringCopy.gateFailure(g)),
+            for (final s in strengths)
+              line(Icons.check, OmeloTheme.verified, s.text),
+            for (final g in gaps)
+              line(Icons.remove_circle_outline, scheme.onSurfaceVariant, g.text),
+            if (tips.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              for (final t in tips)
+                line(Icons.lightbulb_outline, OmeloTheme.warning, t),
+            ],
+          ],
+        ),
       ),
     );
   }

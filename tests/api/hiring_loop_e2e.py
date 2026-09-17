@@ -128,6 +128,15 @@ when = (dt.datetime.utcnow() + dt.timedelta(days=2)).replace(microsecond=0).isof
 s, iid = rpc("omelo_schedule_interview", {"p_application_id": aid, "p_type": "in_person", "p_scheduled_at": when,
              "p_duration_minutes": 30, "p_location_text": "Sector 18 kitchen, back entrance"}, emp_tok)
 check("schedule interview", s == 200 and isinstance(iid, str), f"{s} {msg(iid)}")
+# The apps read these tables directly (not via RPC) — RLS must let them.
+s, d = get(f"/rest/v1/interviews?select=id,status,candidate_confirmed_at&application_id=eq.{aid}", emp_tok)
+check("employer reads interviews directly (portal)", s == 200 and len(d) == 1, f"{s} {msg(d)}")
+s, d = get(f"/rest/v1/interviews?select=id,status,scheduled_at&application_id=eq.{aid}", wrk_tok)
+check("worker reads interviews directly (app)", s == 200 and len(d) == 1, f"{s} {msg(d)}")
+s, d = get(f"/rest/v1/interview_interviewers?select=person_id,is_lead&interview_id=eq.{iid}", emp_tok)
+check("employer reads the interview panel", s == 200 and len(d) == 1, f"{s} {msg(d)}")
+s, d = get(f"/rest/v1/interviews?select=id&application_id=eq.{aid}", oth_tok)
+check("another company cannot read the interview", s == 200 and d == [], f"{s} {msg(d)}")
 s, d = patch(f"/rest/v1/interviews?id=eq.{iid}", {"status": "completed"}, emp_tok); blocked("employer marks interview completed directly", s, d)
 s, d = rpc("omelo_confirm_interview", {"p_interview_id": iid}, emp_tok); blocked("employer confirms on the worker's behalf", s, d)
 s, d = rpc("omelo_confirm_interview", {"p_interview_id": iid}, wrk_tok); check("worker confirms interview", s in (200, 204), f"{s} {msg(d)}")
@@ -150,6 +159,10 @@ s, d = patch(f"/rest/v1/offers?id=eq.{oid}", {"pay_amount": 99000, "status": "ac
 blocked("worker rewrites pay while accepting", s, d)
 s, d = patch(f"/rest/v1/offers?id=eq.{oid}", {"pay_amount": 5000}, emp_tok); blocked("employer edits a sent offer", s, d)
 s, d = rpc("omelo_respond_to_offer", {"p_offer_id": oid, "p_accept": True}, emp_tok); blocked("employer accepts on the worker's behalf", s, d)
+s, d = get(f"/rest/v1/offers?select=id,status,pay_amount,expires_at&application_id=eq.{aid}", wrk_tok)
+check("worker reads the offer directly (app)", s == 200 and len(d) == 1 and d[0]["status"] == "sent", f"{s} {msg(d)}")
+s, d = get(f"/rest/v1/offers?select=id,status&application_id=eq.{aid}", emp_tok)
+check("employer reads the offer directly (portal)", s == 200 and len(d) == 1, f"{s} {msg(d)}")
 s, d = rpc("omelo_view_offer", {"p_offer_id": oid}, wrk_tok); check("worker opens offer", s in (200, 204), f"{s} {msg(d)}")
 s, d = get(f"/rest/v1/applications?select=state&id=eq.{aid}", wrk_tok); check("worker sees state=offer", d and d[0]["state"] == "offer", d)
 

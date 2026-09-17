@@ -14,7 +14,7 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('applications')
-      .select('id, state, applied_at, last_activity_at, job_id')
+      .select('id, state, applied_at, last_activity_at, first_viewed_at, job_id')
       .eq('company_id', ctx.companyId),
     supabase
       .from('company_entitlements')
@@ -42,6 +42,8 @@ export default async function DashboardPage() {
   const stats = [
     { label: 'Published jobs', value: published.length },
     { label: 'Applications', value: all.length },
+    // "New" means nobody on the team has opened it yet, whatever its state.
+    { label: 'New', value: all.filter((a) => !a.first_viewed_at).length },
     { label: 'Shortlisted', value: byState('shortlisted') },
     { label: 'Interviews', value: byState('interview') },
     { label: 'Hired', value: byState('hired') },
@@ -84,7 +86,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="card p-4">
             <div className="text-2xl font-bold">{s.value}</div>

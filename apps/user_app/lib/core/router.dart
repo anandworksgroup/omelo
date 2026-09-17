@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/applications/application_detail_screen.dart';
 import '../features/applications/applications_screen.dart';
 import '../features/apply/apply_screen.dart';
 import '../features/auth/sign_in_screen.dart';
@@ -51,6 +52,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/apply/:id',
         builder: (_, state) => ApplyScreen(jobId: state.pathParameters['id']!),
+      ),
+      // Notification deeplinks (`/applications/<id>`) land here. Declared
+      // before the shell so it opens full screen, like job detail.
+      GoRoute(
+        path: '/applications/:id',
+        builder: (_, state) => ApplicationDetailScreen(
+            applicationId: state.pathParameters['id']!),
       ),
       ShellRoute(
         builder: (_, __, child) => AppShell(child: child),

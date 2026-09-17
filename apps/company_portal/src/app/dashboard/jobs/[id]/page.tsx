@@ -231,7 +231,7 @@ export default async function JobDetailPage({
                 {a.match_score != null && (
                   <span className="pill">{a.match_score}% match</span>
                 )}
-                <Link href={`/dashboard/candidates`} className="text-sm underline">
+                <Link href={`/dashboard/candidates/${a.id}`} className="text-sm underline">
                   Review
                 </Link>
               </div>

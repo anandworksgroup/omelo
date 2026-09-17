@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 
-export type ActionState = { error?: string; ok?: boolean };
+export type ActionState = { error?: string; ok?: boolean; message?: string };
 
 /* ------------------------------------------------------------------ */
 /* Company                                                             */
@@ -106,8 +106,9 @@ const DEFAULT_STAGES = [
   { name: 'Shortlisted', position: 2, maps_to_state: 'shortlisted', is_terminal: false },
   { name: 'Phone call', position: 3, maps_to_state: 'screening', is_terminal: false },
   { name: 'Interview', position: 4, maps_to_state: 'interview', is_terminal: false },
-  { name: 'Hired', position: 5, maps_to_state: 'hired', is_terminal: true },
-  { name: 'Not moving forward', position: 6, maps_to_state: 'rejected', is_terminal: true },
+  { name: 'Offer', position: 5, maps_to_state: 'offer', is_terminal: false },
+  { name: 'Hired', position: 6, maps_to_state: 'hired', is_terminal: true },
+  { name: 'Not moving forward', position: 7, maps_to_state: 'rejected', is_terminal: true },
 ] as const;
 
 export async function createJob(
