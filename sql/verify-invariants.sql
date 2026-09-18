@@ -109,7 +109,19 @@ with checks as (
                           'omelo_mark_invitation_viewed','omelo_my_invitations','omelo_job_invitations',
                           'omelo_pool_members','omelo_my_profile_views','omelo_job_funnel',
                           'omelo_admin_matching_metrics','omelo_admin_set_company_verification',
-                          'omelo_admin_set_entitlements')
+                          'omelo_admin_set_entitlements',
+                          -- Release 4 (45-46): recruiters, agencies, consent-scoped representation
+                          'omelo_create_agency','omelo_create_job_order','omelo_update_job_order',
+                          'omelo_assign_job_order_recruiter','omelo_search_talent_for_order',
+                          'omelo_request_representation','omelo_withdraw_representation_request',
+                          'omelo_respond_to_representation','omelo_revoke_representation','omelo_my_representations',
+                          'omelo_submit_candidate','omelo_withdraw_submission','omelo_record_submission_outcome',
+                          'omelo_update_placement','omelo_request_client_link','omelo_respond_client_link',
+                          'omelo_end_client_link','omelo_my_agency_relationships','omelo_client_job_orders',
+                          'omelo_link_job_order','omelo_agency_candidates','omelo_consent_candidate',
+                          'omelo_agency_submissions','omelo_client_submissions','omelo_agency_dashboard',
+                          'omelo_invite_team_member','omelo_my_team_invitations','omelo_accept_team_invitation',
+                          'omelo_decline_team_invitation')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -354,11 +366,12 @@ with checks as (
 
   union all
   select 30, 'Scheduled jobs are installed',
-         case when count(*) = 4 then 'OK'
-              else 'FAIL: only ' || count(*)::text || ' of 4 cron jobs present and active' end
+         case when count(*) = 5 then 'OK'
+              else 'FAIL: only ' || count(*)::text || ' of 5 cron jobs present and active' end
   from cron.job
   where active and jobname in ('omelo-comms-dispatch','omelo-meet-housekeeping',
-                               'omelo-account-deletions','omelo-outbox-retention')
+                               'omelo-account-deletions','omelo-outbox-retention',
+                               'omelo-representation-expiry')
 
   -- ---------------------------------------------------------------
   -- RELEASE 2 (migrations 38-40): professional identity
@@ -425,6 +438,110 @@ with checks as (
   where p.discoverability is distinct from
         coalesce((select max(wi.discoverability) from work_identities wi
                    where wi.person_id = p.id and wi.status = 'active'), 'private')
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 4 (migrations 44-49): recruiters & agencies.
+  -- A recruiter represents a worker only with the worker's explicit consent,
+  -- for a defined job order, scope and period. The recruiter never owns the
+  -- candidate. Each row maps to the R4-0xx invariant it protects; all are
+  -- also attacked as real users in tests/api/recruitment_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 37, 'R4-001..005 submissions and consents are validated for every writer',
+         case when exists (select 1 from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+                            where t.tgname = 'candidate_submissions_validate' and not t.tgisinternal
+                              and p.proname = 'omelo_validate_submission'
+                              and p.prosrc like '%c.status <> ''accepted''%'
+                              and p.prosrc like '%c.expires_at <= now()%'
+                              and p.prosrc like '%must match its consent exactly%'
+                              and p.prosrc like '%assigned to this job order%')
+               and exists (select 1 from pg_trigger where tgname = 'candidate_consents_validate' and not tgisinternal)
+              then 'OK' else 'FAIL: consent/submission validation trigger missing or weakened' end
+
+  union all
+  select 38, 'R4-007/R4-008 consents, submissions, placements and job orders are server-written only',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: client write path — ' || string_agg(t || '.' || priv, ', ') end
+  from (select t, priv from unnest(array['candidate_consents','candidate_consent_events','candidate_submissions',
+                                          'candidate_submission_events','placements','job_orders','job_order_recruiters']) t,
+                            unnest(array['insert','update','delete']) priv
+         where has_table_privilege('authenticated', 'public.' || t, priv)
+            or has_table_privilege('anon', 'public.' || t, priv)) x
+
+  union all
+  select 39, 'R4-001/R4-002 every submission matches its consent exactly',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' submissions differ from their consent' end
+  from candidate_submissions s
+  join candidate_consents c on c.id = s.consent_id
+  where s.person_id <> c.person_id or s.work_identity_id <> c.work_identity_id or s.agency_id <> c.agency_id
+     or s.job_order_id <> c.job_order_id or s.client_id <> c.client_id
+     or c.status in ('requested','declined','withdrawn')
+
+  union all
+  select 40, 'R4-011 no consent outlives its bounded period (<= 180 days, no ownership)',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' consents without a bounded expiry' end
+  from candidate_consents
+  where status in ('accepted','active')
+    and (expires_at is null or expires_at > coalesce(responded_at, requested_at) + interval '180 days')
+
+  union all
+  select 41, 'R4-012/R4-013 every consent and submission transition is audited (append-only)',
+         case when not exists (select 1 from candidate_consents c
+                                where not exists (select 1 from candidate_consent_events e where e.consent_id = c.id))
+               and not exists (select 1 from candidate_submissions s
+                                where not exists (select 1 from candidate_submission_events e where e.submission_id = s.id))
+               and not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('candidate_consent_events','candidate_submission_events')
+                                and cmd in ('INSERT','UPDATE','DELETE','ALL'))
+              then 'OK' else 'FAIL: a transition without an audit event, or a writable audit table' end
+
+  union all
+  select 42, 'R4-006/R4-014 a narrowed consent scope hides live rows; agencies see full rows only with full consent',
+         case when exists (select 1 from pg_proc where proname = 'omelo_can_view_identity'
+                            and prosrc like '%information_scope @> array[''identity'',''skills'',''experience'',''evidence'',''answers'']%'
+                            and prosrc like '%view_candidate_details%')
+              then 'OK' else 'FAIL: omelo_can_view_identity lost its consent-scope rules' end
+
+  union all
+  select 43, 'R4-009 talent-pool membership grants no submission or viewing right',
+         case when not exists (select 1 from pg_proc where proname in ('omelo_validate_submission','omelo_submit_candidate',
+                                                                        'omelo_can_view_identity','omelo_consent_candidate')
+                                 and prosrc like '%talent_pool%')
+               and not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('candidate_consents','candidate_submissions','person_skills','experiences')
+                                and coalesce(qual, '') like '%talent_pool%')
+              then 'OK' else 'FAIL: pool membership is consulted by an access or submission rule' end
+
+  union all
+  select 44, 'R4-010 agency roles are explicit (RBAC) and team membership needs the member''s consent',
+         case when (select count(*) from pg_enum e join pg_type t on t.oid = e.enumtypid
+                     where t.typname = 'company_role' and e.enumlabel in ('sourcer','coordinator')) = 2
+               and exists (select 1 from pg_proc where proname = 'omelo_agency_roles')
+               and not has_table_privilege('authenticated', 'public.company_members', 'insert')
+               and not has_table_privilege('authenticated', 'public.company_invitations', 'insert')
+               and not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'company_members'
+                                and cmd in ('INSERT','ALL'))
+              then 'OK' else 'FAIL: RBAC helper missing or members can be added without consent' end
+
+  union all
+  select 45, 'An agency cannot claim a client company; job orders stay private to the agency',
+         case when exists (select 1 from pg_trigger where tgname = 'agency_clients_guard' and not tgisinternal)
+               and not exists (select 1 from agency_clients where link_status = 'confirmed' and client_company_id is null)
+               and not exists (select 1 from job_orders jo join jobs j on j.id = jo.job_id
+                                where j.company_id <> jo.agency_id or j.status = 'published')
+               and not exists (select 1 from job_orders jo join agency_clients cl on cl.id = jo.client_id
+                                join jobs cj on cj.id = jo.client_job_id
+                                where cl.link_status <> 'confirmed' or cj.company_id <> cl.client_company_id)
+              then 'OK' else 'FAIL: unconfirmed client link, or a job order exposed or pointing at another company' end
+
+  union all
+  select 46, 'The client pipeline is the source of truth for agency submissions',
+         case when exists (select 1 from pg_trigger where tgname = 'applications_mirror_submission' and not tgisinternal)
+               and not exists (select 1 from candidate_submissions s join applications a on a.id = s.application_id
+                                where a.state = 'hired' and not exists (select 1 from placements p where p.submission_id = s.id))
+              then 'OK' else 'FAIL: pipeline mirror missing, or a hire through an agency without a placement' end
 )
 select n as "#", invariant, result from checks order by n;
 

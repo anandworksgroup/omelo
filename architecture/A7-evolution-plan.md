@@ -222,7 +222,7 @@ recommendations, audit, intelligence.
 | WorkerRegistered, IdentityCreated, ProfileUpdated, SkillAdded, JobCreated | ○ R1/R2 | signup trigger, identity/profile triggers |
 | JobViewed (impressions live in `match_events`), InterviewJoined | ✓ R1/R3 | `omelo_track_job_events`, Meet join |
 | TalentSearched, CandidateInvited, InvitationAccepted, InvitationDeclined, InvitationWithdrawn | ✓ R3 | talent search + invitation functions |
-| CandidateSubmitted, RepresentationGranted/Revoked, PlacementMade | ○ R4 | agency functions |
+| AgencyCreated, TeamMemberInvited/Joined, JobOrderCreated/StatusChanged, ClientLinkRequested/Confirmed/Declined/Ended, RepresentationRequested/Granted/Activated/Declined/Expired/Revoked/Withdrawn, CandidateSubmitted, SubmissionStatusChanged, PlacementMade, PlacementStatusChanged | ✓ R4 | agency, consent and submission functions + triggers |
 | ShiftAssigned, AttendanceRecorded, TimesheetApproved | ○ R5 | workforce functions |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
@@ -321,3 +321,29 @@ All computed from `domain_events`, `match_events` (R3) and existing tables — a
 | Worker controls: visibility per identity, "let employers invite me", who viewed me | ✓ |
 | Portal talent search, profiles, pools, job funnel, admin matching + company tools; worker invitations inbox, event tracking | see commit |
 | Proven as real users | ✓ `tests/api/talent_e2e.py` (two-phase: Omelo grants the probe company) + all earlier suites re-run |
+
+### Release 4 status (backend proven — migrations 44–49)
+
+Principle: a recruiter can represent a worker for a specific opportunity only with the worker's
+explicit consent, for a defined period and purpose. The recruiter never owns the candidate.
+
+The Phase 4 plan above was refined against the real schema: agencies reuse `companies`
+(`company_kind`) and `company_members`; job orders are their own table backed by a private
+agency draft job (so the existing matcher scores them) and connected by the client to one of
+its own jobs; a submission to an Omelo client **is** an application, so interviews, offers,
+hire and the scorecard stay on the one hiring engine; placements are rows created on hire.
+
+| Item | State |
+|---|---|
+| Agency (independent or team), explicit RBAC: owner / admin / recruiter / sourcer / coordinator | ✓ `omelo_agency_roles` |
+| Team membership only by invitation + acceptance (agencies and employers) | ✓ migration 46 |
+| Clients (contacts, locations, departments, owner, notes); client company links only by the client's confirmation | ✓ |
+| Job orders (openings, pay, shifts, skills, experience, hard requirements, dates, priority, status, assigned recruiters) | ✓ |
+| Recruiter talent search = R3 core + 12 filters, visibility-respecting, consent-aware | ✓ `omelo_search_talent_for_order` |
+| Talent pools for agencies — membership grants nothing | ✓ invariant 43 |
+| Scoped consent (candidate + identity + agency + recruiter + job order + client + purpose + scope + expiry), lifecycle requested → accepted → active → expired / revoked, declined, withdrawn; every transition audited | ✓ invariants 37, 40, 41 |
+| Submission only from an accepted, unexpired, exactly-matching consent by an assigned recruiter; snapshot = consented scope | ✓ invariants 37, 39, 42 |
+| Client pipeline on the existing engine (review → shortlist → Omelo Meet → offer → hire) mirrored to the agency; placement on hire | ✓ invariant 46 |
+| Worker: requests with full terms and what is shared, accept / decline, where submitted, revoke while not progressed | ✓ |
+| R4-001 … R4-014 attacked as real users | ✓ `tests/api/recruitment_e2e.py` (two-phase) + service-role checks + all earlier suites re-run |
+| Latent matcher crash on gate failures fixed (since v1) | ✓ migration 47 |

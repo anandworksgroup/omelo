@@ -46,6 +46,143 @@ export type Database = {
           },
         ]
       }
+      agency_client_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          title: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_client_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_clients: {
+        Row: {
+          agency_id: string
+          client_company_id: string | null
+          created_at: string
+          created_by: string | null
+          departments: string[]
+          id: string
+          industry: string | null
+          link_status: string
+          locations: string[]
+          name: string
+          notes: string | null
+          owner_id: string | null
+          relationship_status: string
+          requested_company_id: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          agency_id: string
+          client_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          departments?: string[]
+          id?: string
+          industry?: string | null
+          link_status?: string
+          locations?: string[]
+          name: string
+          notes?: string | null
+          owner_id?: string | null
+          relationship_status?: string
+          requested_company_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          agency_id?: string
+          client_company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          departments?: string[]
+          id?: string
+          industry?: string | null
+          link_status?: string
+          locations?: string[]
+          name?: string
+          notes?: string | null
+          owner_id?: string | null
+          relationship_status?: string
+          requested_company_id?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_clients_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_requested_company_id_fkey"
+            columns: ["requested_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_events: {
         Row: {
           actor_id: string | null
@@ -481,6 +618,169 @@ export type Database = {
           },
         ]
       }
+      candidate_consent_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          consent_id: string
+          from_status: string | null
+          id: number
+          occurred_at: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type: string
+          consent_id: string
+          from_status?: string | null
+          id?: never
+          occurred_at?: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          consent_id?: string
+          from_status?: string | null
+          id?: never
+          occurred_at?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_consent_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consent_events_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_consents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_consents: {
+        Row: {
+          agency_id: string
+          client_id: string
+          decline_reason: string | null
+          expires_at: string | null
+          id: string
+          information_scope: string[]
+          job_order_id: string
+          message: string | null
+          person_id: string
+          purpose: string
+          recruiter_id: string | null
+          request_expires_at: string
+          requested_at: string
+          responded_at: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          status: string
+          terms: Json
+          updated_at: string
+          valid_days: number
+          work_identity_id: string
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          decline_reason?: string | null
+          expires_at?: string | null
+          id?: string
+          information_scope: string[]
+          job_order_id: string
+          message?: string | null
+          person_id: string
+          purpose?: string
+          recruiter_id?: string | null
+          request_expires_at?: string
+          requested_at?: string
+          responded_at?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          status?: string
+          terms: Json
+          updated_at?: string
+          valid_days?: number
+          work_identity_id: string
+        }
+        Update: {
+          agency_id?: string
+          client_id?: string
+          decline_reason?: string | null
+          expires_at?: string | null
+          id?: string
+          information_scope?: string[]
+          job_order_id?: string
+          message?: string | null
+          person_id?: string
+          purpose?: string
+          recruiter_id?: string | null
+          request_expires_at?: string
+          requested_at?: string
+          responded_at?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          status?: string
+          terms?: Json
+          updated_at?: string
+          valid_days?: number
+          work_identity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_consents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consents_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consents_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consents_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_consents_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_invitations: {
         Row: {
           company_id: string
@@ -558,6 +858,165 @@ export type Database = {
           },
           {
             foreignKeyName: "candidate_invitations_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_submission_events: {
+        Row: {
+          actor_id: string | null
+          from_status: string | null
+          id: number
+          occurred_at: string
+          reason: string | null
+          submission_id: string
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          from_status?: string | null
+          id?: never
+          occurred_at?: string
+          reason?: string | null
+          submission_id: string
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          from_status?: string | null
+          id?: never
+          occurred_at?: string
+          reason?: string | null
+          submission_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_submission_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submission_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_submissions: {
+        Row: {
+          agency_id: string
+          application_id: string | null
+          client_id: string
+          client_response: string | null
+          consent_id: string
+          id: string
+          job_order_id: string
+          person_id: string
+          recruiter_id: string | null
+          recruiter_note: string | null
+          rejection_reason: string | null
+          snapshot: Json
+          status: string
+          submitted_at: string
+          updated_at: string
+          work_identity_id: string
+        }
+        Insert: {
+          agency_id: string
+          application_id?: string | null
+          client_id: string
+          client_response?: string | null
+          consent_id: string
+          id?: string
+          job_order_id: string
+          person_id: string
+          recruiter_id?: string | null
+          recruiter_note?: string | null
+          rejection_reason?: string | null
+          snapshot: Json
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          work_identity_id: string
+        }
+        Update: {
+          agency_id?: string
+          application_id?: string | null
+          client_id?: string
+          client_response?: string | null
+          consent_id?: string
+          id?: string
+          job_order_id?: string
+          person_id?: string
+          recruiter_id?: string | null
+          recruiter_note?: string | null
+          rejection_reason?: string | null
+          snapshot?: Json
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          work_identity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_submissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_consents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_recruiter_id_fkey"
+            columns: ["recruiter_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_work_identity_id_fkey"
             columns: ["work_identity_id"]
             isOneToOne: false
             referencedRelation: "work_identities"
@@ -644,6 +1103,7 @@ export type Database = {
           hq_location_id: string | null
           id: string
           industry_id: string | null
+          is_independent_recruiter: boolean
           is_verified: boolean
           legal_name: string | null
           logo_url: string | null
@@ -677,6 +1137,7 @@ export type Database = {
           hq_location_id?: string | null
           id?: string
           industry_id?: string | null
+          is_independent_recruiter?: boolean
           is_verified?: boolean
           legal_name?: string | null
           logo_url?: string | null
@@ -710,6 +1171,7 @@ export type Database = {
           hq_location_id?: string | null
           id?: string
           industry_id?: string | null
+          is_independent_recruiter?: boolean
           is_verified?: boolean
           legal_name?: string | null
           logo_url?: string | null
@@ -2804,6 +3266,201 @@ export type Database = {
           },
         ]
       }
+      job_order_recruiters: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          job_order_id: string
+          person_id: string
+          role: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          job_order_id: string
+          person_id: string
+          role?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          job_order_id?: string
+          person_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_order_recruiters_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_order_recruiters_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_order_recruiters_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_orders: {
+        Row: {
+          agency_id: string
+          client_id: string
+          client_job_id: string | null
+          closing_date: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          hard_requirements: string[]
+          id: string
+          job_id: string
+          location_id: string | null
+          location_text: string | null
+          min_experience_months: number | null
+          notes: string | null
+          openings: number
+          pay_currency: string | null
+          pay_max: number | null
+          pay_min: number | null
+          pay_period: Database["public"]["Enums"]["pay_period"] | null
+          priority: string
+          profession_id: string | null
+          reference: string
+          required_skill_ids: string[]
+          shift_types: Database["public"]["Enums"]["shift_type"][]
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          work_type: Database["public"]["Enums"]["work_type"]
+          workplace_type: Database["public"]["Enums"]["workplace_type"]
+        }
+        Insert: {
+          agency_id: string
+          client_id: string
+          client_job_id?: string | null
+          closing_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hard_requirements?: string[]
+          id?: string
+          job_id: string
+          location_id?: string | null
+          location_text?: string | null
+          min_experience_months?: number | null
+          notes?: string | null
+          openings?: number
+          pay_currency?: string | null
+          pay_max?: number | null
+          pay_min?: number | null
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          priority?: string
+          profession_id?: string | null
+          reference: string
+          required_skill_ids?: string[]
+          shift_types?: Database["public"]["Enums"]["shift_type"][]
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          work_type?: Database["public"]["Enums"]["work_type"]
+          workplace_type?: Database["public"]["Enums"]["workplace_type"]
+        }
+        Update: {
+          agency_id?: string
+          client_id?: string
+          client_job_id?: string | null
+          closing_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hard_requirements?: string[]
+          id?: string
+          job_id?: string
+          location_id?: string | null
+          location_text?: string | null
+          min_experience_months?: number | null
+          notes?: string | null
+          openings?: number
+          pay_currency?: string | null
+          pay_max?: number | null
+          pay_min?: number | null
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          priority?: string
+          profession_id?: string | null
+          reference?: string
+          required_skill_ids?: string[]
+          shift_types?: Database["public"]["Enums"]["shift_type"][]
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          work_type?: Database["public"]["Enums"]["work_type"]
+          workplace_type?: Database["public"]["Enums"]["workplace_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_orders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_client_job_id_fkey"
+            columns: ["client_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_orders_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "professions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_questions: {
         Row: {
           answer_type: string
@@ -4697,6 +5354,116 @@ export type Database = {
           },
         ]
       }
+      placements: {
+        Row: {
+          agency_id: string
+          application_id: string | null
+          client_id: string
+          created_at: string
+          employment_id: string | null
+          fee_amount: number | null
+          fee_currency: string | null
+          guarantee_ends_on: string | null
+          id: string
+          job_order_id: string
+          notes: string | null
+          person_id: string
+          start_date: string | null
+          status: string
+          submission_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          application_id?: string | null
+          client_id: string
+          created_at?: string
+          employment_id?: string | null
+          fee_amount?: number | null
+          fee_currency?: string | null
+          guarantee_ends_on?: string | null
+          id?: string
+          job_order_id: string
+          notes?: string | null
+          person_id: string
+          start_date?: string | null
+          status?: string
+          submission_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          application_id?: string | null
+          client_id?: string
+          created_at?: string
+          employment_id?: string | null
+          fee_amount?: number | null
+          fee_currency?: string | null
+          guarantee_ends_on?: string | null
+          id?: string
+          job_order_id?: string
+          notes?: string | null
+          person_id?: string
+          start_date?: string | null
+          status?: string
+          submission_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placements_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_employment_id_fkey"
+            columns: ["employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "candidate_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_admins: {
         Row: {
           expires_at: string | null
@@ -5718,6 +6485,7 @@ export type Database = {
         Row: {
           about: string | null
           allow_invitations: boolean
+          allow_recruiter_requests: boolean
           category_id: string | null
           completeness_score: number
           created_at: string
@@ -5737,6 +6505,7 @@ export type Database = {
         Insert: {
           about?: string | null
           allow_invitations?: boolean
+          allow_recruiter_requests?: boolean
           category_id?: string | null
           completeness_score?: number
           created_at?: string
@@ -5756,6 +6525,7 @@ export type Database = {
         Update: {
           about?: string | null
           allow_invitations?: boolean
+          allow_recruiter_requests?: boolean
           category_id?: string | null
           completeness_score?: number
           created_at?: string
@@ -5801,6 +6571,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      omelo_accept_team_invitation: {
+        Args: { p_invitation: string }
+        Returns: string
+      }
       omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
       omelo_admin_matching_metrics: { Args: { p_days?: number }; Returns: Json }
       omelo_admin_set_company_verification: {
@@ -5819,9 +6593,27 @@ export type Database = {
         Returns: undefined
       }
       omelo_admin_system_health: { Args: { p_hours?: number }; Returns: Json }
+      omelo_agency_candidates: {
+        Args: { p_agency: string; p_job_order?: string }
+        Returns: Json
+      }
+      omelo_agency_dashboard: { Args: { p_agency: string }; Returns: Json }
+      omelo_agency_submissions: {
+        Args: { p_agency: string; p_job_order?: string }
+        Returns: Json
+      }
       omelo_am_i_platform_admin: { Args: never; Returns: boolean }
       omelo_archive_work_identity: {
         Args: { p_archive?: boolean; p_identity: string }
+        Returns: undefined
+      }
+      omelo_assign_job_order_recruiter: {
+        Args: {
+          p_assign?: boolean
+          p_order: string
+          p_person: string
+          p_role?: string
+        }
         Returns: undefined
       }
       omelo_cancel_account_deletion: { Args: never; Returns: boolean }
@@ -5829,6 +6621,8 @@ export type Database = {
         Args: { p_interview_id: string; p_reason: string }
         Returns: undefined
       }
+      omelo_client_job_orders: { Args: never; Returns: Json }
+      omelo_client_submissions: { Args: { p_job_id?: string }; Returns: Json }
       omelo_comms_claim: {
         Args: { p_limit?: number }
         Returns: {
@@ -5885,6 +6679,15 @@ export type Database = {
         Args: { p_channel: string; p_code: string }
         Returns: Json
       }
+      omelo_consent_candidate: { Args: { p_consent: string }; Returns: Json }
+      omelo_create_agency: {
+        Args: { p_country?: string; p_independent?: boolean; p_name: string }
+        Returns: string
+      }
+      omelo_create_job_order: {
+        Args: { p_client: string; p_order: Json }
+        Returns: string
+      }
       omelo_create_work_identity: {
         Args: {
           p_copy?: string[]
@@ -5894,10 +6697,15 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_decline_team_invitation: {
+        Args: { p_invitation: string }
+        Returns: undefined
+      }
       omelo_delete_work_identity: {
         Args: { p_identity: string }
         Returns: undefined
       }
+      omelo_end_client_link: { Args: { p_client: string }; Returns: undefined }
       omelo_identity_evidence: { Args: { p_identity: string }; Returns: Json }
       omelo_identity_profile: { Args: { p_identity?: string }; Returns: Json }
       omelo_interview_question_suggestions: {
@@ -5910,12 +6718,20 @@ export type Database = {
           rank: number
         }[]
       }
+      omelo_invite_team_member: {
+        Args: { p_company: string; p_email: string; p_role: string }
+        Returns: string
+      }
       omelo_invite_to_apply: {
         Args: { p_identity: string; p_job_id: string; p_message?: string }
         Returns: string
       }
       omelo_job_funnel: { Args: { p_job_id: string }; Returns: Json }
       omelo_job_invitations: { Args: { p_job_id: string }; Returns: Json }
+      omelo_link_job_order: {
+        Args: { p_job: string; p_job_order: string }
+        Returns: undefined
+      }
       omelo_mark_application_viewed: {
         Args: { p_application_id: string }
         Returns: undefined
@@ -5946,12 +6762,14 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["application_state"]
       }
+      omelo_my_agency_relationships: { Args: never; Returns: Json }
       omelo_my_invitations: { Args: never; Returns: Json }
       omelo_my_match: {
         Args: { p_job_id: string; p_work_identity_id?: string }
         Returns: Json
       }
       omelo_my_profile_views: { Args: { p_days?: number }; Returns: Json }
+      omelo_my_representations: { Args: never; Returns: Json }
       omelo_my_sessions: {
         Args: never
         Returns: {
@@ -5963,6 +6781,7 @@ export type Database = {
           user_agent: string
         }[]
       }
+      omelo_my_team_invitations: { Args: never; Returns: Json }
       omelo_my_trust_status: { Args: never; Returns: Json }
       omelo_nearby_jobs: {
         Args: {
@@ -6056,6 +6875,15 @@ export type Database = {
           strengths: Json
         }[]
       }
+      omelo_record_submission_outcome: {
+        Args: {
+          p_note?: string
+          p_start_date?: string
+          p_status: string
+          p_submission: string
+        }
+        Returns: undefined
+      }
       omelo_reject_application: {
         Args: { p_application_id: string; p_reason: string }
         Returns: undefined
@@ -6073,10 +6901,24 @@ export type Database = {
         Args: { p_reason?: string }
         Returns: Json
       }
+      omelo_request_client_link: {
+        Args: { p_client: string; p_company: string }
+        Returns: undefined
+      }
       omelo_request_email_verification: { Args: never; Returns: Json }
       omelo_request_phone_verification: {
         Args: { p_phone: string }
         Returns: Json
+      }
+      omelo_request_representation: {
+        Args: {
+          p_identity: string
+          p_job_order: string
+          p_message?: string
+          p_scope?: string[]
+          p_valid_days?: number
+        }
+        Returns: string
       }
       omelo_reschedule_interview: {
         Args: {
@@ -6087,6 +6929,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      omelo_respond_client_link: {
+        Args: { p_accept: boolean; p_client: string }
+        Returns: undefined
+      }
       omelo_respond_to_invitation: {
         Args: { p_invitation: string; p_reason?: string }
         Returns: undefined
@@ -6095,7 +6941,15 @@ export type Database = {
         Args: { p_accept: boolean; p_offer_id: string; p_reason?: string }
         Returns: Json
       }
+      omelo_respond_to_representation: {
+        Args: { p_accept: boolean; p_consent: string; p_reason?: string }
+        Returns: undefined
+      }
       omelo_revoke_other_sessions: { Args: never; Returns: number }
+      omelo_revoke_representation: {
+        Args: { p_consent: string; p_reason?: string }
+        Returns: undefined
+      }
       omelo_revoke_session: { Args: { p_session_id: string }; Returns: boolean }
       omelo_save_identity_profile: {
         Args: { p_identity: string; p_values: Json }
@@ -6144,6 +6998,15 @@ export type Database = {
         }
         Returns: Json
       }
+      omelo_search_talent_for_order: {
+        Args: {
+          p_filters?: Json
+          p_job_order: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
       omelo_send_message: {
         Args: { p_body: string; p_conversation_id: string }
         Returns: number
@@ -6169,11 +7032,23 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: string
       }
+      omelo_submit_candidate: {
+        Args: { p_consent: string; p_note?: string }
+        Returns: string
+      }
       omelo_talent_profile: {
         Args: { p_identity: string; p_job_id?: string }
         Returns: Json
       }
       omelo_track_job_events: { Args: { p_events: Json }; Returns: number }
+      omelo_update_job_order: {
+        Args: { p_changes: Json; p_order: string }
+        Returns: undefined
+      }
+      omelo_update_placement: {
+        Args: { p_changes: Json; p_placement: string }
+        Returns: undefined
+      }
       omelo_view_offer: { Args: { p_offer_id: string }; Returns: undefined }
       omelo_withdraw_application: {
         Args: { p_application_id: string; p_reason?: string }
@@ -6185,6 +7060,14 @@ export type Database = {
       }
       omelo_withdraw_offer: {
         Args: { p_offer_id: string; p_reason: string }
+        Returns: undefined
+      }
+      omelo_withdraw_representation_request: {
+        Args: { p_consent: string }
+        Returns: undefined
+      }
+      omelo_withdraw_submission: {
+        Args: { p_reason?: string; p_submission: string }
         Returns: undefined
       }
     }
@@ -6274,6 +7157,8 @@ export type Database = {
         | "hr"
         | "finance"
         | "viewer"
+        | "sourcer"
+        | "coordinator"
       company_size_band:
         | "1-10"
         | "11-50"
@@ -6391,6 +7276,8 @@ export type Database = {
         | "system"
         | "message_received"
         | "job_invitation"
+        | "representation_request"
+        | "representation_update"
       offer_status:
         | "draft"
         | "sent"
@@ -6742,6 +7629,8 @@ export const Constants = {
         "hr",
         "finance",
         "viewer",
+        "sourcer",
+        "coordinator",
       ],
       company_size_band: [
         "1-10",
@@ -6870,6 +7759,8 @@ export const Constants = {
         "system",
         "message_received",
         "job_invitation",
+        "representation_request",
+        "representation_update",
       ],
       offer_status: [
         "draft",

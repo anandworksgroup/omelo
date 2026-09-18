@@ -317,14 +317,18 @@ class AppNotification {
 
   /// Where tapping this goes in the worker app, or null to stay put.
   String? get target =>
-      workerDeeplink(deeplink) ?? _fromEntity(entityType, entityId);
+      workerDeeplink(deeplink) ?? _fromEntity(entityType, entityId, deeplink);
 
-  static String? _fromEntity(String? type, String? id) {
+  static String? _fromEntity(String? type, String? id, String? link) {
     if (!isUuid(id)) return null;
     return switch (type) {
       'application' => '/applications/$id',
       'conversation' => '/messages/$id',
       'candidate_invitation' => '/invitations/$id',
+      // Recruiters get consent notices that link to their dashboard; only a
+      // notice without a link of its own falls back to the worker screen.
+      'candidate_consent' when link == null || link.trim().isEmpty =>
+        '/representations/$id',
       _ => null,
     };
   }
@@ -333,6 +337,7 @@ class AppNotification {
 /// Turns a notification deeplink into a route this app has, or null.
 ///
 /// Accepts `/applications/<uuid>`, `/messages/<uuid>`, `/invitations/<uuid>`,
+/// `/representations/<uuid>`,
 /// `/job/<uuid>` (opened as surface `notification`), `/meet/<room>` and the
 /// list screens, as a path or a full https link to the same path. Anything
 /// else — employer dashboard links, typos, other sites — is ignored so a bad
@@ -354,6 +359,8 @@ String? workerDeeplink(String? link) {
       'messages' => '/messages',
       'notifications' => '/notifications',
       'invitations' => '/invitations',
+      'representations' => '/representations',
+      'recruiters' => '/recruiters',
       _ => null,
     };
   }
@@ -363,6 +370,7 @@ String? workerDeeplink(String? link) {
     'applications' when isUuid(id) => '/applications/$id',
     'messages' when isUuid(id) => '/messages/$id',
     'invitations' when isUuid(id) => '/invitations/$id',
+    'representations' when isUuid(id) => '/representations/$id',
     'job' || 'jobs' when isUuid(id) => '/job/$id?from=notification',
     'meet' when isValidRoomName(id) => '/meet/$id',
     _ => null,
@@ -376,6 +384,7 @@ enum NotificationKind {
   offer,
   message,
   invitation,
+  representation,
   other
 }
 
@@ -389,6 +398,9 @@ NotificationKind notificationKind(String type) => switch (type) {
       'offer_received' || 'offer_update' => NotificationKind.offer,
       'message_received' => NotificationKind.message,
       'job_invitation' => NotificationKind.invitation,
+      'representation_request' ||
+      'representation_update' =>
+        NotificationKind.representation,
       _ => NotificationKind.other,
     };
 

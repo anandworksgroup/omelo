@@ -56,7 +56,10 @@ s, wi = get(f"/rest/v1/work_identities?select=id&person_id=eq.{wrk_id}&is_primar
 s, app = post("/rest/v1/applications", {"job_id": jid, "person_id": wrk_id, "company_id": cid,
               "work_identity_id": wi[0]["id"], "identity_snapshot": {}}, wrk_tok); aid = app[0]["id"]
 s, d = post("/rest/v1/company_members", {"company_id": cid, "person_id": pnl_id, "role": "interviewer", "is_active": True}, emp_tok)
-check("owner adds an interviewer to the hiring team", s == 201, f"{s} {msg(d)}")
+blocked("adding a team member without their consent", s, d)
+s, inv = rpc("omelo_invite_team_member", {"p_company": cid, "p_email": f"probe.pnl.{stamp}@omelo.dev", "p_role": "interviewer"}, emp_tok)
+s2, d = rpc("omelo_accept_team_invitation", {"p_invitation": inv}, pnl_tok)
+check("owner invites an interviewer, who accepts and joins the hiring team", s == 200 and s2 == 200, f"{s} {s2} {msg(d)}")
 s, d = post("/rest/v1/job_interview_rounds", [
     {"job_id": jid, "position": 1, "name": "Technical Interview", "kind": "technical", "meeting_mode": "omelo_meet", "duration_minutes": 45},
     {"job_id": jid, "position": 2, "name": "Kitchen Trial", "kind": "practical", "meeting_mode": "in_person", "duration_minutes": 60},

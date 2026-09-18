@@ -47,7 +47,7 @@ const payload = {
 };
 
 for (const t of ["verify_email", "account_deletion_scheduled", "interview_invitation", "next_round_invitation", "interview_rescheduled", "interview_cancelled",
-                 "interview_reminder", "interview_completed", "offer_received", "new_message", "job_invitation"]) {
+                 "interview_reminder", "interview_completed", "offer_received", "new_message", "job_invitation", "representation_request"]) {
   Deno.test(`email ${t} renders and escapes HTML`, () => {
     const r = renderEmail(t, payload, links);
     assert(r && r.html.length > 200 && r.text.length > 20);
@@ -70,4 +70,15 @@ Deno.test("job invitation links to the invitation in the worker app", () => {
   const r = renderEmail("job_invitation", payload, links)!;
   assert(r.html.includes("https://app.omelo.com/#/invitations/inv-1"));
   assert(r.html.includes("20,000") && !r.html.includes("<b>come"));
+});
+
+Deno.test("representation request says nothing is shared before a yes and links to the request", () => {
+  const r = renderEmail("representation_request", {
+    agency: { name: "Acme <b>Staffing</b>" }, client: { name: "ABC Logistics" }, position: "Warehouse Associate",
+    pay: { min: 22000, max: 22000, period: "month", currency: "INR" }, scope: ["identity", "skills", "contact"],
+    valid_days: 60, consent_id: "c-1", message: "Night shift <i>role</i>",
+  }, links)!;
+  assert(r.html.includes("https://app.omelo.com/#/representations/c-1"));
+  assert(r.html.includes("Nothing is shared until you say yes") && r.html.includes("22,000"));
+  assert(!r.html.includes("<b>Staffing") && !r.html.includes("<i>role"));
 });

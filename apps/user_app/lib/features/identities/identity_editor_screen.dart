@@ -5,6 +5,7 @@ import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/identity_repository.dart';
 import '../../data/invitations_repository.dart';
+import '../../data/representations_repository.dart';
 import 'identity_sections.dart';
 import 'identity_widgets.dart';
 import 'profile_field_input.dart';
@@ -657,7 +658,151 @@ class _VisibilitySectionState extends ConsumerState<_VisibilitySection> {
         ),
         const SizedBox(height: 12),
         _AllowInvitationsTile(identity: widget.identity),
+        const SizedBox(height: 12),
+        _AllowRecruiterRequestsTile(
+          identity: widget.identity,
+          busy: _busy,
+          onMakeFindable: () => _set(IdentityVisibility.recruiters),
+        ),
       ],
+    );
+  }
+}
+
+/// "Let recruiters and agencies ask to represent me"
+/// (`work_identities.allow_recruiter_requests`). Agencies only ever find an
+/// identity set to "Employers and agencies" or "Anyone with the link", so
+/// the tile says so, and offers to change it when they cannot.
+class _AllowRecruiterRequestsTile extends ConsumerStatefulWidget {
+  const _AllowRecruiterRequestsTile({
+    required this.identity,
+    required this.busy,
+    required this.onMakeFindable,
+  });
+  final WorkIdentity identity;
+  final bool busy;
+  final VoidCallback onMakeFindable;
+
+  @override
+  ConsumerState<_AllowRecruiterRequestsTile> createState() =>
+      _AllowRecruiterRequestsTileState();
+}
+
+class _AllowRecruiterRequestsTileState
+    extends ConsumerState<_AllowRecruiterRequestsTile> {
+  bool? _value;
+  bool _busy = false;
+
+  Future<void> _set(bool v) async {
+    final before = _value;
+    setState(() {
+      _value = v;
+      _busy = true;
+    });
+    try {
+      await ref
+          .read(representationsRepositoryProvider)
+          .setAllowRecruiterRequests(widget.identity.id, v);
+      ref.invalidate(allowRecruiterRequestsProvider(widget.identity.id));
+      if (mounted) {
+        showSnack(
+            context,
+            v
+                ? 'Recruiters can ask to represent you.'
+                : 'Recruiters cannot send you new requests.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _value = before);
+        showSnack(context, identityError(e));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final visibility = widget.identity.visibility;
+    final findable = agenciesCanFind(visibility);
+    final loaded =
+        ref.watch(allowRecruiterRequestsProvider(widget.identity.id));
+    final value = _value ?? loaded.valueOrNull ?? true;
+
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SwitchListTile(
+            value: value,
+            onChanged: _busy || loaded.isLoading || !widget.identity.isActive
+                ? null
+                : _set,
+            contentPadding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
+            title: const Text(
+                'Let recruiters and agencies ask to represent me',
+                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+            subtitle: const Padding(
+              padding: EdgeInsets.only(top: 3),
+              child: Text(
+                'An agency can ask to put you forward for one job. Nothing is '
+                'shared until you say yes.',
+                style: TextStyle(fontSize: 13.5, height: 1.35),
+              ),
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                        findable
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 20,
+                        color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        agencyFindabilityNote(visibility),
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+                if (!findable && widget.identity.isActive) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      style:
+                          TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                      onPressed: widget.busy ? null : widget.onMakeFindable,
+                      child: const Text('Change to "Employers and agencies"'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

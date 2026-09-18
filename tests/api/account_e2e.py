@@ -67,7 +67,8 @@ s, job = post("/rest/v1/jobs", {"company_id": cid, "created_by": emp_id, "title"
               "workplace_type": "onsite", "work_type": "full_time", "pay_min": 15000, "pay_max": 20000,
               "pay_period": "month", "pay_currency": "INR", "accepts_no_experience": True, "status": "draft"}, emp_tok)
 jid = job[0]["id"]
-post("/rest/v1/company_members", {"company_id": cid, "person_id": mate_id, "role": "recruiter", "is_active": True}, emp_tok)
+_, _inv = rpc("omelo_invite_team_member", {"p_company": cid, "p_email": f"probe.mate.{stamp}@omelo.dev", "p_role": "recruiter"}, emp_tok)
+assert rpc("omelo_accept_team_invitation", {"p_invitation": _inv}, mate_tok)[0] == 200, "teammate could not join the team"
 s, d = rpc("omelo_request_account_deletion", {"p_reason": "testing"}, emp_tok)
 check("sole owner of a team cannot delete until ownership moves", s >= 400 and "owner" in msg(d), f"{s} {msg(d)}")
 s, d = rpc("omelo_request_account_deletion", {"p_reason": "Found work elsewhere"}, wrk_tok)

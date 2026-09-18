@@ -22,6 +22,9 @@ import '../features/notifications/notifications_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/profile_views_screen.dart';
+import '../features/representations/recruiters_screen.dart';
+import '../features/representations/representation_detail_screen.dart';
+import '../features/representations/representations_screen.dart';
 import '../features/saved/saved_jobs_screen.dart';
 import '../features/settings/reset_password_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -132,6 +135,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         redirect: _requireSignIn,
         builder: (_, state) => InvitationDetailScreen(
             invitationId: state.pathParameters['id']!),
+      ),
+      // Release 4: recruiters and agencies asking to represent me
+      // (notification deeplinks `/representations/<id>`).
+      GoRoute(
+        path: '/representations',
+        redirect: _requireSignIn,
+        builder: (_, state) => RepresentationsScreen(
+            agency: state.uri.queryParameters['agency']),
+      ),
+      GoRoute(
+        path: '/representations/:id',
+        redirect: _requireSignIn,
+        builder: (_, state) =>
+            RepresentationDetailScreen(consentId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/recruiters',
+        redirect: _requireSignIn,
+        builder: (_, __) => const RecruitersScreen(),
       ),
       GoRoute(
         path: '/saved',

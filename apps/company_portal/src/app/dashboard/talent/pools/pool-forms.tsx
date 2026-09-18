@@ -14,7 +14,8 @@ function ErrorLine({ message }: { message: string | null }) {
   );
 }
 
-export function CreatePoolForm() {
+/** `basePath` lets the agency's pool pages reuse these forms. */
+export function CreatePoolForm({ basePath = '/dashboard/talent/pools' }: { basePath?: string } = {}) {
   const uid = useId();
   const router = useRouter();
   const [name, setName] = useState('');
@@ -31,7 +32,7 @@ export function CreatePoolForm() {
           const res = await createPool(name);
           if (!res.ok) return setError(res.error);
           setName('');
-          router.push(`/dashboard/talent/pools/${res.pool.id}`);
+          router.push(`${basePath}/${res.pool.id}`);
         });
       }}
     >
@@ -56,7 +57,15 @@ export function CreatePoolForm() {
   );
 }
 
-export function PoolSettings({ poolId, name: initial }: { poolId: string; name: string }) {
+export function PoolSettings({
+  poolId,
+  name: initial,
+  basePath = '/dashboard/talent/pools',
+}: {
+  poolId: string;
+  name: string;
+  basePath?: string;
+}) {
   const uid = useId();
   const router = useRouter();
   const [mode, setMode] = useState<'idle' | 'rename' | 'delete'>('idle');
@@ -118,7 +127,7 @@ export function PoolSettings({ poolId, name: initial }: { poolId: string; name: 
             start(async () => {
               const res = await deletePool(poolId);
               if (!res.ok) return setError(res.error);
-              router.push('/dashboard/talent/pools');
+              router.push(basePath);
             });
           }}
         >

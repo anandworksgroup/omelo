@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import { STATE_LABEL, daysSince, timeAgo } from '@/lib/format';
 
 export default async function DashboardPage() {
   const ctx = (await getCompanyContext())!;
+  // An agency works in job orders, not jobs: its overview is the agency dashboard.
+  if (ctx.kind === 'agency') redirect('/dashboard/agency');
   const supabase = await createClient();
 
   const [{ data: jobs }, { data: apps }, { data: ent }] = await Promise.all([

@@ -16,6 +16,8 @@ import '../../data/messaging_repository.dart'
     show messagingRepositoryProvider, messagingError;
 import 'applications_screen.dart';
 import '../settings/account_widgets.dart' show showEmailVerificationSheet;
+import '../representations/representation_widgets.dart'
+    show SubmittedByLine;
 import 'hiring_widgets.dart';
 
 final applicationDetailProvider = FutureProvider.autoDispose
@@ -161,6 +163,7 @@ class _ApplicationDetailScreenState
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: scheme.onSurfaceVariant)),
+              SubmittedByLine(applicationId: a.id),
               const SizedBox(height: 6),
               Text(
                 [

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { UUID_RE } from '@/lib/talent';
 import LocalTime from '../../dashboard/local-time';
@@ -18,6 +19,26 @@ const METHOD_LABEL: Record<string, string> = {
   third_party_provider: 'third-party provider',
 };
 
+type CompanyRow = {
+  id: string;
+  display_name: string;
+  slug: string;
+  is_verified: boolean;
+  verified_at: string | null;
+  verification_method: string | null;
+  company_kind: string;
+  is_independent_recruiter: boolean;
+  created_at: string;
+};
+
+const SELECT =
+  'id, display_name, slug, is_verified, verified_at, verification_method, company_kind, is_independent_recruiter, created_at';
+
+function kindLabel(c: Pick<CompanyRow, 'company_kind' | 'is_independent_recruiter'>) {
+  if (c.company_kind !== 'agency') return 'Employer';
+  return c.is_independent_recruiter ? 'Independent recruiter (agency)' : 'Agency';
+}
+
 export default async function CompaniesPage({
   searchParams,
 }: {
@@ -25,24 +46,31 @@ export default async function CompaniesPage({
 }) {
   const sp = await searchParams;
   const raw = (typeof sp.q === 'string' ? sp.q : '').trim().slice(0, 80);
+  const kind = sp.kind === 'agency' || sp.kind === 'employer' ? sp.kind : null;
   const supabase = await createClient();
 
-  let companies: {
-    id: string;
-    display_name: string;
-    slug: string;
-    is_verified: boolean;
-    verified_at: string | null;
-    verification_method: string | null;
-    company_kind: string;
-    created_at: string;
-  }[] = [];
+  let companies: CompanyRow[] = [];
   let error: string | null = null;
+  // With no search term and ?kind=agency: agencies waiting for verification.
+  const waitingList = !raw && kind === 'agency';
+
+  if (waitingList) {
+    const res = await supabase
+      .from('companies')
+      .select(SELECT)
+      .is('deleted_at', null)
+      .eq('company_kind', 'agency')
+      .eq('is_verified', false)
+      .order('created_at', { ascending: true })
+      .limit(50);
+    if (res.error) error = res.error.message;
+    companies = res.data ?? [];
+  }
 
   if (raw) {
-    const select = 'id, display_name, slug, is_verified, verified_at, verification_method, company_kind, created_at';
     // Companies are publicly readable (not deleted), verified or not.
-    let q = supabase.from('companies').select(select).is('deleted_at', null).limit(20);
+    let q = supabase.from('companies').select(SELECT).is('deleted_at', null).limit(20);
+    if (kind) q = q.eq('company_kind', kind);
     if (UUID_RE.test(raw)) {
       q = q.eq('id', raw);
     } else {
@@ -85,8 +113,39 @@ export default async function CompaniesPage({
             placeholder="Name, slug, or paste a company id"
           />
         </div>
+        <div className="w-full sm:w-auto">
+          <label className="label" htmlFor="company-kind">
+            Kind
+          </label>
+          <select id="company-kind" name="kind" className="input" defaultValue={kind ?? ''}>
+            <option value="">Any</option>
+            <option value="employer">Employers</option>
+            <option value="agency">Agencies</option>
+          </select>
+        </div>
         <button className="btn btn-primary w-full sm:w-auto">Search</button>
       </form>
+
+      {!raw && (
+        <p className="text-sm">
+          {waitingList ? (
+            <>
+              <strong>Agencies waiting for verification</strong>, oldest first.{' '}
+              <Link href="/admin/companies" className="underline muted">
+                Clear
+              </Link>
+            </>
+          ) : (
+            <Link href="/admin/companies?kind=agency" className="underline">
+              Agencies waiting for verification
+            </Link>
+          )}
+        </p>
+      )}
+
+      {waitingList && !error && companies.length === 0 && (
+        <p className="text-sm muted">No agency is waiting for verification.</p>
+      )}
 
       {error && (
         <p className="text-sm" role="alert" style={{ color: 'var(--color-danger)' }}>
@@ -95,7 +154,10 @@ export default async function CompaniesPage({
       )}
 
       {raw && !error && companies.length === 0 && (
-        <p className="text-sm muted">No company matches “{raw}”. Try the exact slug or paste its id.</p>
+        <p className="text-sm muted">
+          No {kind === 'agency' ? 'agency' : kind === 'employer' ? 'employer' : 'company'} matches “{raw}”. Try the
+          exact slug or paste its id.
+        </p>
       )}
 
       <ul className="space-y-4">
@@ -105,9 +167,19 @@ export default async function CompaniesPage({
               <div className="flex-1 min-w-0">
                 <p className="font-bold break-words">{c.display_name}</p>
                 <p className="text-xs muted break-all">
-                  {c.slug} · {c.company_kind} · <span className="font-mono">{c.id}</span>
+                  {c.slug} · <span className="font-mono">{c.id}</span>
                 </p>
               </div>
+              <span
+                className="pill"
+                style={
+                  c.company_kind === 'agency'
+                    ? { color: 'var(--color-brand-600)', borderColor: 'var(--color-brand-600)' }
+                    : undefined
+                }
+              >
+                {kindLabel(c)}
+              </span>
               {c.is_verified ? (
                 <span className="pill" style={{ color: 'var(--color-verified)', borderColor: 'var(--color-verified)' }}>
                   ✓ Verified
@@ -129,6 +201,12 @@ export default async function CompaniesPage({
               <h2 className="text-sm font-bold uppercase tracking-wide muted">Verification</h2>
               <VerificationTool companyId={c.id} companyName={c.display_name} isVerified={c.is_verified} />
               <p className="hint !mt-1">Trust &amp; Safety or superadmins only.</p>
+              {c.company_kind === 'agency' && (
+                <p className="hint !mt-1">
+                  Agencies need verification and talent search (plan) enabled before they can search candidates or
+                  ask for consent.
+                </p>
+              )}
             </section>
 
             <section className="space-y-2 border-t hairline pt-4">

@@ -47,6 +47,19 @@ import {
   HiringTeamOnly,
   ProfileAnswers,
 } from '@/components/identity/evidence';
+import { parseClientSubmissions, parseScopedProfile } from '@/lib/agency';
+import {
+  NotShared,
+  SnapshotAnswers,
+  SnapshotContact,
+  SnapshotEvidence,
+  SnapshotExperience,
+  SnapshotNote,
+  SubmissionCard,
+  SubmittedByBadge,
+  isNarrowed,
+  type SubmissionAgency,
+} from './agency-submission';
 
 const HIRING_ROLES: string[] = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'];
 const PANEL_ROLES = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr', 'interviewer'] as const;
@@ -131,7 +144,7 @@ export default async function CandidateReviewPage({
     .select(
       `id, job_id, person_id, work_identity_id, state, match_score, identity_snapshot,
        cover_note, answers, first_viewed_at, applied_at, last_activity_at, closed_at,
-       rejection_reason, withdrawal_reason,
+       rejection_reason, withdrawal_reason, applied_via,
        jobs ( id, title, location_text, pay_min, pay_max, pay_period, pay_currency ),
        persons!applications_person_id_fkey ( display_name, location_text, headline, highest_education ),
        work_identities (
@@ -159,6 +172,20 @@ export default async function CandidateReviewPage({
     );
   }
   if (!app) notFound();
+
+  // Agency submissions: the consented submission row and the agency's
+  // details. Started before the main batch so they load in parallel.
+  const isAgency = app.applied_via === 'agency';
+  const agencyPromise = isAgency
+    ? Promise.all([
+        supabase
+          .from('candidate_submissions')
+          .select('id, recruiter_note, submitted_at, consent_id, snapshot')
+          .eq('application_id', app.id)
+          .maybeSingle(),
+        supabase.rpc('omelo_client_submissions', { p_job_id: app.job_id }),
+      ])
+    : null;
 
   const [
     matchRes,
@@ -280,8 +307,34 @@ export default async function CandidateReviewPage({
   const snap = (app.identity_snapshot ?? {}) as Snapshot;
   const answers = (Array.isArray(app.answers) ? app.answers : []) as Answer[];
 
-  const name = person?.display_name ?? snap.person?.display_name ?? 'Candidate';
-  const headline = wi?.headline ?? snap.work_identity?.headline ?? wi?.label ?? null;
+  // For an agency submission the application snapshot is the consented,
+  // scoped profile. Null for every other application.
+  const agencyRes = agencyPromise ? await agencyPromise : null;
+  const submissionRow = agencyRes?.[0].data ?? null;
+  const scoped = isAgency
+    ? (parseScopedProfile(app.identity_snapshot) ?? parseScopedProfile(submissionRow?.snapshot))
+    : null;
+  const clientSub =
+    agencyRes && !agencyRes[1].error
+      ? (parseClientSubmissions(agencyRes[1].data).find((s) => s.applicationId === app.id) ?? null)
+      : null;
+  // A narrowed consent keeps the live profile hidden (RLS); use the snapshot.
+  const narrowed = scoped ? isNarrowed(scoped) : false;
+  const submissionAgency: SubmissionAgency | null = scoped
+    ? clientSub
+      ? clientSub.agency
+      : { name: scoped.submittedVia?.agency ?? 'An agency', verified: null, independent: false }
+    : null;
+  const submissionRecruiter = clientSub?.recruiter ?? scoped?.submittedVia?.recruiter ?? null;
+  const submittedAt =
+    submissionRow?.submitted_at ?? clientSub?.submittedAt ?? scoped?.submittedVia?.submittedAt ?? null;
+  const submissionError = agencyRes
+    ? [agencyRes[0].error?.message, agencyRes[1].error?.message].filter(Boolean).join(' · ') || null
+    : null;
+
+  const name = person?.display_name ?? snap.person?.display_name ?? scoped?.identity.name ?? 'Candidate';
+  const headline =
+    wi?.headline ?? snap.work_identity?.headline ?? wi?.label ?? scoped?.identity.headline ?? null;
 
   const match = matchRes.data;
   const fv = (match?.feature_vector ?? null) as FeatureVector | null;
@@ -369,13 +422,30 @@ export default async function CandidateReviewPage({
 
   const evidence = toEvidenceResult(evidenceRes.data, evidenceRes.error);
   const identityLabel =
-    wi?.label ?? (evidence.status === 'ok' ? evidence.data.identity.label : null) ?? snap.work_identity?.label ?? null;
+    wi?.label ??
+    (evidence.status === 'ok' ? evidence.data.identity.label : null) ??
+    snap.work_identity?.label ??
+    scoped?.identity.label ??
+    null;
   const identityProfession =
-    wi?.professions?.name ?? (evidence.status === 'ok' ? evidence.data.identity.profession : null);
+    wi?.professions?.name ??
+    (evidence.status === 'ok' ? evidence.data.identity.profession : null) ??
+    scoped?.identity.profession ??
+    null;
   const completeness =
     wi?.completeness_score ?? (evidence.status === 'ok' ? evidence.data.identity.completeness : null);
   const profileAnswers = toProfileAnswers(answerRes.data ?? []);
   const answersForbidden = answerRes.error?.code === '42501';
+
+  // Per section: fall back to the snapshot when the scope is narrowed, or the
+  // live rows are unreadable / empty but the snapshot has them.
+  const snapEvidence = !!scoped && (narrowed || evidence.status !== 'ok');
+  const snapAnswers =
+    !!scoped && (narrowed || !!answerRes.error || (profileAnswers.length === 0 && (scoped.answers?.length ?? 0) > 0));
+  const snapExperience =
+    !!scoped &&
+    (narrowed || !!expRes.error || ((expRes.data ?? []).length === 0 && (scoped.experience?.length ?? 0) > 0));
+  const about = wi?.about ?? scoped?.identity.about ?? null;
 
   const verifiedExp = (expRes.data ?? []).filter((e) => e.is_verified);
   const selfExp = (expRes.data ?? []).filter((e) => !e.is_verified);
@@ -413,7 +483,10 @@ export default async function CandidateReviewPage({
           )}
           {headline && headline !== identityLabel && <p className="text-sm mt-2 break-words">{headline}</p>}
           <p className="text-sm muted mt-1 break-words">
-            {[monthsLabel(wi?.total_experience_months), person?.location_text ?? snap.person?.location_text]
+            {[
+              monthsLabel(wi?.total_experience_months ?? scoped?.identity.experienceMonths),
+              person?.location_text ?? snap.person?.location_text ?? scoped?.identity.location,
+            ]
               .filter(Boolean)
               .join(' · ')}
           </p>
@@ -430,6 +503,7 @@ export default async function CandidateReviewPage({
           </p>
           <div className="flex items-center gap-2 flex-wrap mt-3">
             <StateBadge state={state} />
+            {submissionAgency && <SubmittedByBadge agency={submissionAgency} recruiter={submissionRecruiter} />}
             {match &&
               (gateFailures.length === 0 && match.eligible ? (
                 <span className="pill" style={{ color: 'var(--color-verified)' }}>
@@ -466,6 +540,20 @@ export default async function CandidateReviewPage({
           )}
         </div>
       </header>
+
+      {/* ------------------------------------------ Recruiter submission */}
+      {scoped && submissionAgency && (
+        <SubmissionCard
+          agency={submissionAgency}
+          recruiter={submissionRecruiter}
+          note={submissionRow?.recruiter_note ?? clientSub?.recruiterNote ?? scoped.submittedVia?.note ?? null}
+          consentStatus={clientSub?.consentStatus ?? null}
+          scope={scoped.scope}
+          submittedAt={submittedAt}
+          jobOrder={scoped.submittedVia?.jobOrder ?? null}
+          error={submissionError}
+        />
+      )}
 
       {/* ------------------------------------------------------ Action bar */}
       {isOpen ? (
@@ -666,13 +754,22 @@ export default async function CandidateReviewPage({
             >
               Evidence
             </SectionTitle>
-            <EvidenceGate result={evidence}>{(ev) => <EvidencePanel ev={ev} />}</EvidenceGate>
+            {snapEvidence && scoped ? (
+              <>
+                <SnapshotEvidence scoped={scoped} />
+                <SnapshotNote submittedAt={submittedAt} />
+              </>
+            ) : (
+              <EvidenceGate result={evidence}>{(ev) => <EvidencePanel ev={ev} />}</EvidenceGate>
+            )}
           </section>
 
           {/* --------------------------------------------- Profile answers */}
           <section className="card p-5">
             <SectionTitle>Profile answers</SectionTitle>
-            {answersForbidden ? (
+            {snapAnswers && scoped ? (
+              <SnapshotAnswers scoped={scoped} />
+            ) : answersForbidden ? (
               <HiringTeamOnly />
             ) : answerRes.error ? (
               <ErrorNote label="profile answers" message={answerRes.error.message} />
@@ -684,7 +781,9 @@ export default async function CandidateReviewPage({
           {/* ------------------------------------------------ Work history */}
           <section className="card p-5 space-y-5">
             <SectionTitle>Work history</SectionTitle>
-            {expRes.error ? (
+            {snapExperience && scoped ? (
+              <SnapshotExperience scoped={scoped} />
+            ) : expRes.error ? (
               <ErrorNote label="work history" message={expRes.error.message} />
             ) : (expRes.data ?? []).length === 0 ? (
               <p className="text-sm muted">No work history on this work identity yet.</p>
@@ -726,7 +825,9 @@ export default async function CandidateReviewPage({
 
             <div>
               <p className="label">Languages</p>
-              {langRes.error ? (
+              {narrowed ? (
+                <NotShared />
+              ) : langRes.error ? (
                 <ErrorNote label="languages" message={langRes.error.message} />
               ) : (langRes.data ?? []).length === 0 ? (
                 <p className="text-sm muted">None listed.</p>
@@ -742,18 +843,28 @@ export default async function CandidateReviewPage({
               )}
             </div>
 
-            {wi?.about && (
+            {about && (
               <div>
                 <p className="label">About</p>
-                <p className="text-sm whitespace-pre-line break-words">{wi.about}</p>
+                <p className="text-sm whitespace-pre-line break-words">{about}</p>
               </div>
             )}
 
-            <p className="hint">
-              Everything above is from the {identityLabel ? <strong>{identityLabel}</strong> : 'work'} profile
-              this candidate applied with, plus details they share across all their profiles. Other work
-              identities they hold stay private.
-            </p>
+            {scoped ? (
+              <p className="hint">
+                {snapExperience
+                  ? `Shown as the candidate shared it through ${submissionAgency?.name ?? 'the agency'}. `
+                  : ''}
+                You see only what the candidate agreed to share with the agency. Other work identities they hold
+                stay private.
+              </p>
+            ) : (
+              <p className="hint">
+                Everything above is from the {identityLabel ? <strong>{identityLabel}</strong> : 'work'} profile
+                this candidate applied with, plus details they share across all their profiles. Other work
+                identities they hold stay private.
+              </p>
+            )}
           </section>
 
           {/* ------------------------------------------------ Application */}
@@ -783,7 +894,7 @@ export default async function CandidateReviewPage({
             )}
             {app.cover_note && (
               <div>
-                <p className="label">Note from the candidate</p>
+                <p className="label">{isAgency ? 'Note from the recruiter' : 'Note from the candidate'}</p>
                 <p className="text-sm whitespace-pre-line break-words">{app.cover_note}</p>
               </div>
             )}
@@ -899,6 +1010,14 @@ export default async function CandidateReviewPage({
                   })}
                 </ul>
               )}
+            </section>
+          )}
+
+          {/* ---------------------------------------------------- Contact */}
+          {scoped && (
+            <section className="card p-5">
+              <SectionTitle>Contact details</SectionTitle>
+              <SnapshotContact scoped={scoped} />
             </section>
           )}
 

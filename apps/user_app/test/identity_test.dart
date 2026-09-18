@@ -740,7 +740,12 @@ void main() {
         expect(find.text('Next: add 2 more skills'), findsOneWidget);
         expect(find.textContaining('Cuisines you can cook'), findsOneWidget);
         expect(find.byType(FilterChip), findsWidgets);
-        expect(find.byType(SwitchListTile), findsOneWidget);
+        // Work preferences, and (Release 4) recruiter requests.
+        expect(find.byType(SwitchListTile), findsNWidgets(2));
+        expect(
+            find.widgetWithText(SwitchListTile,
+                'Let recruiters and agencies ask to represent me'),
+            findsOneWidget);
         expect(find.text('km'), findsOneWidget);
         expect(find.text('Verified by Omelo'), findsOneWidget);
         for (final v in IdentityVisibility.values) {

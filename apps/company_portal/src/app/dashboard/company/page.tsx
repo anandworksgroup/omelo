@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
+import { roleLabel } from '@/lib/agency';
 import CompanyEditForm from './edit-form';
 
 export default async function CompanyPage() {
@@ -13,20 +15,36 @@ export default async function CompanyPage() {
     .eq('id', ctx.companyId)
     .single();
 
-  const { data: members } = await supabase
+  // One row per (person, role): count people, not rows.
+  const { data: members, error: membersError } = await supabase
     .from('company_members')
-    .select('role, is_active, joined_at, persons ( display_name, email )')
-    .eq('company_id', ctx.companyId);
+    .select('person_id')
+    .eq('company_id', ctx.companyId)
+    .eq('is_active', true);
+  const memberCount = new Set((members ?? []).map((m) => m.person_id)).size;
 
   const canEdit = ['owner', 'admin'].includes(ctx.role);
+  const isAgency = ctx.kind === 'agency';
 
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold">Company profile</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{isAgency ? 'Agency profile' : 'Company profile'}</h1>
+        {isAgency && ctx.isIndependent && (
+          <p className="mt-2">
+            <span className="pill">Independent recruiter</span>
+          </p>
+        )}
         <p className="muted text-sm mt-1">
-          This is what workers see on every job you post, and on{' '}
-          <code className="text-xs">/company/{company?.slug}</code> in the app.
+          {isAgency ? (
+            <>
+              This is what candidates see when you ask for their consent, and what your clients see on every
+              candidate you submit. Public page:{' '}
+            </>
+          ) : (
+            <>This is what workers see on every job you post, and on </>
+          )}
+          <code className="text-xs break-all">/company/{company?.slug}</code> in the app.
         </p>
       </div>
 
@@ -35,63 +53,86 @@ export default async function CompanyPage() {
           <p className="font-semibold text-sm mb-1" style={{ color: 'var(--color-warn)' }}>
             Not verified yet
           </p>
-          <p className="text-sm muted leading-relaxed">
-            Unverified companies show an “unverified” badge on every job, have
-            reduced reach, and cannot use talent search. Verification needs
-            domain control plus proof the company exists — that flow is not
-            built yet.
-          </p>
+          {isAgency ? (
+            <p className="text-sm muted leading-relaxed">
+              Searching candidates and asking them for consent need Omelo verification, and talent search on your
+              plan. Until then you can set up your profile, team, clients and job orders. Omelo reviews every agency
+              before it can search.
+            </p>
+          ) : (
+            <p className="text-sm muted leading-relaxed">
+              Unverified companies show an “unverified” badge on every job, have
+              reduced reach, and cannot use talent search. Verification needs
+              domain control plus proof the company exists — that flow is not
+              built yet.
+            </p>
+          )}
         </div>
       )}
 
       <CompanyEditForm company={company!} canEdit={canEdit} />
 
-      <section className="card p-5">
-        <h2 className="font-bold mb-1">Your hiring behaviour</h2>
-        <p className="text-sm muted mb-4 leading-relaxed">
-          Workers see these numbers on your job cards. They are computed from
-          how you actually respond, not from anything you set here.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-          <Stat
-            value={company?.response_rate_pct != null ? `${Math.round(Number(company.response_rate_pct))}%` : '—'}
-            label="Response rate"
-          />
-          <Stat
-            value={
-              company?.median_response_hours != null
-                ? `${Math.round(company.median_response_hours / 24)}d`
-                : '—'
-            }
-            label="Median response"
-          />
-          <Stat value={String(company?.total_hires ?? 0)} label="Hires on Omelo" />
+      {!isAgency && (
+        <section className="card p-5">
+          <h2 className="font-bold mb-1">Your hiring behaviour</h2>
+          <p className="text-sm muted mb-4 leading-relaxed">
+            Workers see these numbers on your job cards. They are computed from
+            how you actually respond, not from anything you set here.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <Stat
+              value={company?.response_rate_pct != null ? `${Math.round(Number(company.response_rate_pct))}%` : '—'}
+              label="Response rate"
+            />
+            <Stat
+              value={
+                company?.median_response_hours != null
+                  ? `${Math.round(company.median_response_hours / 24)}d`
+                  : '—'
+              }
+              label="Median response"
+            />
+            <Stat value={String(company?.total_hires ?? 0)} label="Hires on Omelo" />
+          </div>
+        </section>
+      )}
+
+      <section className="card p-5 space-y-3">
+        <div className="flex items-start gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold">Team</h2>
+            <p className="text-sm muted mt-1">
+              {membersError
+                ? `Could not count your team: ${membersError.message}`
+                : `${memberCount} active member${memberCount === 1 ? '' : 's'}`}
+              {' · '}you are {ctx.roles.map(roleLabel).join(', ')}
+            </p>
+          </div>
+          <Link href="/dashboard/team" className="btn btn-ghost w-full sm:w-auto">
+            Manage team
+          </Link>
         </div>
+        <p className="hint !mt-0">
+          Invite people by email and choose their role. Nobody joins without accepting the invitation.
+        </p>
       </section>
 
-      <section>
-        <h2 className="font-bold text-lg mb-3">Team</h2>
-        <div className="card divide-y" style={{ borderColor: 'var(--line)' }}>
-          {(members ?? []).map((m, i) => {
-            const p = m.persons as unknown as { display_name: string | null; email: string | null };
-            return (
-              <div key={i} className="p-4 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate">
-                    {p?.display_name || p?.email || 'Member'}
-                  </div>
-                  <div className="text-xs muted">{p?.email}</div>
-                </div>
-                <span className="pill">{m.role}</span>
-              </div>
-            );
-          })}
-        </div>
-        <p className="hint">
-          Inviting teammates is not built yet. Roles and their permissions are
-          specified in architecture/A2 §12.
-        </p>
-      </section>
+      {!isAgency && (
+        <section className="card p-5 space-y-3">
+          <div className="flex items-start gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-bold">Create an agency</h2>
+              <p className="text-sm muted mt-1 leading-relaxed">
+                Recruit for other companies? Create an agency or work as an independent recruiter. Searching needs
+                Omelo verification.
+              </p>
+            </div>
+            <Link href="/onboarding/agency" className="btn btn-ghost w-full sm:w-auto">
+              Create an agency
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

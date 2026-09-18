@@ -9,6 +9,8 @@ import '../../data/auth_repository.dart';
 import '../../data/identity_repository.dart';
 import '../../data/invitations_repository.dart';
 import '../../data/job_events.dart' show flushJobEvents;
+import '../../data/representations_repository.dart'
+    show pendingRepresentationsProvider;
 import '../../data/messaging.dart' show badgeLabel;
 import '../applications/applications_screen.dart';
 import '../identities/identity_widgets.dart';
@@ -117,6 +119,12 @@ class ProfileScreen extends ConsumerWidget {
             label: 'Job invitations',
             badge: ref.watch(pendingInvitationsProvider),
             onTap: () => context.push('/invitations'),
+          ),
+          _Tile(
+            icon: Icons.handshake_outlined,
+            label: 'Recruiters & agencies',
+            badge: ref.watch(pendingRepresentationsProvider).length,
+            onTap: () => context.push('/recruiters'),
           ),
           _Tile(
             icon: Icons.visibility_outlined,

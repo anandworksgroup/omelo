@@ -160,7 +160,7 @@ function InviteDialog({
 /* Save to pool                                                        */
 /* ------------------------------------------------------------------ */
 
-function PoolDialog({
+export function PoolDialog({
   open,
   onClose,
   card,

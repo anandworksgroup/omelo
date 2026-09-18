@@ -8,6 +8,8 @@ import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
+import '../representations/representation_widgets.dart'
+    show SubmittedByLine;
 import 'hiring_widgets.dart';
 
 final myApplicationsProvider =
@@ -302,6 +304,7 @@ class _ApplicationCard extends StatelessWidget {
                           style: TextStyle(
                               fontSize: 14, color: scheme.onSurfaceVariant),
                         ),
+                        SubmittedByLine(applicationId: app.id),
                       ],
                     ),
                   ),

@@ -160,7 +160,7 @@ export type TalentProfile = {
   match: TalentMatch | null;
 };
 
-function answerValue(dataType: string, unit: string | null, v: unknown): string | string[] | null {
+export function answerValue(dataType: string, unit: string | null, v: unknown): string | string[] | null {
   if (v === null || v === undefined || v === '') return null;
   const u = unit ? ` ${unit}` : '';
   const text = (x: unknown): string => {

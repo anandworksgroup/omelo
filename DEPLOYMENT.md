@@ -33,7 +33,7 @@ tests/api/             end-to-end tests against a live project, as real users
       set value = 'https://<ref>.supabase.co/functions/v1', updated_at = now()
     where key = 'functions_base_url';
    ```
-4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 36 rows must read OK.**
+4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 46 rows must read OK.**
 5. Dashboard settings (not expressible as migrations):
    - **Auth → Passwords:** enable *Leaked password protection*; minimum length 8+.
    - **Auth → URL configuration:** set Site URL to the portal URL; add the
@@ -53,9 +53,13 @@ tests/api/             end-to-end tests against a live project, as real users
 7. Talent search is an Omelo-granted capability. A platform admin verifies a company and
    enables it (portal `/admin` → Companies, or SQL): `omelo_admin_set_company_verification(company, true)`
    and `omelo_admin_set_entitlements(company, 'pro', true, <searches per month, 0 = unlimited>,
-   <invitations per day, 0 = unlimited>)`. Employers cannot grant it to themselves.
+   <invitations per day, 0 = unlimited>)`. Employers cannot grant it to themselves. The same applies to
+   agencies: an agency (created in the portal) can search talent and ask workers for consent only after
+   Omelo verifies it and enables talent search.
 8. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
-   provider is wired), `require_verified_email_to_accept_offer` (progressive trust; default `false`).
+   provider is wired), `require_verified_email_to_accept_offer` (progressive trust; default `false`),
+   `require_verified_email_to_join_team` (turn ON in production: otherwise whoever signs up first with an
+   invited address could accept a team or agency invitation, because email confirmation is off).
 
 ## 2. Edge Functions
 
@@ -131,6 +135,8 @@ python tests/api/account_e2e.py
 python tests/api/identity_e2e.py
 python tests/api/talent_e2e.py setup   # then apply the SQL it prints (Omelo-only fixture)
 python tests/api/talent_e2e.py run
+python tests/api/recruitment_e2e.py setup   # then apply the SQL it prints
+python tests/api/recruitment_e2e.py run
 ```
 
 Point `tests/api/omelo_api.py` (`BASE`, `KEY`) at the new project first. Each
@@ -142,9 +148,9 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 
 ## 6. Launch checklist
 
-- [ ] `verify-invariants.sql` — 36/36 OK
+- [ ] `verify-invariants.sql` — 46/46 OK
 - [ ] Leaked password protection on; Site URL and redirect URLs set
-- [ ] `functions_base_url` updated; `select * from cron.job` shows the 4 `omelo-*` jobs
+- [ ] `functions_base_url` updated; `select * from cron.job` shows the 5 `omelo-*` jobs
 - [ ] First platform admin granted; `/admin` shows healthy cron runs and 0 function failures
 - [ ] Custom SMTP configured; password reset email received on portal and worker app
 - [ ] Edge Function secrets set (LiveKit, Resend, `WORKER_APP_URL`, `IP_HASH_SALT`)

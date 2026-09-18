@@ -10,15 +10,17 @@ import {
   type ApplicationState,
 } from '@/lib/hiring';
 import { RescoreButton } from './forms';
+import { SubmissionList, ViewTabs } from './agency-views';
 
-type Search = { tab?: string; job?: string };
+type Search = { tab?: string; job?: string; view?: string };
 
 export default async function CandidatesPage({
   searchParams,
 }: {
   searchParams: Promise<Search>;
 }) {
-  const { tab: tabParam, job: jobFilter } = await searchParams;
+  const { tab: tabParam, job: jobFilter, view: viewParam } = await searchParams;
+  const view = viewParam === 'agency' ? 'agency' : 'all';
   const ctx = (await getCompanyContext())!;
   const supabase = await createClient();
 
@@ -30,7 +32,7 @@ export default async function CandidatesPage({
     .from('applications')
     .select(
       `id, job_id, state, applied_at, last_activity_at, first_viewed_at, match_score,
-       identity_snapshot,
+       identity_snapshot, applied_via,
        jobs ( id, title ),
        persons!applications_person_id_fkey ( display_name ),
        work_identities (
@@ -89,7 +91,17 @@ export default async function CandidatesPage({
 
   const href = (t: string, job: string | null) => {
     const p = new URLSearchParams();
+    if (view === 'agency') p.set('view', 'agency');
     if (t !== 'all') p.set('tab', t);
+    if (job) p.set('job', job);
+    const s = p.toString();
+    return `/dashboard/candidates${s ? `?${s}` : ''}`;
+  };
+
+  // Switching view keeps the job filter but resets the stage tab.
+  const viewHref = (v: 'all' | 'agency', job: string | null) => {
+    const p = new URLSearchParams();
+    if (v === 'agency') p.set('view', 'agency');
     if (job) p.set('job', job);
     const s = p.toString();
     return `/dashboard/candidates${s ? `?${s}` : ''}`;
@@ -115,6 +127,8 @@ export default async function CandidatesPage({
                   all jobs
                 </Link>
               </>
+            ) : view === 'agency' ? (
+              'Candidates recruiters put forward for your jobs, with the candidate’s consent.'
             ) : (
               'Everyone who applied to any of your jobs, best match first.'
             )}
@@ -123,7 +137,16 @@ export default async function CandidatesPage({
         {activeJob && <RescoreButton jobId={activeJob.id} label="Re-score applicants" />}
       </div>
 
-      {all.length === 0 ? (
+      <ViewTabs
+        view={view}
+        allHref={viewHref('all', activeJob?.id ?? null)}
+        agencyHref={viewHref('agency', activeJob?.id ?? null)}
+        agencyCount={all.filter((a) => a.applied_via === 'agency').length}
+      />
+
+      {view === 'agency' ? (
+        <SubmissionList jobId={activeJob?.id ?? null} jobTitle={activeJob?.title ?? null} />
+      ) : all.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="font-semibold mb-1">No applications yet</p>
           <p className="text-sm muted mb-5">
@@ -194,6 +217,11 @@ export default async function CandidatesPage({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-sm break-words">{name}</span>
+                        {a.applied_via === 'agency' && (
+                          <span className="pill" title="Submitted by a recruiter with the candidate's consent">
+                            Via agency
+                          </span>
+                        )}
                         {unread && (
                           <span
                             className="pill"

@@ -186,6 +186,36 @@ export function renderEmail(template: string, p: Payload, links: Links): Rendere
         text: `${title}\n\n${p.message ? `"${p.message}"\n\n` : ""}${d.text}\n\n${button.label}: ${button.href}`,
       };
     }
+    case "representation_request": {
+      const agency = p.agency as Record<string, unknown> | undefined;
+      const client = p.client as Record<string, unknown> | undefined;
+      const payObj = p.pay as Record<string, unknown> | undefined;
+      const agencyName = String(agency?.name ?? "A recruiting agency");
+      const position = String(p.position ?? "a job");
+      const title = `${agencyName} wants to represent you`;
+      const pay = payObj?.min
+        ? `${payObj.currency ?? ""} ${Number(payObj.min).toLocaleString("en-IN")}${payObj.max && payObj.max !== payObj.min ? ` – ${Number(payObj.max).toLocaleString("en-IN")}` : ""} per ${payObj.period ?? "month"}`.trim()
+        : "";
+      const labels: Record<string, string> = {
+        identity: "Your professional profile", skills: "Skills", experience: "Work history",
+        evidence: "Verified evidence", answers: "Profile answers", contact: "Phone and email (only after you accept)",
+      };
+      const scope = Array.isArray(p.scope) ? (p.scope as string[]).map((s) => labels[s] ?? s).join(", ") : "";
+      const d = details([["Job", position], ["Company", String(client?.name ?? "")], ["Where", String(p.location ?? "")],
+                         ["Pay", pay], ["Would be shared", scope],
+                         ["Valid for", p.valid_days ? `${p.valid_days} days after you accept` : ""]]);
+      const note = p.message
+        ? `<blockquote style="margin:12px 0;padding:10px 14px;border-left:3px solid #0f766e;background:#f4f5f7;font-size:15px;line-height:1.6">${esc(p.message)}</blockquote>`
+        : "";
+      const body = `<p style="font-size:15px;line-height:1.6">${esc(agencyName)} would like to put you forward for this job. Nothing is shared until you say yes, and you can say no.</p>${note}${d.html}`;
+      const href = p.consent_id ? `${links.workerAppUrl}/representations/${p.consent_id}` : links.workerAppUrl;
+      const button = { label: "Review the request", href };
+      return {
+        subject: `${agencyName} wants to represent you for ${position}`,
+        html: layout(title, body, button, "You are receiving this because your Omelo profile is visible to recruiters."),
+        text: `${title}\n\n${p.message ? `"${p.message}"\n\n` : ""}${d.text}\n\nNothing is shared until you say yes.\n\n${button.label}: ${button.href}`,
+      };
+    }
     case "verify_email": {
       const code = String(p.code ?? "");
       const title = "Your Omelo verification code";

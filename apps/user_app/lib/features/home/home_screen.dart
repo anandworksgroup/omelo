@@ -12,6 +12,8 @@ import '../../data/invitations_repository.dart';
 import '../../data/job_events.dart' show JobSurface;
 import '../discover/tracked_job_card.dart';
 import '../identities/identity_widgets.dart' show IdentityNudgeCard;
+import '../representations/representation_widgets.dart'
+    show RepresentationsHomeCard;
 import '../settings/account_widgets.dart' show DeletionBanner;
 
 /// U-20 — Home.
@@ -76,6 +78,9 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
+              if (signedIn)
+                const RepresentationsHomeCard(
+                    padding: EdgeInsets.only(top: 20)),
               if (signedIn)
                 const InvitationsHomeCard(padding: EdgeInsets.only(top: 20)),
               if (signedIn)

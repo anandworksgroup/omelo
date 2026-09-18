@@ -23,7 +23,7 @@ enum IdentityVisibility {
       'Employers see it only when you are a strong match for one of their open jobs.'),
   discoverable('discoverable', 'Verified employers',
       'Verified employers can find it when they search for workers.'),
-  recruiters('recruiters', 'Employers and recruiters',
+  recruiters('recruiters', 'Employers and agencies',
       'Verified employers and recruitment agencies can find it.'),
   public('public', 'Anyone with the link',
       'Anyone who has the link can see it, even people who are not employers.');
@@ -61,6 +61,18 @@ enum IdentityVisibility {
 /// invite me to apply" means nothing while it is [IdentityVisibility.private].
 bool invitationsPossible(IdentityVisibility v) =>
     v != IdentityVisibility.private;
+
+/// Recruitment agencies only ever find an identity that is
+/// [IdentityVisibility.recruiters] or [IdentityVisibility.public].
+bool agenciesCanFind(IdentityVisibility v) =>
+    v == IdentityVisibility.recruiters || v == IdentityVisibility.public;
+
+/// Said next to "Let recruiters and agencies ask to represent me".
+String agencyFindabilityNote(IdentityVisibility v) => agenciesCanFind(v)
+    ? 'Agencies can find this profile because it is set to "${v.title}".'
+    : 'Agencies cannot find this profile while it is "${v.title}". Only '
+        '"${IdentityVisibility.recruiters.title}" or '
+        '"${IdentityVisibility.public.title}" lets agencies find you.';
 
 /// Shown under the visibility choices.
 const kVisibilitySearchNote =
