@@ -223,7 +223,7 @@ recommendations, audit, intelligence.
 | JobViewed (impressions live in `match_events`), InterviewJoined | ✓ R1/R3 | `omelo_track_job_events`, Meet join |
 | TalentSearched, CandidateInvited, InvitationAccepted, InvitationDeclined, InvitationWithdrawn | ✓ R3 | talent search + invitation functions |
 | AgencyCreated, TeamMemberInvited/Joined, JobOrderCreated/StatusChanged, ClientLinkRequested/Confirmed/Declined/Ended, RepresentationRequested/Granted/Activated/Declined/Expired/Revoked/Withdrawn, CandidateSubmitted, SubmissionStatusChanged, PlacementMade, PlacementStatusChanged | ✓ R4 | agency, consent and submission functions + triggers |
-| ShiftAssigned, AttendanceRecorded, TimesheetApproved | ○ R5 | workforce functions |
+| WorkforceRequirementCreated, AssignmentOffered/Accepted/Declined/Started/Paused/Completed/Terminated/Cancelled/Ending, ShiftAssigned/Offered/Changed/Cancelled, WorkerCheckedIn/CheckedOut/Late/Absent, LeaveRequested/Approved/Rejected, TimesheetSubmitted/Approved/Rejected, EarningsApproved, PaymentRecorded, WorkforceBulkQueued | ✓ R5 | workforce functions + scheduler |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
 and sent atomically; drafts are not events).
@@ -347,3 +347,28 @@ hire and the scorecard stay on the one hiring engine; placements are rows create
 | Worker: requests with full terms and what is shared, accept / decline, where submitted, revoke while not progressed | ✓ |
 | R4-001 … R4-014 attacked as real users | ✓ `tests/api/recruitment_e2e.py` (two-phase) + service-role checks + all earlier suites re-run |
 | Latent matcher crash on gate failures fixed (since v1) | ✓ migration 47 |
+
+### Release 5 status (backend proven — migrations 50–56)
+
+Omelo now manages the work itself, not only the hiring: temporary, hourly, daily, shift, contract,
+seasonal and bulk work, for employers directly and for agencies on behalf of their clients.
+
+| Item | State |
+|---|---|
+| Workforce requirement (1 … 1,000,000 openings as a number), country, currency, time zone, employment type, pay frequency | ✓ |
+| Assignment lifecycle draft → offered → accepted → active → paused → completed; declined, cancelled, terminated | ✓ enforced for every writer |
+| Agency assignments only for represented workers (consent / hired submission for that job order and client) | ✓ R5-002 |
+| Shift templates (recurring, overnight) → generated shifts; one-off, emergency, split, on-call shifts; cancellation | ✓ |
+| No overlapping shifts per worker; no shifts outside the assignment or on leave | ✓ R5-004, R5-015 |
+| Check-in / check-out: app, 6-digit code (QR), geofence, or supervisor; GPS never mandatory globally | ✓ |
+| Attendance exceptions (late, early, absent, missed check-out) for review — never automatic penalties; reasoned corrections | ✓ R5-005..007 |
+| Timesheets (overtime by the company's own policy), workplace approval (the client for agency workers), locking | ✓ R5-008 |
+| Normalised earnings (base, overtime, allowances by shift type, bonuses, deductions, adjustments) in any currency | ✓ R5-009 |
+| Payments recorded (scheduled → processing → paid / failed / reversed), never above approved pay; payroll provider pluggable later | ✓ R5-010 |
+| Agency billing (bill rate apart from pay; the worker never sees it; the client never sees pay) | ✓ invariant 56 |
+| Leave requests and approvals; paid leave pays, unpaid does not | ✓ |
+| Replacement candidates; extra-shift offers first-come | ✓ |
+| Bulk operations asynchronous, authority re-checked per item | ✓ R5-016 |
+| Completed work → employment → verified experience → stronger identity → better matching (matcher v1.1: schedule fit + conflict gate) | ✓ R5-013 |
+| Dashboards (employer, agency with staffing counts, client view) | ✓ |
+| Proven as real users | ✓ `tests/api/staffing_e2e.py` + all earlier suites re-run on matcher v1.1 |

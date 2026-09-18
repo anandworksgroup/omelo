@@ -91,8 +91,8 @@ class NotificationsScreen extends ConsumerWidget {
             ? 'Check your internet and pull down to try again.'
             : 'When an employer invites you to apply, an agency asks to '
                 'represent you, an employer views your application, invites '
-                'you to an interview or sends a message, you will see it '
-                'here.',
+                'you to an interview, sends a message, offers you work or '
+                'changes your shifts, you will see it here.',
       );
     }
 
@@ -172,6 +172,7 @@ class _NotificationTile extends StatelessWidget {
       NotificationKind.message => Icons.chat_bubble_outline,
       NotificationKind.invitation => Icons.mail_outline,
       NotificationKind.representation => Icons.handshake_outlined,
+      NotificationKind.work => Icons.work_outline,
       NotificationKind.other => Icons.notifications_outlined,
     };
 

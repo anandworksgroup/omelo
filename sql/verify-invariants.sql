@@ -121,7 +121,22 @@ with checks as (
                           'omelo_link_job_order','omelo_agency_candidates','omelo_consent_candidate',
                           'omelo_agency_submissions','omelo_client_submissions','omelo_agency_dashboard',
                           'omelo_invite_team_member','omelo_my_team_invitations','omelo_accept_team_invitation',
-                          'omelo_decline_team_invitation')
+                          'omelo_decline_team_invitation',
+                          -- Release 5 (53-55): staffing & workforce engine
+                          'omelo_create_requirement','omelo_update_requirement','omelo_save_pay_component',
+                          'omelo_remove_pay_component','omelo_offer_assignment','omelo_respond_to_assignment',
+                          'omelo_set_assignment_status','omelo_set_assignment_billing','omelo_save_shift_template',
+                          'omelo_generate_shifts','omelo_create_shift','omelo_update_shift','omelo_cancel_shift',
+                          'omelo_assign_shift','omelo_offer_shift','omelo_respond_to_shift','omelo_unassign_shift',
+                          'omelo_shift_replacements','omelo_check_in','omelo_check_out','omelo_record_attendance',
+                          'omelo_review_attendance','omelo_correct_attendance','omelo_request_leave','omelo_cancel_leave',
+                          'omelo_review_leave','omelo_build_timesheet','omelo_add_timesheet_entry',
+                          'omelo_remove_timesheet_entry','omelo_submit_timesheet','omelo_review_timesheet',
+                          'omelo_start_timesheet_review','omelo_reopen_timesheet','omelo_add_earning_adjustment',
+                          'omelo_approve_earnings','omelo_record_payment','omelo_update_payment',
+                          'omelo_update_billing_status','omelo_my_work','omelo_my_assignments','omelo_my_earnings',
+                          'omelo_shift_roster','omelo_workforce_approvals','omelo_workforce_dashboard',
+                          'omelo_client_workforce','omelo_start_workforce_job','omelo_cancel_workforce_job')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -366,12 +381,12 @@ with checks as (
 
   union all
   select 30, 'Scheduled jobs are installed',
-         case when count(*) = 5 then 'OK'
-              else 'FAIL: only ' || count(*)::text || ' of 5 cron jobs present and active' end
+         case when count(*) = 6 then 'OK'
+              else 'FAIL: only ' || count(*)::text || ' of 6 cron jobs present and active' end
   from cron.job
   where active and jobname in ('omelo-comms-dispatch','omelo-meet-housekeeping',
                                'omelo-account-deletions','omelo-outbox-retention',
-                               'omelo-representation-expiry')
+                               'omelo-representation-expiry','omelo-workforce-tick')
 
   -- ---------------------------------------------------------------
   -- RELEASE 2 (migrations 38-40): professional identity
@@ -542,6 +557,102 @@ with checks as (
                and not exists (select 1 from candidate_submissions s join applications a on a.id = s.application_id
                                 where a.state = 'hired' and not exists (select 1 from placements p where p.submission_id = s.id))
               then 'OK' else 'FAIL: pipeline mirror missing, or a hire through an agency without a placement' end
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 5 (migrations 50-55): staffing & workforce engine.
+  -- Each row maps to the R5-0xx invariant it protects; all are also
+  -- attacked as real users in tests/api/staffing_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 47, 'R5-001..003 assignments: own identity, authorised agency, valid dates',
+         case when exists (select 1 from pg_trigger where tgname = 'assignments_validate' and not tgisinternal)
+               and not exists (select 1 from assignments a join work_identities wi on wi.id = a.work_identity_id
+                                where wi.person_id <> a.person_id or (a.end_date is not null and a.end_date < a.start_date))
+               and not exists (select 1 from assignments a join companies c on c.id = a.company_id
+                                where c.company_kind = 'agency'
+                                  and not exists (select 1 from candidate_consents cc where cc.person_id = a.person_id
+                                                   and cc.agency_id = a.company_id and cc.job_order_id = a.job_order_id
+                                                   and cc.status in ('accepted','active','expired','revoked'))
+                                  and not exists (select 1 from candidate_submissions s where s.person_id = a.person_id
+                                                   and s.agency_id = a.company_id and s.job_order_id = a.job_order_id
+                                                   and s.status = 'hired'))
+              then 'OK' else 'FAIL: an assignment without its worker''s identity, dates or agency authority' end
+
+  union all
+  select 48, 'R5-004 no worker is booked on two overlapping shifts',
+         case when count(*) = 0 and exists (select 1 from pg_trigger where tgname = 'shift_workers_validate' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' overlapping bookings' end
+  from shift_workers a join shift_workers b
+    on a.person_id = b.person_id and a.id < b.id and a.status = 'assigned' and b.status = 'assigned'
+   and tstzrange(a.starts_at, a.ends_at) && tstzrange(b.starts_at, b.ends_at)
+
+  union all
+  select 49, 'R5-005/006/014 attendance belongs to the worker''s own live shift; no check-out without check-in',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' invalid attendance records' end
+  from attendance_records ar
+  join shift_workers w on w.id = ar.shift_worker_id
+  join shifts s on s.id = ar.shift_id
+  where w.person_id <> ar.person_id or w.shift_id <> ar.shift_id
+     or (ar.check_out_at is not null and ar.check_in_at is null)
+     or (s.status = 'cancelled' and ar.status <> 'approved_leave')
+
+  union all
+  select 50, 'R5-007/008 reviewed attendance and approved timesheets change only through authorised corrections',
+         case when (select count(*) from pg_trigger where not tgisinternal and tgname in
+                     ('attendance_validate','timesheets_validate','timesheet_entries_validate','earnings_validate',
+                      'payment_records_validate')) = 5
+              then 'OK' else 'FAIL: a workforce validation trigger is missing' end
+
+  union all
+  select 51, 'R5-009 earnings exist only for approved work',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' earnings without an approved timesheet' end
+  from earnings e join timesheets t on t.id = e.timesheet_id
+  where e.status <> 'reversed' and t.status not in ('approved','locked')
+
+  union all
+  select 52, 'R5-010 payments never exceed approved earnings',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' over-paid earnings' end
+  from earnings e
+  where (select coalesce(sum(amount), 0) from payment_records p
+          where p.earning_id = e.id and p.status in ('scheduled','processing','paid')) > e.gross_amount
+     or (e.status = 'calculated' and exists (select 1 from payment_records p where p.earning_id = e.id))
+
+  union all
+  select 53, 'R5-011/016 workforce records are written only by authorising functions',
+         case when count(*) = 0 then 'OK' else 'FAIL: client write path — ' || string_agg(t || '.' || priv, ', ') end
+  from (select t, priv from unnest(array['workforce_requirements','assignments','assignment_billing','pay_components',
+                                          'shift_templates','shifts','shift_codes','shift_workers','attendance_records',
+                                          'attendance_exceptions','leave_requests','timesheets','timesheet_entries','earnings',
+                                          'earning_lines','payment_records','billing_records','workforce_events',
+                                          'workforce_jobs']) t,
+                            unnest(array['insert','update','delete']) priv
+         where has_table_privilege('authenticated', 'public.' || t, priv)
+            or has_table_privilege('anon', 'public.' || t, priv)) x
+
+  union all
+  select 54, 'R5-013 started work is an employment, and becomes verified experience',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' active/completed assignments without verified employment' end
+  from assignments a
+  where a.status in ('active','paused','completed')
+    and (a.employment_id is null
+         or not exists (select 1 from experiences x where x.verified_employment_id = a.employment_id and x.is_verified))
+
+  union all
+  select 55, 'R5-015 no future shift for an assignment that is not in force',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' future shifts on ended assignments' end
+  from shift_workers w join assignments a on a.id = w.assignment_id
+  where w.status in ('offered','assigned') and w.starts_at > now()
+    and a.status not in ('accepted','active','paused')
+
+  union all
+  select 56, 'Worker pay and agency margin stay apart (worker cannot read billing; client cannot read pay)',
+         case when not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('assignment_billing','billing_records')
+                                and coalesce(qual, '') like '%person_id%')
+               and not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('earnings','earning_lines','payment_records')
+                                and coalesce(qual, '') like '%client_company_id%')
+              then 'OK' else 'FAIL: pay or margin readable across the line' end
 )
 select n as "#", invariant, result from checks order by n;
 

@@ -122,6 +122,9 @@ export default async function JobDetailPage({
                   Find candidates
                 </Link>
               )}
+              <Link href={`/dashboard/workforce/requirements/new?job=${job.id}`} className="btn btn-ghost">
+                Staff it
+              </Link>
               <form action={pauseJob}>
                 <input type="hidden" name="job_id" value={job.id} />
                 <button className="btn btn-ghost">Pause</button>

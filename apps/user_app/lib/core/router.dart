@@ -29,6 +29,14 @@ import '../features/saved/saved_jobs_screen.dart';
 import '../features/settings/reset_password_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../features/work/assignment_detail_screen.dart';
+import '../features/work/assignments_screen.dart';
+import '../features/work/earnings_screen.dart';
+import '../features/work/leave_screen.dart';
+import '../features/work/shift_detail_screen.dart';
+import '../features/work/timesheet_detail_screen.dart';
+import '../features/work/timesheets_screen.dart';
+import '../features/work/work_screen.dart';
 import '../data/job_events.dart' show JobSurface;
 import 'app_state.dart';
 import 'auth_links.dart';
@@ -155,6 +163,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         redirect: _requireSignIn,
         builder: (_, __) => const RecruitersScreen(),
       ),
+      // Release 5: my work — shifts and check-in, assignments, timesheets,
+      // earnings and time off. Full screen, outside the tab shell.
+      ...workRoutes(redirect: _requireSignIn),
       GoRoute(
         path: '/saved',
         redirect: _requireSignIn,
@@ -204,6 +215,58 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Release 5 work screens. Every work and shift notification deeplink
+/// (`/work/shifts/<id>`, `/work/assignments/<id>`, `/work/timesheets/<id>`,
+/// `/work/earnings`, `/work/leave`) lands on one of these. Public so tests
+/// can check that each deeplink opens the right screen.
+List<RouteBase> workRoutes({GoRouterRedirect? redirect}) => [
+      GoRoute(
+        path: '/work',
+        redirect: redirect,
+        builder: (_, __) => const WorkScreen(),
+      ),
+      GoRoute(
+        path: '/work/shifts/:id',
+        redirect: redirect,
+        builder: (_, state) =>
+            ShiftDetailScreen(shiftId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/work/assignments',
+        redirect: redirect,
+        builder: (_, __) => const AssignmentsScreen(),
+      ),
+      GoRoute(
+        path: '/work/assignments/:id',
+        redirect: redirect,
+        builder: (_, state) => AssignmentDetailScreen(
+            assignmentId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/work/timesheets',
+        redirect: redirect,
+        builder: (_, state) => TimesheetsScreen(
+            assignmentId: state.uri.queryParameters['assignment']),
+      ),
+      GoRoute(
+        path: '/work/timesheets/:id',
+        redirect: redirect,
+        builder: (_, state) =>
+            TimesheetDetailScreen(timesheetId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/work/earnings',
+        redirect: redirect,
+        builder: (_, __) => const EarningsScreen(),
+      ),
+      GoRoute(
+        path: '/work/leave',
+        redirect: redirect,
+        builder: (_, state) => LeaveScreen(
+            assignmentId: state.uri.queryParameters['assignment']),
+      ),
+    ];
 
 /// Signed-out visitors sign in first and come straight back to the same link.
 String? _requireSignIn(BuildContext _, GoRouterState state) {

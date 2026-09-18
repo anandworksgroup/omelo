@@ -15,6 +15,7 @@ import '../identities/identity_widgets.dart' show IdentityNudgeCard;
 import '../representations/representation_widgets.dart'
     show RepresentationsHomeCard;
 import '../settings/account_widgets.dart' show DeletionBanner;
+import '../work/work_widgets.dart' show WorkHomeCard;
 
 /// U-20 — Home.
 ///
@@ -78,6 +79,10 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
+              // Release 5: today's shift, work offers — first, because it
+              // is the worker's day.
+              if (signedIn)
+                const WorkHomeCard(padding: EdgeInsets.only(top: 20)),
               if (signedIn)
                 const RepresentationsHomeCard(
                     padding: EdgeInsets.only(top: 20)),

@@ -157,6 +157,9 @@ export default async function JobOrderPage({
                 Edit
               </Link>
             )}
+            <Link href={`/dashboard/workforce/requirements/new?order=${o.id}`} className="btn btn-ghost w-full sm:w-auto">
+              Staff it
+            </Link>
           </>
         }
       />

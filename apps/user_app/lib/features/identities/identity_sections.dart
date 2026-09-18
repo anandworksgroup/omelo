@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../core/theme.dart';
 import '../../data/identity_repository.dart';
+import 'availability_block.dart';
 import 'identity_widgets.dart';
 import 'search_picker.dart';
 
@@ -724,6 +725,7 @@ class _PreferencesSectionState extends ConsumerState<PreferencesSection> {
             );
           },
         ),
+        AvailabilityBlock(identityId: widget.identityId),
         _PlacesBlock(identityId: widget.identityId),
       ],
     );

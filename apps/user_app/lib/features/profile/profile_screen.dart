@@ -12,6 +12,7 @@ import '../../data/job_events.dart' show flushJobEvents;
 import '../../data/representations_repository.dart'
     show pendingRepresentationsProvider;
 import '../../data/messaging.dart' show badgeLabel;
+import '../../data/work_repository.dart' show pendingWorkCountProvider;
 import '../applications/applications_screen.dart';
 import '../identities/identity_widgets.dart';
 
@@ -114,6 +115,12 @@ class ProfileScreen extends ConsumerWidget {
           const _IdentitiesSummary(),
 
           const SizedBox(height: 18),
+          _Tile(
+            icon: Icons.work_outline,
+            label: 'My work',
+            badge: ref.watch(pendingWorkCountProvider),
+            onTap: () => context.push('/work'),
+          ),
           _Tile(
             icon: Icons.mail_outline,
             label: 'Job invitations',

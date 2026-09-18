@@ -28,6 +28,12 @@ dependencies:
 
   # Formatting
   intl: ^0.20.2
+  # Shift times are shown in the work site's own time zone (IANA names from
+  # the server), not the phone's.
+  timezone: ^0.10.1
+
+  # Tap a supervisor's number to call them.
+  url_launcher: ^6.3.1
 
   cupertino_icons: ^1.0.8
   livekit_client: ^2.6.4

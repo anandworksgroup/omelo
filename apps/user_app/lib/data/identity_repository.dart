@@ -5,6 +5,7 @@ import '../core/app_state.dart';
 import 'account.dart' show serverMessage;
 import 'identity.dart';
 import 'jobs_repository.dart' show supabaseProvider;
+import 'work.dart' show WorkAvailability;
 
 export 'identity.dart';
 
@@ -333,6 +334,27 @@ class IdentityRepository {
     }, onConflict: 'work_identity_id');
   }
 
+  /// Release 5: when this identity is free to work (feeds schedule fit in
+  /// matching). Same row as [preferences]; only these columns are written.
+  Future<WorkAvailability> availability(String identityId) async {
+    final row = await _db
+        .from('person_work_preferences')
+        .select('available_from, available_until, preferred_days, '
+            'preferred_start_time, preferred_end_time, max_weekly_hours, '
+            'max_travel_km')
+        .eq('work_identity_id', identityId)
+        .maybeSingle();
+    return WorkAvailability.fromRow(row);
+  }
+
+  Future<void> saveAvailability(String identityId, WorkAvailability a) async {
+    await _db.from('person_work_preferences').upsert({
+      'person_id': _uid,
+      'work_identity_id': identityId,
+      ...a.toRow(),
+    }, onConflict: 'work_identity_id');
+  }
+
   Future<List<LocationPreference>> places(String identityId) async {
     final rows = await _db
         .from('person_location_preferences')
@@ -418,6 +440,10 @@ final identityExperiencesProvider = FutureProvider.autoDispose
 final identityPreferencesProvider = FutureProvider.autoDispose
     .family<WorkPreferences, String>(
         (ref, id) => ref.watch(identityRepositoryProvider).preferences(id));
+
+final identityAvailabilityProvider = FutureProvider.autoDispose
+    .family<WorkAvailability, String>(
+        (ref, id) => ref.watch(identityRepositoryProvider).availability(id));
 
 final identityPlacesProvider = FutureProvider.autoDispose
     .family<List<LocationPreference>, String>(

@@ -329,6 +329,17 @@ class AppNotification {
       // notice without a link of its own falls back to the worker screen.
       'candidate_consent' when link == null || link.trim().isEmpty =>
         '/representations/$id',
+      // Release 5 work notices carry their own `/work/...` link; these are
+      // the fallbacks for a notice without one. (Team notices link to the
+      // employer dashboard and are ignored.)
+      'shift' when link == null || link.trim().isEmpty => '/work/shifts/$id',
+      'assignment' when link == null || link.trim().isEmpty =>
+        '/work/assignments/$id',
+      'timesheet' when link == null || link.trim().isEmpty =>
+        '/work/timesheets/$id',
+      'earning' when link == null || link.trim().isEmpty => '/work/earnings',
+      'leave_request' when link == null || link.trim().isEmpty =>
+        '/work/leave',
       _ => null,
     };
   }
@@ -337,7 +348,9 @@ class AppNotification {
 /// Turns a notification deeplink into a route this app has, or null.
 ///
 /// Accepts `/applications/<uuid>`, `/messages/<uuid>`, `/invitations/<uuid>`,
-/// `/representations/<uuid>`,
+/// `/representations/<uuid>`, the Release 5 work screens (`/work`,
+/// `/work/shifts/<uuid>`, `/work/assignments[/<uuid>]`,
+/// `/work/timesheets[/<uuid>]`, `/work/earnings`, `/work/leave`),
 /// `/job/<uuid>` (opened as surface `notification`), `/meet/<room>` and the
 /// list screens, as a path or a full https link to the same path. Anything
 /// else — employer dashboard links, typos, other sites — is ignored so a bad
@@ -361,10 +374,28 @@ String? workerDeeplink(String? link) {
       'invitations' => '/invitations',
       'representations' => '/representations',
       'recruiters' => '/recruiters',
+      'work' => '/work',
+      _ => null,
+    };
+  }
+  if (s.length == 3 && s[0] == 'work' && isUuid(s[2])) {
+    return switch (s[1]) {
+      'shifts' => '/work/shifts/${s[2]}',
+      'assignments' => '/work/assignments/${s[2]}',
+      'timesheets' => '/work/timesheets/${s[2]}',
       _ => null,
     };
   }
   if (s.length != 2) return null;
+  if (s[0] == 'work') {
+    return switch (s[1]) {
+      'assignments' => '/work/assignments',
+      'timesheets' => '/work/timesheets',
+      'earnings' => '/work/earnings',
+      'leave' => '/work/leave',
+      _ => null,
+    };
+  }
   final id = s[1];
   return switch (s[0]) {
     'applications' when isUuid(id) => '/applications/$id',
@@ -385,6 +416,9 @@ enum NotificationKind {
   message,
   invitation,
   representation,
+
+  /// Release 5: shifts, assignments, timesheets, pay, leave.
+  work,
   other
 }
 
@@ -401,6 +435,7 @@ NotificationKind notificationKind(String type) => switch (type) {
       'representation_request' ||
       'representation_update' =>
         NotificationKind.representation,
+      'shift_update' || 'work_update' => NotificationKind.work,
       _ => NotificationKind.other,
     };
 

@@ -480,6 +480,461 @@ export type Database = {
           },
         ]
       }
+      assignment_billing: {
+        Row: {
+          assignment_id: string
+          bill_period: Database["public"]["Enums"]["pay_period"]
+          bill_rate: number
+          currency: string
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assignment_id: string
+          bill_period: Database["public"]["Enums"]["pay_period"]
+          bill_rate: number
+          currency: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          bill_period?: Database["public"]["Enums"]["pay_period"]
+          bill_rate?: number
+          currency?: string
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_billing_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_billing_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignments: {
+        Row: {
+          activated_at: string | null
+          agreement: Json
+          application_id: string | null
+          client_company_id: string | null
+          client_id: string | null
+          company_id: string
+          consent_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          decline_reason: string | null
+          employment_id: string | null
+          employment_type: string
+          end_date: string | null
+          end_reason: string | null
+          ended_at: string | null
+          ending_notice_sent_at: string | null
+          id: string
+          job_id: string | null
+          job_order_id: string | null
+          location_id: string | null
+          location_text: string | null
+          offer_expires_at: string | null
+          offered_at: string | null
+          overtime_policy_id: string | null
+          pay_frequency: string
+          pay_period: Database["public"]["Enums"]["pay_period"]
+          pay_rate: number
+          person_id: string
+          requirement_id: string
+          responded_at: string | null
+          source: string
+          start_date: string
+          status: string
+          submission_id: string | null
+          supervisor_id: string | null
+          timezone: string
+          title: string
+          updated_at: string
+          work_identity_id: string
+          work_type: Database["public"]["Enums"]["work_type"]
+        }
+        Insert: {
+          activated_at?: string | null
+          agreement?: Json
+          application_id?: string | null
+          client_company_id?: string | null
+          client_id?: string | null
+          company_id: string
+          consent_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          decline_reason?: string | null
+          employment_id?: string | null
+          employment_type: string
+          end_date?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ending_notice_sent_at?: string | null
+          id?: string
+          job_id?: string | null
+          job_order_id?: string | null
+          location_id?: string | null
+          location_text?: string | null
+          offer_expires_at?: string | null
+          offered_at?: string | null
+          overtime_policy_id?: string | null
+          pay_frequency: string
+          pay_period: Database["public"]["Enums"]["pay_period"]
+          pay_rate: number
+          person_id: string
+          requirement_id: string
+          responded_at?: string | null
+          source: string
+          start_date: string
+          status?: string
+          submission_id?: string | null
+          supervisor_id?: string | null
+          timezone: string
+          title: string
+          updated_at?: string
+          work_identity_id: string
+          work_type: Database["public"]["Enums"]["work_type"]
+        }
+        Update: {
+          activated_at?: string | null
+          agreement?: Json
+          application_id?: string | null
+          client_company_id?: string | null
+          client_id?: string | null
+          company_id?: string
+          consent_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decline_reason?: string | null
+          employment_id?: string | null
+          employment_type?: string
+          end_date?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
+          ending_notice_sent_at?: string | null
+          id?: string
+          job_id?: string | null
+          job_order_id?: string | null
+          location_id?: string | null
+          location_text?: string | null
+          offer_expires_at?: string | null
+          offered_at?: string | null
+          overtime_policy_id?: string | null
+          pay_frequency?: string
+          pay_period?: Database["public"]["Enums"]["pay_period"]
+          pay_rate?: number
+          person_id?: string
+          requirement_id?: string
+          responded_at?: string | null
+          source?: string
+          start_date?: string
+          status?: string
+          submission_id?: string | null
+          supervisor_id?: string | null
+          timezone?: string
+          title?: string
+          updated_at?: string
+          work_identity_id?: string
+          work_type?: Database["public"]["Enums"]["work_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_consent_id_fkey"
+            columns: ["consent_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_consents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_employment_id_fkey"
+            columns: ["employment_id"]
+            isOneToOne: false
+            referencedRelation: "employments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_overtime_policy_id_fkey"
+            columns: ["overtime_policy_id"]
+            isOneToOne: false
+            referencedRelation: "overtime_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "candidate_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_exceptions: {
+        Row: {
+          attendance_id: string
+          created_at: string
+          detail: string | null
+          id: string
+          kind: string
+          minutes: number | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          attendance_id: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          kind: string
+          minutes?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          attendance_id?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          kind?: string
+          minutes?: number | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_exceptions_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_exceptions_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_records: {
+        Row: {
+          assignment_id: string
+          break_minutes: number
+          check_in_at: string | null
+          check_in_geo: unknown
+          check_in_method: string | null
+          check_out_at: string | null
+          check_out_method: string | null
+          created_at: string
+          id: string
+          payable_minutes: number | null
+          person_id: string
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_end: string
+          scheduled_start: string
+          shift_id: string
+          shift_worker_id: string
+          status: string
+          updated_at: string
+          worked_minutes: number | null
+        }
+        Insert: {
+          assignment_id: string
+          break_minutes?: number
+          check_in_at?: string | null
+          check_in_geo?: unknown
+          check_in_method?: string | null
+          check_out_at?: string | null
+          check_out_method?: string | null
+          created_at?: string
+          id?: string
+          payable_minutes?: number | null
+          person_id: string
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_end: string
+          scheduled_start: string
+          shift_id: string
+          shift_worker_id: string
+          status: string
+          updated_at?: string
+          worked_minutes?: number | null
+        }
+        Update: {
+          assignment_id?: string
+          break_minutes?: number
+          check_in_at?: string | null
+          check_in_geo?: unknown
+          check_in_method?: string | null
+          check_out_at?: string | null
+          check_out_method?: string | null
+          created_at?: string
+          id?: string
+          payable_minutes?: number | null
+          person_id?: string
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_end?: string
+          scheduled_start?: string
+          shift_id?: string
+          shift_worker_id?: string
+          status?: string
+          updated_at?: string
+          worked_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_shift_worker_id_fkey"
+            columns: ["shift_worker_id"]
+            isOneToOne: true
+            referencedRelation: "shift_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -582,6 +1037,93 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_records: {
+        Row: {
+          agency_id: string
+          amount: number
+          assignment_id: string
+          bill_rate: number
+          client_company_id: string | null
+          client_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          quantity: number
+          status: string
+          timesheet_id: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          amount: number
+          assignment_id: string
+          bill_rate: number
+          client_company_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          currency: string
+          id?: string
+          quantity: number
+          status?: string
+          timesheet_id: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          amount?: number
+          assignment_id?: string
+          bill_rate?: number
+          client_company_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          quantity?: number
+          status?: string
+          timesheet_id?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_records_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: true
+            referencedRelation: "timesheets"
             referencedColumns: ["id"]
           },
         ]
@@ -1777,6 +2319,168 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      earning_lines: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string
+          earning_id: string
+          id: string
+          kind: string
+          quantity: number | null
+          rate: number | null
+          reason: string | null
+          unit: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description: string
+          earning_id: string
+          id?: string
+          kind: string
+          quantity?: number | null
+          rate?: number | null
+          reason?: string | null
+          unit?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          earning_id?: string
+          id?: string
+          kind?: string
+          quantity?: number | null
+          rate?: number | null
+          reason?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earning_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earning_lines_earning_id_fkey"
+            columns: ["earning_id"]
+            isOneToOne: false
+            referencedRelation: "earnings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      earnings: {
+        Row: {
+          adjustment_amount: number
+          allowance_amount: number
+          approved_at: string | null
+          approved_by: string | null
+          assignment_id: string
+          base_amount: number
+          bonus_amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          deduction_amount: number
+          gross_amount: number | null
+          id: string
+          overtime_amount: number
+          period_end: string
+          period_start: string
+          person_id: string
+          status: string
+          timesheet_id: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_amount?: number
+          allowance_amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          assignment_id: string
+          base_amount?: number
+          bonus_amount?: number
+          company_id: string
+          created_at?: string
+          currency: string
+          deduction_amount?: number
+          gross_amount?: number | null
+          id?: string
+          overtime_amount?: number
+          period_end: string
+          period_start: string
+          person_id: string
+          status?: string
+          timesheet_id: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_amount?: number
+          allowance_amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          assignment_id?: string
+          base_amount?: number
+          bonus_amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          deduction_amount?: number
+          gross_amount?: number | null
+          id?: string
+          overtime_amount?: number
+          period_end?: string
+          period_start?: string
+          person_id?: string
+          status?: string
+          timesheet_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "earnings_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: true
+            referencedRelation: "timesheets"
             referencedColumns: ["id"]
           },
         ]
@@ -3900,6 +4604,89 @@ export type Database = {
         }
         Relationships: []
       }
+      leave_requests: {
+        Row: {
+          assignment_id: string
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          label: string | null
+          leave_type: string
+          person_id: string
+          reason: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          label?: string | null
+          leave_type: string
+          person_id: string
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          label?: string | null
+          leave_type?: string
+          person_id?: string
+          reason?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_types: {
         Row: {
           category_id: string | null
@@ -4690,6 +5477,203 @@ export type Database = {
           },
         ]
       }
+      overtime_policies: {
+        Row: {
+          company_id: string
+          country_code: string | null
+          created_at: string
+          daily_threshold_minutes: number | null
+          id: string
+          max_overtime_minutes_week: number | null
+          multiplier: number
+          name: string
+          notes: string | null
+          standard_minutes_per_day: number
+          standard_minutes_per_week: number
+          weekly_threshold_minutes: number | null
+        }
+        Insert: {
+          company_id: string
+          country_code?: string | null
+          created_at?: string
+          daily_threshold_minutes?: number | null
+          id?: string
+          max_overtime_minutes_week?: number | null
+          multiplier?: number
+          name: string
+          notes?: string | null
+          standard_minutes_per_day?: number
+          standard_minutes_per_week?: number
+          weekly_threshold_minutes?: number | null
+        }
+        Update: {
+          company_id?: string
+          country_code?: string | null
+          created_at?: string
+          daily_threshold_minutes?: number | null
+          id?: string
+          max_overtime_minutes_week?: number | null
+          multiplier?: number
+          name?: string
+          notes?: string | null
+          standard_minutes_per_day?: number
+          standard_minutes_per_week?: number
+          weekly_threshold_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_components: {
+        Row: {
+          amount: number
+          applies_to_shift_types: Database["public"]["Enums"]["shift_type"][]
+          assignment_id: string | null
+          basis: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          name: string
+          requirement_id: string | null
+        }
+        Insert: {
+          amount: number
+          applies_to_shift_types?: Database["public"]["Enums"]["shift_type"][]
+          assignment_id?: string | null
+          basis: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          name: string
+          requirement_id?: string | null
+        }
+        Update: {
+          amount?: number
+          applies_to_shift_types?: Database["public"]["Enums"]["shift_type"][]
+          assignment_id?: string | null
+          basis?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          requirement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_components_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_components_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_components_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          earning_id: string
+          failure_reason: string | null
+          id: string
+          paid_at: string | null
+          person_id: string
+          provider: string | null
+          provider_reference: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          earning_id: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          person_id: string
+          provider?: string | null
+          provider_reference?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          earning_id?: string
+          failure_reason?: string | null
+          id?: string
+          paid_at?: string | null
+          person_id?: string
+          provider?: string | null
+          provider_reference?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_earning_id_fkey"
+            columns: ["earning_id"]
+            isOneToOne: false
+            referencedRelation: "earnings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person_attributes: {
         Row: {
           attribute_id: string
@@ -5158,10 +6142,12 @@ export type Database = {
         Row: {
           availability: Database["public"]["Enums"]["availability_window"]
           available_from: string | null
+          available_until: string | null
           current_pay_amount: number | null
           current_pay_period: Database["public"]["Enums"]["pay_period"] | null
           expected_pay_amount: number | null
           expected_pay_period: Database["public"]["Enums"]["pay_period"] | null
+          max_travel_km: number | null
           max_weekly_hours: number | null
           min_outreach_pay_amount: number | null
           min_outreach_pay_period:
@@ -5175,6 +6161,9 @@ export type Database = {
           pay_basis: Database["public"]["Enums"]["pay_basis"] | null
           pay_currency: string | null
           person_id: string
+          preferred_days: number[]
+          preferred_end_time: string | null
+          preferred_start_time: string | null
           seeking: boolean
           shift_types: Database["public"]["Enums"]["shift_type"][]
           updated_at: string
@@ -5187,10 +6176,12 @@ export type Database = {
         Insert: {
           availability?: Database["public"]["Enums"]["availability_window"]
           available_from?: string | null
+          available_until?: string | null
           current_pay_amount?: number | null
           current_pay_period?: Database["public"]["Enums"]["pay_period"] | null
           expected_pay_amount?: number | null
           expected_pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          max_travel_km?: number | null
           max_weekly_hours?: number | null
           min_outreach_pay_amount?: number | null
           min_outreach_pay_period?:
@@ -5204,6 +6195,9 @@ export type Database = {
           pay_basis?: Database["public"]["Enums"]["pay_basis"] | null
           pay_currency?: string | null
           person_id: string
+          preferred_days?: number[]
+          preferred_end_time?: string | null
+          preferred_start_time?: string | null
           seeking?: boolean
           shift_types?: Database["public"]["Enums"]["shift_type"][]
           updated_at?: string
@@ -5216,10 +6210,12 @@ export type Database = {
         Update: {
           availability?: Database["public"]["Enums"]["availability_window"]
           available_from?: string | null
+          available_until?: string | null
           current_pay_amount?: number | null
           current_pay_period?: Database["public"]["Enums"]["pay_period"] | null
           expected_pay_amount?: number | null
           expected_pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          max_travel_km?: number | null
           max_weekly_hours?: number | null
           min_outreach_pay_amount?: number | null
           min_outreach_pay_period?:
@@ -5233,6 +6229,9 @@ export type Database = {
           pay_basis?: Database["public"]["Enums"]["pay_basis"] | null
           pay_currency?: string | null
           person_id?: string
+          preferred_days?: number[]
+          preferred_end_time?: string | null
+          preferred_start_time?: string | null
           seeking?: boolean
           shift_types?: Database["public"]["Enums"]["shift_type"][]
           updated_at?: string
@@ -6063,6 +7062,281 @@ export type Database = {
           },
         ]
       }
+      shift_codes: {
+        Row: {
+          code: string
+          created_at: string
+          shift_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          shift_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_codes_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: true
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_templates: {
+        Row: {
+          break_minutes: number
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          end_time: string
+          id: string
+          name: string
+          required_workers: number
+          requirement_id: string
+          shift_type: Database["public"]["Enums"]["shift_type"] | null
+          start_time: string
+          status: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          break_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          days_of_week: number[]
+          end_time: string
+          id?: string
+          name: string
+          required_workers?: number
+          requirement_id: string
+          shift_type?: Database["public"]["Enums"]["shift_type"] | null
+          start_time: string
+          status?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          break_minutes?: number
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          end_time?: string
+          id?: string
+          name?: string
+          required_workers?: number
+          requirement_id?: string
+          shift_type?: Database["public"]["Enums"]["shift_type"] | null
+          start_time?: string
+          status?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_templates_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_workers: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assignment_id: string
+          ends_at: string
+          id: string
+          person_id: string
+          reminder_sent_at: string | null
+          responded_at: string | null
+          shift_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignment_id: string
+          ends_at: string
+          id?: string
+          person_id: string
+          reminder_sent_at?: string | null
+          responded_at?: string | null
+          shift_id: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignment_id?: string
+          ends_at?: string
+          id?: string
+          person_id?: string
+          reminder_sent_at?: string | null
+          responded_at?: string | null
+          shift_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_workers_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_workers_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_workers_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_workers_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          break_minutes: number
+          cancel_reason: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          instructions: string | null
+          kind: string
+          location_id: string | null
+          location_text: string | null
+          required_workers: number
+          requirement_id: string
+          shift_type: Database["public"]["Enums"]["shift_type"] | null
+          starts_at: string
+          status: string
+          supervisor_id: string | null
+          template_id: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          break_minutes?: number
+          cancel_reason?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          instructions?: string | null
+          kind?: string
+          location_id?: string | null
+          location_text?: string | null
+          required_workers?: number
+          requirement_id: string
+          shift_type?: Database["public"]["Enums"]["shift_type"] | null
+          starts_at: string
+          status?: string
+          supervisor_id?: string | null
+          template_id?: string | null
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          break_minutes?: number
+          cancel_reason?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          instructions?: string | null
+          kind?: string
+          location_id?: string | null
+          location_text?: string | null
+          required_workers?: number
+          requirement_id?: string
+          shift_type?: Database["public"]["Enums"]["shift_type"] | null
+          starts_at?: string
+          status?: string
+          supervisor_id?: string | null
+          template_id?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "workforce_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_aliases: {
         Row: {
           alias: string
@@ -6333,6 +7607,159 @@ export type Database = {
           },
         ]
       }
+      timesheet_entries: {
+        Row: {
+          attendance_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          minutes: number
+          note: string | null
+          timesheet_id: string
+          work_date: string
+        }
+        Insert: {
+          attendance_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          minutes: number
+          note?: string | null
+          timesheet_id: string
+          work_date: string
+        }
+        Update: {
+          attendance_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          minutes?: number
+          note?: string | null
+          timesheet_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheet_entries_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_entries_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: false
+            referencedRelation: "timesheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timesheets: {
+        Row: {
+          assignment_id: string
+          company_id: string
+          created_at: string
+          days_worked: number
+          id: string
+          locked_at: string | null
+          overtime_minutes: number
+          period_end: string
+          period_start: string
+          person_id: string
+          regular_minutes: number
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shifts_worked: number
+          status: string
+          submitted_at: string | null
+          total_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          company_id: string
+          created_at?: string
+          days_worked?: number
+          id?: string
+          locked_at?: string | null
+          overtime_minutes?: number
+          period_end: string
+          period_start: string
+          person_id: string
+          regular_minutes?: number
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shifts_worked?: number
+          status?: string
+          submitted_at?: string | null
+          total_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          company_id?: string
+          created_at?: string
+          days_worked?: number
+          id?: string
+          locked_at?: string | null
+          overtime_minutes?: number
+          period_end?: string
+          period_start?: string
+          person_id?: string
+          regular_minutes?: number
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shifts_worked?: number
+          status?: string
+          submitted_at?: string | null
+          total_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       verifications: {
         Row: {
           claim: Json
@@ -6566,6 +7993,305 @@ export type Database = {
           },
         ]
       }
+      workforce_events: {
+        Row: {
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          company_id: string | null
+          entity_id: string
+          entity_type: string
+          event: string
+          id: number
+          occurred_at: string
+          person_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id?: string | null
+          entity_id: string
+          entity_type: string
+          event: string
+          id?: never
+          occurred_at?: string
+          person_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          company_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          event?: string
+          id?: never
+          occurred_at?: string
+          person_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_jobs: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          errors: Json
+          failed: number
+          finished_at: string | null
+          id: string
+          kind: string
+          payload: Json
+          processed: number
+          started_at: string | null
+          status: string
+          succeeded: number
+          total: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          errors?: Json
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          kind: string
+          payload: Json
+          processed?: number
+          started_at?: string | null
+          status?: string
+          succeeded?: number
+          total?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          errors?: Json
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          processed?: number
+          started_at?: string | null
+          status?: string
+          succeeded?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workforce_requirements: {
+        Row: {
+          check_in_method: string
+          client_id: string | null
+          company_id: string
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          employment_type: string
+          end_date: string | null
+          geofence_radius_m: number | null
+          hours_per_week: number | null
+          id: string
+          job_id: string | null
+          job_order_id: string | null
+          late_grace_minutes: number
+          location_id: string | null
+          location_text: string | null
+          notes: string | null
+          openings: number
+          overtime_policy_id: string | null
+          pay_frequency: string
+          pay_period: Database["public"]["Enums"]["pay_period"] | null
+          pay_rate: number | null
+          profession_id: string | null
+          site_name: string | null
+          start_date: string | null
+          status: string
+          supervisor_id: string | null
+          timezone: string
+          title: string
+          updated_at: string
+          work_type: Database["public"]["Enums"]["work_type"]
+        }
+        Insert: {
+          check_in_method?: string
+          client_id?: string | null
+          company_id: string
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          employment_type?: string
+          end_date?: string | null
+          geofence_radius_m?: number | null
+          hours_per_week?: number | null
+          id?: string
+          job_id?: string | null
+          job_order_id?: string | null
+          late_grace_minutes?: number
+          location_id?: string | null
+          location_text?: string | null
+          notes?: string | null
+          openings?: number
+          overtime_policy_id?: string | null
+          pay_frequency?: string
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          pay_rate?: number | null
+          profession_id?: string | null
+          site_name?: string | null
+          start_date?: string | null
+          status?: string
+          supervisor_id?: string | null
+          timezone?: string
+          title: string
+          updated_at?: string
+          work_type?: Database["public"]["Enums"]["work_type"]
+        }
+        Update: {
+          check_in_method?: string
+          client_id?: string | null
+          company_id?: string
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          employment_type?: string
+          end_date?: string | null
+          geofence_radius_m?: number | null
+          hours_per_week?: number | null
+          id?: string
+          job_id?: string | null
+          job_order_id?: string | null
+          late_grace_minutes?: number
+          location_id?: string | null
+          location_text?: string | null
+          notes?: string | null
+          openings?: number
+          overtime_policy_id?: string | null
+          pay_frequency?: string
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          pay_rate?: number | null
+          profession_id?: string | null
+          site_name?: string | null
+          start_date?: string | null
+          status?: string
+          supervisor_id?: string | null
+          timezone?: string
+          title?: string
+          updated_at?: string
+          work_type?: Database["public"]["Enums"]["work_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_requirements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "agency_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_job_order_id_fkey"
+            columns: ["job_order_id"]
+            isOneToOne: false
+            referencedRelation: "job_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_overtime_policy_id_fkey"
+            columns: ["overtime_policy_id"]
+            isOneToOne: false
+            referencedRelation: "overtime_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "professions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -6573,6 +8299,19 @@ export type Database = {
     Functions: {
       omelo_accept_team_invitation: {
         Args: { p_invitation: string }
+        Returns: string
+      }
+      omelo_add_earning_adjustment: {
+        Args: { p_amount: number; p_earning: string; p_reason: string }
+        Returns: undefined
+      }
+      omelo_add_timesheet_entry: {
+        Args: {
+          p_minutes: number
+          p_note: string
+          p_timesheet: string
+          p_work_date: string
+        }
         Returns: string
       }
       omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
@@ -6603,6 +8342,10 @@ export type Database = {
         Returns: Json
       }
       omelo_am_i_platform_admin: { Args: never; Returns: boolean }
+      omelo_approve_earnings: {
+        Args: { p_earning: string }
+        Returns: undefined
+      }
       omelo_archive_work_identity: {
         Args: { p_archive?: boolean; p_identity: string }
         Returns: undefined
@@ -6616,13 +8359,49 @@ export type Database = {
         }
         Returns: undefined
       }
+      omelo_assign_shift: {
+        Args: { p_assignments: string[]; p_shift: string }
+        Returns: Json
+      }
+      omelo_build_timesheet: {
+        Args: {
+          p_assignment: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: string
+      }
       omelo_cancel_account_deletion: { Args: never; Returns: boolean }
       omelo_cancel_interview: {
         Args: { p_interview_id: string; p_reason: string }
         Returns: undefined
       }
+      omelo_cancel_leave: { Args: { p_leave: string }; Returns: undefined }
+      omelo_cancel_shift: {
+        Args: { p_reason: string; p_shift: string }
+        Returns: undefined
+      }
+      omelo_cancel_workforce_job: {
+        Args: { p_job: string }
+        Returns: undefined
+      }
+      omelo_check_in: {
+        Args: {
+          p_code?: string
+          p_lat?: number
+          p_lng?: number
+          p_method?: string
+          p_shift_worker: string
+        }
+        Returns: string
+      }
+      omelo_check_out: {
+        Args: { p_lat?: number; p_lng?: number; p_shift_worker: string }
+        Returns: Json
+      }
       omelo_client_job_orders: { Args: never; Returns: Json }
       omelo_client_submissions: { Args: { p_job_id?: string }; Returns: Json }
+      omelo_client_workforce: { Args: { p_company: string }; Returns: Json }
       omelo_comms_claim: {
         Args: { p_limit?: number }
         Returns: {
@@ -6680,12 +8459,29 @@ export type Database = {
         Returns: Json
       }
       omelo_consent_candidate: { Args: { p_consent: string }; Returns: Json }
+      omelo_correct_attendance: {
+        Args: {
+          p_attendance: string
+          p_check_in: string
+          p_check_out: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
       omelo_create_agency: {
         Args: { p_country?: string; p_independent?: boolean; p_name: string }
         Returns: string
       }
       omelo_create_job_order: {
         Args: { p_client: string; p_order: Json }
+        Returns: string
+      }
+      omelo_create_requirement: {
+        Args: { p_company: string; p_fields: Json }
+        Returns: string
+      }
+      omelo_create_shift: {
+        Args: { p_requirement: string; p_shift: Json }
         Returns: string
       }
       omelo_create_work_identity: {
@@ -6706,6 +8502,10 @@ export type Database = {
         Returns: undefined
       }
       omelo_end_client_link: { Args: { p_client: string }; Returns: undefined }
+      omelo_generate_shifts: {
+        Args: { p_from: string; p_template: string; p_to: string }
+        Returns: number
+      }
       omelo_identity_evidence: { Args: { p_identity: string }; Returns: Json }
       omelo_identity_profile: { Args: { p_identity?: string }; Returns: Json }
       omelo_interview_question_suggestions: {
@@ -6763,6 +8563,8 @@ export type Database = {
         Returns: Database["public"]["Enums"]["application_state"]
       }
       omelo_my_agency_relationships: { Args: never; Returns: Json }
+      omelo_my_assignments: { Args: never; Returns: Json }
+      omelo_my_earnings: { Args: never; Returns: Json }
       omelo_my_invitations: { Args: never; Returns: Json }
       omelo_my_match: {
         Args: { p_job_id: string; p_work_identity_id?: string }
@@ -6783,6 +8585,7 @@ export type Database = {
       }
       omelo_my_team_invitations: { Args: never; Returns: Json }
       omelo_my_trust_status: { Args: never; Returns: Json }
+      omelo_my_work: { Args: { p_from?: string; p_to?: string }; Returns: Json }
       omelo_nearby_jobs: {
         Args: {
           p_category_id?: string
@@ -6826,6 +8629,14 @@ export type Database = {
           shift_types: Database["public"]["Enums"]["shift_type"][]
           title: string
         }[]
+      }
+      omelo_offer_assignment: {
+        Args: { p_fields?: Json; p_identity: string; p_requirement: string }
+        Returns: string
+      }
+      omelo_offer_shift: {
+        Args: { p_assignments: string[]; p_shift: string }
+        Returns: Json
       }
       omelo_pay_monthly: {
         Args: {
@@ -6875,6 +8686,26 @@ export type Database = {
           strengths: Json
         }[]
       }
+      omelo_record_attendance: {
+        Args: {
+          p_check_in: string
+          p_check_out?: string
+          p_note?: string
+          p_shift_worker: string
+        }
+        Returns: string
+      }
+      omelo_record_payment: {
+        Args: {
+          p_amount: number
+          p_earning: string
+          p_provider?: string
+          p_reference?: string
+          p_scheduled_for?: string
+          p_status?: string
+        }
+        Returns: string
+      }
       omelo_record_submission_outcome: {
         Args: {
           p_note?: string
@@ -6886,6 +8717,18 @@ export type Database = {
       }
       omelo_reject_application: {
         Args: { p_application_id: string; p_reason: string }
+        Returns: undefined
+      }
+      omelo_remove_pay_component: {
+        Args: { p_component: string }
+        Returns: undefined
+      }
+      omelo_remove_timesheet_entry: {
+        Args: { p_entry: string }
+        Returns: undefined
+      }
+      omelo_reopen_timesheet: {
+        Args: { p_reason: string; p_timesheet: string }
         Returns: undefined
       }
       omelo_report_meet_abuse: {
@@ -6906,6 +8749,17 @@ export type Database = {
         Returns: undefined
       }
       omelo_request_email_verification: { Args: never; Returns: Json }
+      omelo_request_leave: {
+        Args: {
+          p_assignment: string
+          p_end: string
+          p_label?: string
+          p_reason?: string
+          p_start: string
+          p_type: string
+        }
+        Returns: string
+      }
       omelo_request_phone_verification: {
         Args: { p_phone: string }
         Returns: Json
@@ -6933,6 +8787,10 @@ export type Database = {
         Args: { p_accept: boolean; p_client: string }
         Returns: undefined
       }
+      omelo_respond_to_assignment: {
+        Args: { p_accept: boolean; p_assignment: string; p_reason?: string }
+        Returns: string
+      }
       omelo_respond_to_invitation: {
         Args: { p_invitation: string; p_reason?: string }
         Returns: undefined
@@ -6944,6 +8802,29 @@ export type Database = {
       omelo_respond_to_representation: {
         Args: { p_accept: boolean; p_consent: string; p_reason?: string }
         Returns: undefined
+      }
+      omelo_respond_to_shift: {
+        Args: { p_accept: boolean; p_shift_worker: string }
+        Returns: string
+      }
+      omelo_review_attendance: {
+        Args: {
+          p_attendance: string
+          p_break_minutes?: number
+          p_check_in?: string
+          p_check_out?: string
+          p_decision: string
+          p_note?: string
+        }
+        Returns: undefined
+      }
+      omelo_review_leave: {
+        Args: { p_approve: boolean; p_leave: string; p_note?: string }
+        Returns: undefined
+      }
+      omelo_review_timesheet: {
+        Args: { p_approve: boolean; p_reason?: string; p_timesheet: string }
+        Returns: Json
       }
       omelo_revoke_other_sessions: { Args: never; Returns: number }
       omelo_revoke_representation: {
@@ -6967,6 +8848,26 @@ export type Database = {
           p_skills?: Json
           p_strengths?: string
           p_submit?: boolean
+        }
+        Returns: string
+      }
+      omelo_save_pay_component: {
+        Args: {
+          p_amount: number
+          p_assignment: string
+          p_basis: string
+          p_kind: string
+          p_name: string
+          p_requirement: string
+          p_shift_types?: string[]
+        }
+        Returns: string
+      }
+      omelo_save_shift_template: {
+        Args: {
+          p_requirement: string
+          p_template: Json
+          p_template_id?: string
         }
         Returns: string
       }
@@ -7024,29 +8925,86 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_set_assignment_billing: {
+        Args: {
+          p_assignment: string
+          p_bill_period: string
+          p_bill_rate: number
+          p_note?: string
+        }
+        Returns: undefined
+      }
+      omelo_set_assignment_status: {
+        Args: {
+          p_assignment: string
+          p_end_date?: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
       omelo_set_primary_identity: {
         Args: { p_identity: string }
         Returns: undefined
       }
+      omelo_shift_replacements: { Args: { p_shift: string }; Returns: Json }
+      omelo_shift_roster: { Args: { p_shift: string }; Returns: Json }
       omelo_start_conversation: {
         Args: { p_application_id: string }
+        Returns: string
+      }
+      omelo_start_timesheet_review: {
+        Args: { p_timesheet: string }
+        Returns: undefined
+      }
+      omelo_start_workforce_job: {
+        Args: { p_company: string; p_kind: string; p_payload: Json }
         Returns: string
       }
       omelo_submit_candidate: {
         Args: { p_consent: string; p_note?: string }
         Returns: string
       }
+      omelo_submit_timesheet: {
+        Args: { p_timesheet: string }
+        Returns: undefined
+      }
       omelo_talent_profile: {
         Args: { p_identity: string; p_job_id?: string }
         Returns: Json
       }
       omelo_track_job_events: { Args: { p_events: Json }; Returns: number }
+      omelo_unassign_shift: {
+        Args: { p_reason?: string; p_shift_worker: string }
+        Returns: undefined
+      }
+      omelo_update_billing_status: {
+        Args: { p_billing: string; p_status: string }
+        Returns: undefined
+      }
       omelo_update_job_order: {
         Args: { p_changes: Json; p_order: string }
         Returns: undefined
       }
+      omelo_update_payment: {
+        Args: {
+          p_failure_reason?: string
+          p_payment: string
+          p_reference?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
       omelo_update_placement: {
         Args: { p_changes: Json; p_placement: string }
+        Returns: undefined
+      }
+      omelo_update_requirement: {
+        Args: { p_changes: Json; p_requirement: string }
+        Returns: undefined
+      }
+      omelo_update_shift: {
+        Args: { p_changes: Json; p_shift: string }
         Returns: undefined
       }
       omelo_view_offer: { Args: { p_offer_id: string }; Returns: undefined }
@@ -7070,6 +9028,8 @@ export type Database = {
         Args: { p_reason?: string; p_submission: string }
         Returns: undefined
       }
+      omelo_workforce_approvals: { Args: { p_company: string }; Returns: Json }
+      omelo_workforce_dashboard: { Args: { p_company: string }; Returns: Json }
     }
     Enums: {
       actor_type: "candidate" | "recruiter" | "system" | "admin"
@@ -7278,6 +9238,8 @@ export type Database = {
         | "job_invitation"
         | "representation_request"
         | "representation_update"
+        | "shift_update"
+        | "work_update"
       offer_status:
         | "draft"
         | "sent"
@@ -7761,6 +9723,8 @@ export const Constants = {
         "job_invitation",
         "representation_request",
         "representation_update",
+        "shift_update",
+        "work_update",
       ],
       offer_status: [
         "draft",
