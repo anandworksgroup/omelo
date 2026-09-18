@@ -8,6 +8,7 @@ import '../../core/location.dart';
 import '../../core/responsive.dart';
 import '../discover/discover_controller.dart';
 import '../discover/job_card.dart';
+import '../identities/identity_widgets.dart' show IdentityNudgeCard;
 import '../settings/account_widgets.dart' show DeletionBanner;
 
 /// U-20 — Home.
@@ -71,6 +72,9 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text('Search jobs'),
                 ),
               ),
+
+              if (signedIn)
+                const IdentityNudgeCard(padding: EdgeInsets.only(top: 20)),
 
               if (!signedIn) ...[
                 const SizedBox(height: 20),

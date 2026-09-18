@@ -98,7 +98,11 @@ with checks as (
                           'omelo_my_trust_status','omelo_request_email_verification','omelo_request_phone_verification',
                           'omelo_confirm_verification','omelo_my_sessions','omelo_revoke_session','omelo_revoke_other_sessions',
                           'omelo_request_account_deletion','omelo_cancel_account_deletion',
-                          'omelo_admin_system_health','omelo_admin_kpis','omelo_am_i_platform_admin')
+                          'omelo_admin_system_health','omelo_admin_kpis','omelo_am_i_platform_admin',
+                          -- Release 2 (38): professional identity
+                          'omelo_create_work_identity','omelo_set_primary_identity','omelo_archive_work_identity',
+                          'omelo_delete_work_identity','omelo_identity_profile','omelo_save_identity_profile',
+                          'omelo_identity_evidence')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -348,6 +352,37 @@ with checks as (
   from cron.job
   where active and jobname in ('omelo-comms-dispatch','omelo-meet-housekeeping',
                                'omelo-account-deletions','omelo-outbox-retention')
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 2 (migrations 38-39): professional identity
+  -- ---------------------------------------------------------------
+  union all
+  select 31, 'Employers read identity-scoped rows only for identities they may see',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in ('person_skills','experiences','person_attributes','person_professions',
+                      'person_work_preferences','person_location_preferences','projects')
+    and policyname not like '%\_self'
+    and cmd = 'SELECT'
+    and coalesce(qual, '') not like '%omelo_can_view_person_row%'
+    and policyname not in ('person_skills_admin','experiences_admin')
+
+  union all
+  select 32, 'Deleting an identity takes its rows with it (no leak into shared rows)',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(conrelid::regclass::text, ', ') end
+  from pg_constraint
+  where contype = 'f' and confrelid = 'public.work_identities'::regclass
+    and conrelid in ('public.person_skills'::regclass, 'public.experiences'::regclass, 'public.projects'::regclass)
+    and confdeltype <> 'c'
+
+  union all
+  select 33, 'Identity completeness and status are server-controlled',
+         case when exists (select 1 from pg_trigger where tgname = 'work_identities_guard_fields' and not tgisinternal)
+               and exists (select 1 from pg_trigger where tgname = 'person_attributes_validate' and not tgisinternal)
+              then 'OK' else 'FAIL: identity guard or attribute validation trigger missing' end
 )
 select n as "#", invariant, result from checks order by n;
 

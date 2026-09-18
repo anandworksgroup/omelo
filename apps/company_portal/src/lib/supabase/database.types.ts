@@ -623,6 +623,7 @@ export type Database = {
       companies: {
         Row: {
           about: string | null
+          company_kind: string
           country_code: string | null
           cover_url: string | null
           created_at: string
@@ -655,6 +656,7 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          company_kind?: string
           country_code?: string | null
           cover_url?: string | null
           created_at?: string
@@ -687,6 +689,7 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          company_kind?: string
           country_code?: string | null
           cover_url?: string | null
           created_at?: string
@@ -5718,6 +5721,10 @@ export type Database = {
       omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
       omelo_admin_system_health: { Args: { p_hours?: number }; Returns: Json }
       omelo_am_i_platform_admin: { Args: never; Returns: boolean }
+      omelo_archive_work_identity: {
+        Args: { p_archive?: boolean; p_identity: string }
+        Returns: undefined
+      }
       omelo_cancel_account_deletion: { Args: never; Returns: boolean }
       omelo_cancel_interview: {
         Args: { p_interview_id: string; p_reason: string }
@@ -5779,6 +5786,21 @@ export type Database = {
         Args: { p_channel: string; p_code: string }
         Returns: Json
       }
+      omelo_create_work_identity: {
+        Args: {
+          p_copy?: string[]
+          p_copy_from?: string
+          p_label: string
+          p_profession_id?: string
+        }
+        Returns: string
+      }
+      omelo_delete_work_identity: {
+        Args: { p_identity: string }
+        Returns: undefined
+      }
+      omelo_identity_evidence: { Args: { p_identity: string }; Returns: Json }
+      omelo_identity_profile: { Args: { p_identity?: string }; Returns: Json }
       omelo_interview_question_suggestions: {
         Args: { p_job_id: string; p_round_kind?: string }
         Returns: {
@@ -5959,6 +5981,10 @@ export type Database = {
       }
       omelo_revoke_other_sessions: { Args: never; Returns: number }
       omelo_revoke_session: { Args: { p_session_id: string }; Returns: boolean }
+      omelo_save_identity_profile: {
+        Args: { p_identity: string; p_values: Json }
+        Returns: Json
+      }
       omelo_save_interview_feedback: {
         Args: {
           p_answers?: Json
@@ -6008,6 +6034,10 @@ export type Database = {
           p_title?: string
         }
         Returns: string
+      }
+      omelo_set_primary_identity: {
+        Args: { p_identity: string }
+        Returns: undefined
       }
       omelo_start_conversation: {
         Args: { p_application_id: string }
@@ -6118,7 +6148,12 @@ export type Database = {
         | "1001-5000"
         | "5001-10000"
         | "10000+"
-      discoverability: "private" | "discoverable" | "public"
+      discoverability:
+        | "private"
+        | "matched_only"
+        | "discoverable"
+        | "recruiters"
+        | "public"
       document_type:
         | "resume"
         | "cover_letter"
@@ -6582,7 +6617,13 @@ export const Constants = {
         "5001-10000",
         "10000+",
       ],
-      discoverability: ["private", "discoverable", "public"],
+      discoverability: [
+        "private",
+        "matched_only",
+        "discoverable",
+        "recruiters",
+        "public",
+      ],
       document_type: [
         "resume",
         "cover_letter",

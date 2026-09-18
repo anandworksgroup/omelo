@@ -11,6 +11,8 @@ import '../features/company/company_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/discover/job_detail_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/identities/identities_screen.dart';
+import '../features/identities/identity_editor_screen.dart';
 import '../features/meet/meet_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/messages/thread_screen.dart';
@@ -92,6 +94,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         redirect: _requireSignIn,
         builder: (_, state) =>
             ThreadScreen(conversationId: state.pathParameters['id']!),
+      ),
+      // Release 2: work identities. Full screen, outside the tab shell.
+      GoRoute(
+        path: '/identities',
+        redirect: _requireSignIn,
+        builder: (_, __) => const IdentitiesScreen(),
+      ),
+      GoRoute(
+        path: '/identities/:id',
+        redirect: _requireSignIn,
+        builder: (_, state) => IdentityEditorScreen(
+          identityId: state.pathParameters['id']!,
+          section: state.uri.queryParameters['section'],
+        ),
       ),
       GoRoute(
         path: '/notifications',

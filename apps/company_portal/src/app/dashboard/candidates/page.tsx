@@ -175,8 +175,13 @@ export default async function CandidatesPage({
                 } | null;
                 const job = a.jobs as unknown as { id: string; title: string } | null;
                 const person = a.persons as unknown as { display_name: string | null } | null;
-                const snap = a.identity_snapshot as { person?: { display_name?: string } } | null;
+                const snap = a.identity_snapshot as {
+                  person?: { display_name?: string };
+                  work_identity?: { label?: string };
+                } | null;
                 const name = person?.display_name ?? snap?.person?.display_name ?? 'Candidate';
+                // The work identity they applied with — an employer never sees the others.
+                const identityLabel = wi?.label ?? snap?.work_identity?.label ?? null;
                 const unread = !a.first_viewed_at;
                 const stale = staleDays(a);
 
@@ -199,10 +204,16 @@ export default async function CandidatesPage({
                         )}
                       </div>
                       <div className="text-xs muted mt-0.5 break-words">
-                        {wi?.professions?.name ?? wi?.label ?? '—'}
-                        {wi?.label && wi?.professions?.name && wi.label !== wi.professions.name
-                          ? ` · ${wi.label}`
-                          : ''}
+                        {identityLabel ? (
+                          <>
+                            as <span className="font-medium" style={{ color: 'var(--fg)' }}>{identityLabel}</span>
+                            {wi?.professions?.name && wi.professions.name !== identityLabel
+                              ? ` · ${wi.professions.name}`
+                              : ''}
+                          </>
+                        ) : (
+                          wi?.professions?.name ?? '—'
+                        )}
                       </div>
                       <div className="text-xs muted mt-0.5 break-words">
                         {job?.title ?? 'A job'} · applied {timeAgo(a.applied_at)}

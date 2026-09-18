@@ -33,7 +33,7 @@ tests/api/             end-to-end tests against a live project, as real users
       set value = 'https://<ref>.supabase.co/functions/v1', updated_at = now()
     where key = 'functions_base_url';
    ```
-4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 30 rows must read OK.**
+4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 33 rows must read OK.**
 5. Dashboard settings (not expressible as migrations):
    - **Auth → Passwords:** enable *Leaked password protection*; minimum length 8+.
    - **Auth → URL configuration:** set Site URL to the portal URL; add the
@@ -124,6 +124,7 @@ python tests/api/hiring_loop_e2e.py
 python tests/api/messaging_e2e.py
 python tests/api/meet_e2e.py
 python tests/api/account_e2e.py
+python tests/api/identity_e2e.py
 ```
 
 Point `tests/api/omelo_api.py` (`BASE`, `KEY`) at the new project first. Each
@@ -135,7 +136,7 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 
 ## 6. Launch checklist
 
-- [ ] `verify-invariants.sql` — 30/30 OK
+- [ ] `verify-invariants.sql` — 33/33 OK
 - [ ] Leaked password protection on; Site URL and redirect URLs set
 - [ ] `functions_base_url` updated; `select * from cron.job` shows the 4 `omelo-*` jobs
 - [ ] First platform admin granted; `/admin` shows healthy cron runs and 0 function failures

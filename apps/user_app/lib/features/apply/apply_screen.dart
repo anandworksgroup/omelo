@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
+import '../../data/identity_repository.dart';
 import '../../data/job.dart';
 import '../applications/applications_screen.dart';
 import '../discover/job_detail_screen.dart';
@@ -28,6 +29,9 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
   bool? _answer;
   bool _busy = false;
   String? _error;
+
+  /// The identity the person picked; null means the default for this job.
+  String? _identityId;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +73,10 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
         data: (d) {
           final j = d.job;
           final question = d.questions.isEmpty ? null : d.questions.first;
+          final identities = (ref.watch(myIdentitiesProvider).value ?? const [])
+              .where((i) => i.isActive)
+              .toList();
+          final identity = _selectedIdentity(identities, j);
 
           return ContentWidth.reading(
             child: ListView(
@@ -93,12 +101,45 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                     const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
 
+              if (identities.length > 1) ...[
+                const SizedBox(height: 26),
+                const _Heading('Apply as'),
+                const SizedBox(height: 10),
+                for (final i in identities)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _IdentityOption(
+                      identity: i,
+                      selected: i.id == identity?.id,
+                      onTap: () => setState(() => _identityId = i.id),
+                    ),
+                  ),
+              ],
+              if (identity != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.visibility_outlined,
+                        size: 18, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(applyPreviewLine(identity),
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 26),
               const _Heading('What the employer will see'),
               const SizedBox(height: 10),
               _Bullet(Icons.person_outline, 'Your name and contact details'),
-              _Bullet(Icons.work_outline,
-                  'Your work profile${j.professionName != null ? ' as ${j.professionName}' : ''}'),
+              _Bullet(
+                  Icons.work_outline,
+                  identity != null
+                      ? 'Your ${identity.label} profile — its skills and experience'
+                      : 'Your work profile${j.professionName != null ? ' as ${j.professionName}' : ''}'),
               _Bullet(Icons.place_outlined, 'Your area — not your exact address'),
               if (question != null)
                 _Bullet(Icons.help_outline, 'Your answer to their question'),
@@ -112,6 +153,9 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
               _Bullet(Icons.visibility_off_outlined,
                   'Anything you have not chosen to share',
                   negative: true),
+              if (identities.length > 1)
+                _Bullet(Icons.layers_outlined,
+                    'Your other work identities', negative: true),
               const SizedBox(height: 6),
               Text(
                 'If they need a document later, they have to ask, and you can '
@@ -164,7 +208,7 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
                             question.isRequired &&
                             _answer == null)
                     ? null
-                    : () => _submit(d, question),
+                    : () => _submit(d, question, identity),
                 child: _busy
                     ? const SizedBox(
                         height: 20,
@@ -202,7 +246,16 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     );
   }
 
-  Future<void> _submit(JobDetail d, JobQuestion? question) async {
+  WorkIdentity? _selectedIdentity(List<WorkIdentity> active, Job j) {
+    for (final i in active) {
+      if (i.id == _identityId) return i;
+    }
+    return defaultIdentityForJob(active,
+        jobProfessionId: j.professionId, jobProfessionName: j.professionName);
+  }
+
+  Future<void> _submit(
+      JobDetail d, JobQuestion? question, WorkIdentity? identity) async {
     setState(() {
       _busy = true;
       _error = null;
@@ -211,6 +264,7 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     final res = await ref.read(applicationsRepositoryProvider).apply(
           jobId: d.job.id,
           companyId: d.job.companyId!,
+          workIdentityId: identity?.id,
           answers: question == null
               ? null
               : {
@@ -317,6 +371,63 @@ class _Bullet extends StatelessWidget {
                 style: const TextStyle(fontSize: 14.5, height: 1.4)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _IdentityOption extends StatelessWidget {
+  const _IdentityOption({
+    required this.identity,
+    required this.selected,
+    required this.onTap,
+  });
+  final WorkIdentity identity;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? scheme.primaryContainer.withValues(alpha: 0.5) : null,
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              color: selected ? scheme.primary : scheme.outline,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(identity.label,
+                      style: const TextStyle(
+                          fontSize: 15.5, fontWeight: FontWeight.w700)),
+                  if (identity.professionName != null &&
+                      identity.professionName != identity.label)
+                    Text(identity.professionName!,
+                        style: TextStyle(
+                            fontSize: 13, color: scheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            if (identity.isPrimary) const OmeloPill('Main'),
+          ],
+        ),
       ),
     );
   }

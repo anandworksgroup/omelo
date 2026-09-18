@@ -140,10 +140,15 @@ class OmeloPill extends StatelessWidget {
             Icon(icon, size: 14, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 12.5, color: fg, fontWeight: FontWeight.w600),
+          // Flexible so a long label ellipsises instead of overflowing on a
+          // narrow phone.
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 12.5, color: fg, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

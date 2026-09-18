@@ -34,6 +34,19 @@ import { ScheduleInterviewForm, type TeamMember } from '../schedule-form';
 import InterviewRounds, { type RoundFeedback, type RoundInterview } from './rounds';
 import MessageButton from './message-button';
 import type { PlannedRound } from '@/lib/meet';
+import {
+  PROFILE_ANSWER_SELECT,
+  identityScope,
+  toEvidenceResult,
+  toProfileAnswers,
+} from '@/lib/identity';
+import {
+  CompletenessMeter,
+  EvidenceGate,
+  EvidencePanel,
+  HiringTeamOnly,
+  ProfileAnswers,
+} from '@/components/identity/evidence';
 
 const HIRING_ROLES: string[] = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'];
 const PANEL_ROLES = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr', 'interviewer'] as const;
@@ -122,7 +135,7 @@ export default async function CandidateReviewPage({
        jobs ( id, title, location_text, pay_min, pay_max, pay_period, pay_currency ),
        persons!applications_person_id_fkey ( display_name, location_text, headline, highest_education ),
        work_identities (
-         label, headline, about, total_experience_months,
+         label, headline, about, total_experience_months, completeness_score,
          professions!work_identities_profession_id_fkey ( name )
        )`
     )
@@ -150,9 +163,9 @@ export default async function CandidateReviewPage({
   const [
     matchRes,
     expRes,
-    skillRes,
+    evidenceRes,
+    answerRes,
     langRes,
-    licRes,
     eventRes,
     noteRes,
     interviewRes,
@@ -176,19 +189,19 @@ export default async function CandidateReviewPage({
         'id, employer_name, title, started_on, ended_on, is_current, is_verified, source, description, months_duration, location_text'
       )
       .eq('person_id', app.person_id)
+      // Only the identity they applied with, plus history shared across identities.
+      .or(identityScope(app.work_identity_id))
       .order('is_current', { ascending: false })
       .order('started_on', { ascending: false, nullsFirst: false }),
+    supabase.rpc('omelo_identity_evidence', { p_identity: app.work_identity_id }),
     supabase
-      .from('person_skills')
-      .select('id, proficiency, is_verified, months_used, skills ( name )')
-      .eq('person_id', app.person_id),
+      .from('person_attributes')
+      .select(PROFILE_ANSWER_SELECT)
+      .eq('person_id', app.person_id)
+      .eq('work_identity_id', app.work_identity_id),
     supabase
       .from('person_languages')
       .select('language_code, proficiency, languages ( name )')
-      .eq('person_id', app.person_id),
-    supabase
-      .from('person_licenses')
-      .select('id, name, license_class, is_verified, verification_status, expires_on')
       .eq('person_id', app.person_id),
     supabase
       .from('application_events')
@@ -261,6 +274,7 @@ export default async function CandidateReviewPage({
     headline: string | null;
     about: string | null;
     total_experience_months: number | null;
+    completeness_score: number | null;
     professions: { name: string } | null;
   } | null;
   const snap = (app.identity_snapshot ?? {}) as Snapshot;
@@ -353,6 +367,16 @@ export default async function CandidateReviewPage({
 
   const timeline = describeTimeline(eventRes.data ?? [], user?.id ?? null).reverse();
 
+  const evidence = toEvidenceResult(evidenceRes.data, evidenceRes.error);
+  const identityLabel =
+    wi?.label ?? (evidence.status === 'ok' ? evidence.data.identity.label : null) ?? snap.work_identity?.label ?? null;
+  const identityProfession =
+    wi?.professions?.name ?? (evidence.status === 'ok' ? evidence.data.identity.profession : null);
+  const completeness =
+    wi?.completeness_score ?? (evidence.status === 'ok' ? evidence.data.identity.completeness : null);
+  const profileAnswers = toProfileAnswers(answerRes.data ?? []);
+  const answersForbidden = answerRes.error?.code === '42501';
+
   const verifiedExp = (expRes.data ?? []).filter((e) => e.is_verified);
   const selfExp = (expRes.data ?? []).filter((e) => !e.is_verified);
 
@@ -375,9 +399,21 @@ export default async function CandidateReviewPage({
       <header className="card p-5 flex items-start gap-4 flex-wrap">
         <div className="flex-1 min-w-[12rem]">
           <h1 className="text-xl sm:text-2xl font-bold break-words">{name}</h1>
-          {headline && <p className="text-sm mt-1 break-words">{headline}</p>}
+          {identityLabel && (
+            <p className="text-sm mt-1 break-words">
+              <span className="muted">Applied as:</span>{' '}
+              <span className="font-semibold">{identityLabel}</span>
+              {identityProfession && identityProfession !== identityLabel ? ` · ${identityProfession}` : ''}
+            </p>
+          )}
+          {completeness != null && (
+            <div className="mt-2 max-w-xs">
+              <CompletenessMeter score={completeness} />
+            </div>
+          )}
+          {headline && headline !== identityLabel && <p className="text-sm mt-2 break-words">{headline}</p>}
           <p className="text-sm muted mt-1 break-words">
-            {[wi?.professions?.name, monthsLabel(wi?.total_experience_months), person?.location_text ?? snap.person?.location_text]
+            {[monthsLabel(wi?.total_experience_months), person?.location_text ?? snap.person?.location_text]
               .filter(Boolean)
               .join(' · ')}
           </p>
@@ -621,13 +657,37 @@ export default async function CandidateReviewPage({
             )}
           </section>
 
-          {/* --------------------------------------- Work history & skills */}
+          {/* ---------------------------------------------------- Evidence */}
+          <section className="card p-5 scroll-mt-6" id="evidence">
+            <SectionTitle
+              aside={
+                identityLabel ? <span className="text-xs muted">for {identityLabel}</span> : undefined
+              }
+            >
+              Evidence
+            </SectionTitle>
+            <EvidenceGate result={evidence}>{(ev) => <EvidencePanel ev={ev} />}</EvidenceGate>
+          </section>
+
+          {/* --------------------------------------------- Profile answers */}
+          <section className="card p-5">
+            <SectionTitle>Profile answers</SectionTitle>
+            {answersForbidden ? (
+              <HiringTeamOnly />
+            ) : answerRes.error ? (
+              <ErrorNote label="profile answers" message={answerRes.error.message} />
+            ) : (
+              <ProfileAnswers answers={profileAnswers} />
+            )}
+          </section>
+
+          {/* ------------------------------------------------ Work history */}
           <section className="card p-5 space-y-5">
             <SectionTitle>Work history</SectionTitle>
             {expRes.error ? (
               <ErrorNote label="work history" message={expRes.error.message} />
             ) : (expRes.data ?? []).length === 0 ? (
-              <p className="text-sm muted">No work history on profile yet.</p>
+              <p className="text-sm muted">No work history on this work identity yet.</p>
             ) : (
               <ul className="space-y-4">
                 {[...verifiedExp, ...selfExp].map((e) => (
@@ -665,71 +725,21 @@ export default async function CandidateReviewPage({
             )}
 
             <div>
-              <p className="label">Skills</p>
-              {skillRes.error ? (
-                <ErrorNote label="skills" message={skillRes.error.message} />
-              ) : (skillRes.data ?? []).length === 0 ? (
-                <p className="text-sm muted">No skills on profile yet.</p>
+              <p className="label">Languages</p>
+              {langRes.error ? (
+                <ErrorNote label="languages" message={langRes.error.message} />
+              ) : (langRes.data ?? []).length === 0 ? (
+                <p className="text-sm muted">None listed.</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {(skillRes.data ?? []).map((s) => (
-                    <span
-                      key={s.id}
-                      className="pill"
-                      style={s.is_verified ? { color: 'var(--color-verified)' } : { color: 'var(--fg)' }}
-                    >
-                      {s.is_verified ? '✓ ' : ''}
-                      {(s.skills as unknown as { name: string } | null)?.name ?? 'Skill'}
-                      {s.proficiency ? (
-                        <span className="muted font-normal">· {PROFICIENCY_LABEL[s.proficiency] ?? s.proficiency}</span>
-                      ) : null}
-                    </span>
+                <ul className="text-sm space-y-1">
+                  {(langRes.data ?? []).map((l) => (
+                    <li key={l.language_code}>
+                      {(l.languages as unknown as { name: string } | null)?.name ?? l.language_code}{' '}
+                      <span className="muted">· {PROFICIENCY_LABEL[l.proficiency] ?? l.proficiency}</span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-5">
-              <div>
-                <p className="label">Languages</p>
-                {langRes.error ? (
-                  <ErrorNote label="languages" message={langRes.error.message} />
-                ) : (langRes.data ?? []).length === 0 ? (
-                  <p className="text-sm muted">None listed.</p>
-                ) : (
-                  <ul className="text-sm space-y-1">
-                    {(langRes.data ?? []).map((l) => (
-                      <li key={l.language_code}>
-                        {(l.languages as unknown as { name: string } | null)?.name ?? l.language_code}{' '}
-                        <span className="muted">· {PROFICIENCY_LABEL[l.proficiency] ?? l.proficiency}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div>
-                <p className="label">Licences</p>
-                {licRes.error ? (
-                  <ErrorNote label="licences" message={licRes.error.message} />
-                ) : (licRes.data ?? []).length === 0 ? (
-                  <p className="text-sm muted">None listed.</p>
-                ) : (
-                  <ul className="text-sm space-y-1">
-                    {(licRes.data ?? []).map((l) => (
-                      <li key={l.id} className="break-words">
-                        {l.name}
-                        {l.license_class ? ` (${l.license_class})` : ''}{' '}
-                        {l.is_verified ? (
-                          <span style={{ color: 'var(--color-verified)' }}>· verified</span>
-                        ) : (
-                          <span className="muted">· {String(l.verification_status).replace(/_/g, ' ')}</span>
-                        )}
-                        {l.expires_on && <span className="muted"> · expires {calendarDate(l.expires_on)}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
             </div>
 
             {wi?.about && (
@@ -738,6 +748,12 @@ export default async function CandidateReviewPage({
                 <p className="text-sm whitespace-pre-line break-words">{wi.about}</p>
               </div>
             )}
+
+            <p className="hint">
+              Everything above is from the {identityLabel ? <strong>{identityLabel}</strong> : 'work'} profile
+              this candidate applied with, plus details they share across all their profiles. Other work
+              identities they hold stay private.
+            </p>
           </section>
 
           {/* ------------------------------------------------ Application */}

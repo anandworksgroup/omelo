@@ -106,7 +106,7 @@ class JobsRepository {
           accepts_no_experience, min_experience_months, is_immediate_start,
           quick_apply_enabled, openings, application_method, walk_in_details,
           contact_phone, uniform_required, own_vehicle_required,
-          own_tools_required, visa_sponsorship, published_at,
+          own_tools_required, visa_sponsorship, published_at, profession_id,
           companies!inner ( id, slug, display_name, about, is_verified,
                             total_hires, response_rate_pct, median_response_hours ),
           job_categories ( slug ),
@@ -179,6 +179,7 @@ class JobsRepository {
           ? null
           : Map<String, dynamic>.from(row['job_categories'] as Map)['slug']
               as String?,
+      professionId: row['profession_id']?.toString(),
       professionName: row['professions'] == null
           ? null
           : Map<String, dynamic>.from(row['professions'] as Map)['name']

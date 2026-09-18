@@ -9,6 +9,7 @@ import '../../data/jobs_repository.dart';
 import 'discover_controller.dart';
 import 'filters_sheet.dart';
 import 'job_card.dart';
+import '../identities/identity_widgets.dart' show IdentityNudgeCard;
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -123,6 +124,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const IdentityNudgeCard(padding: EdgeInsets.only(bottom: 12)),
               _ResultHeader(
                 count: state.jobs.length,
                 endReached: state.endReached,

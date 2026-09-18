@@ -218,13 +218,16 @@ class ApplicationsRepository {
     required String companyId,
     Map<String, dynamic>? answers,
     String? coverNote,
+    String? workIdentityId,
   }) async {
     final uid = _auth.currentUser?.id;
     if (uid == null) {
       return const ApplyOutcome(error: 'Sign in to apply.');
     }
 
-    final identityId = await _auth.primaryWorkIdentityId();
+    // The identity decides what the employer sees (R2). Default: the main one.
+    final identityId =
+        workIdentityId ?? await _auth.primaryWorkIdentityId();
     if (identityId == null) {
       return const ApplyOutcome(
         error: 'Your work profile is not ready yet. Try again in a moment.',
@@ -249,6 +252,8 @@ class ApplicationsRepository {
           .from('person_skills')
           .select('proficiency, skills ( name )')
           .eq('person_id', uid)
+          // Only this identity's skills (plus shared ones) go to the employer.
+          .or('work_identity_id.is.null,work_identity_id.eq.$identityId')
           .limit(25);
 
       final snapshot = <String, dynamic>{

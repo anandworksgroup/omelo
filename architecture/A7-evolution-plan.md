@@ -293,3 +293,17 @@ All computed from `domain_events`, `match_events` (R3) and existing tables — a
 | Error tracking (Sentry, no-op without DSN) in both apps | ✓ |
 | Outbox retention | ✓ |
 | Owner actions (§6) | ○ |
+
+### Release 2 status (backend proven — migrations 38–40)
+
+| Item | State |
+|---|---|
+| Up to 5 work identities, one main; create (copy from), set main, archive/restore, delete | ✓ RPCs |
+| Five visibility levels; employers see only the identity they may see (RLS on 7 profile tables) | ✓ invariant 31 |
+| Adaptive profile questions per profession (drivers, trades, healthcare, hospitality, retail, tech) | ✓ validated server-side |
+| Completeness score + missing checklist (server-computed) | ✓ |
+| Evidence view per skill (verified employment, employer-confirmed, assessment, experience, projects, self-declared) | ✓ `omelo_identity_evidence` |
+| Apply with a chosen identity; archived identities cannot apply | ✓ |
+| Worker app: identities hub, per-identity editor (adaptive questions, skills, experience, preferences, places, visibility, evidence), apply-as chooser, completeness nudges | ✓ |
+| Portal: "Applied as", evidence panel, profile answers, identity-scoped history (review page + Meet panel) | ✓ |
+| Proven as real users | ✓ `tests/api/identity_e2e.py` (50 checks) + all earlier suites re-run |

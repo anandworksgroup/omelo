@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client';
 import { formatPay, experienceLabel, WORK_TYPE_LABEL, WORKPLACE_LABEL } from '@/lib/format';
 import {
   PROFICIENCY_LABEL,
-  calendarDate,
   gateLabel,
   monthYear,
   monthsLabel,
@@ -14,6 +13,8 @@ import {
   type MatchReason,
 } from '@/lib/hiring';
 import { Restricted } from './ui';
+import { identityScope, toEvidenceResult, type EvidenceResult } from '@/lib/identity';
+import { CompletenessMeter, EvidenceGate, EvidenceSkills, EvidenceSummary } from '@/components/identity/evidence';
 
 const HIRING_ROLES = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'];
 
@@ -25,6 +26,7 @@ type Profile = {
   headline: string | null;
   education: string | null;
   identityLabel: string | null;
+  completeness: number | null;
   about: string | null;
   totalMonths: number | null;
   profession: string | null;
@@ -46,9 +48,7 @@ type Experience = {
   location_text: string | null;
 };
 
-type SkillRow = { id: string; proficiency: string | null; is_verified: boolean; name: string };
 type LanguageRow = { code: string; name: string; proficiency: string };
-type LicenceRow = { id: string; name: string; license_class: string | null; is_verified: boolean; expires_on: string | null };
 
 type Job = {
   title: string;
@@ -71,9 +71,12 @@ export type CandidateContext = {
   isHiringTeam: boolean;
   profile: Section<Profile | null>;
   experiences: Section<Experience[]>;
-  skills: Section<SkillRow[]>;
+  /**
+   * Skills, trust and licences for the work identity this application was
+   * made with — never the candidate's other identities. Null until loaded.
+   */
+  evidence: EvidenceResult | null;
   languages: Section<LanguageRow[]>;
-  licences: Section<LicenceRow[]>;
   job: Section<Job | null>;
   match: Section<Match>;
 };
@@ -85,9 +88,8 @@ const INITIAL: CandidateContext = {
   isHiringTeam: false,
   profile: empty(null),
   experiences: empty([]),
-  skills: empty([]),
+  evidence: null,
   languages: empty([]),
-  licences: empty([]),
   job: empty(null),
   match: empty(null),
 };
@@ -130,9 +132,9 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
         supabase
           .from('applications')
           .select(
-            `match_score, cover_note, applied_at,
+            `match_score, cover_note, applied_at, work_identity_id,
              persons!applications_person_id_fkey ( display_name, location_text, headline, highest_education ),
-             work_identities ( label, headline, about, total_experience_months,
+             work_identities ( label, headline, about, total_experience_months, completeness_score,
                professions!work_identities_profession_id_fkey ( name ) )`
           )
           .eq('id', applicationId)
@@ -166,6 +168,7 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
           headline: string | null;
           about: string | null;
           total_experience_months: number | null;
+          completeness_score: number | null;
           professions: { name: string } | null;
         } | null;
         next.profile = {
@@ -176,6 +179,7 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
             headline: wi?.headline ?? p?.headline ?? null,
             education: p?.highest_education ?? null,
             identityLabel: wi?.label ?? null,
+            completeness: wi?.completeness_score ?? null,
             about: wi?.about ?? null,
             totalMonths: wi?.total_experience_months ?? null,
             profession: wi?.professions?.name ?? null,
@@ -219,27 +223,26 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
       }
 
       // Candidate profile tables are readable to the hiring team only.
+      // Everything identity-scoped follows the application's work identity.
+      const identityId = appRes.data?.work_identity_id ?? null;
       if (isHiringTeam) {
-        const [expRes, skillRes, langRes, licRes, matchRes] = await Promise.all([
-          supabase
-            .from('experiences')
-            .select(
-              'id, employer_name, title, started_on, ended_on, is_current, is_verified, description, months_duration, location_text'
-            )
-            .eq('person_id', iv.person_id)
+        let expQuery = supabase
+          .from('experiences')
+          .select(
+            'id, employer_name, title, started_on, ended_on, is_current, is_verified, description, months_duration, location_text'
+          )
+          .eq('person_id', iv.person_id);
+        if (identityId) expQuery = expQuery.or(identityScope(identityId));
+        const [expRes, evidenceRes, langRes, matchRes] = await Promise.all([
+          expQuery
             .order('is_current', { ascending: false })
             .order('started_on', { ascending: false, nullsFirst: false }),
-          supabase
-            .from('person_skills')
-            .select('id, proficiency, is_verified, skills ( name )')
-            .eq('person_id', iv.person_id),
+          identityId
+            ? supabase.rpc('omelo_identity_evidence', { p_identity: identityId })
+            : Promise.resolve({ data: null, error: { message: 'This application has no work identity.' } }),
           supabase
             .from('person_languages')
             .select('language_code, proficiency, languages ( name )')
-            .eq('person_id', iv.person_id),
-          supabase
-            .from('person_licenses')
-            .select('id, name, license_class, is_verified, expires_on')
             .eq('person_id', iv.person_id),
           supabase
             .from('matches')
@@ -251,15 +254,7 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
             .maybeSingle(),
         ]);
         next.experiences = { data: (expRes.data ?? []) as Experience[], error: expRes.error?.message ?? null };
-        next.skills = {
-          data: (skillRes.data ?? []).map((s) => ({
-            id: s.id,
-            proficiency: s.proficiency,
-            is_verified: s.is_verified,
-            name: (s.skills as unknown as { name: string } | null)?.name ?? 'Skill',
-          })),
-          error: skillRes.error?.message ?? null,
-        };
+        next.evidence = toEvidenceResult(evidenceRes.data, evidenceRes.error);
         next.languages = {
           data: (langRes.data ?? []).map((l) => ({
             code: l.language_code,
@@ -268,7 +263,6 @@ export function useCandidateContext(interviewId: string, applicationId: string) 
           })),
           error: langRes.error?.message ?? null,
         };
-        next.licences = { data: (licRes.data ?? []) as LicenceRow[], error: licRes.error?.message ?? null };
         next.match = {
           data: matchRes.data
             ? {
@@ -320,10 +314,23 @@ export function CandidateTab({ ctx, fallbackName }: { ctx: CandidateContext; fal
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-lg font-bold break-words">{p?.name ?? fallbackName ?? 'Candidate'}</p>
-          {!hidden && p?.headline && <p className="text-sm break-words">{p.headline}</p>}
+          {!hidden && p?.identityLabel && (
+            <p className="text-sm break-words">
+              <span className="muted">Applied as:</span> <span className="font-semibold">{p.identityLabel}</span>
+              {p.profession && p.profession !== p.identityLabel ? ` · ${p.profession}` : ''}
+            </p>
+          )}
+          {!hidden && p?.completeness != null && (
+            <div className="mt-1.5 max-w-[14rem]">
+              <CompletenessMeter score={p.completeness} compact />
+            </div>
+          )}
+          {!hidden && p?.headline && p.headline !== p.identityLabel && (
+            <p className="text-sm break-words mt-1">{p.headline}</p>
+          )}
           {!hidden && (
             <p className="text-sm muted break-words">
-              {[p?.profession, monthsLabel(p?.totalMonths), p?.location].filter(Boolean).join(' · ')}
+              {[monthsLabel(p?.totalMonths), p?.location].filter(Boolean).join(' · ')}
             </p>
           )}
         </div>
@@ -368,21 +375,10 @@ export function CandidateTab({ ctx, fallbackName }: { ctx: CandidateContext; fal
               </p>
             </div>
           )}
-          {ctx.licences.data.length > 0 && (
+          {ctx.evidence && (
             <div>
-              <p className="label">Licences</p>
-              <ul className="text-sm space-y-0.5">
-                {ctx.licences.data.map((l) => (
-                  <li key={l.id} className="break-words">
-                    {l.name}
-                    {l.license_class ? ` (${l.license_class})` : ''}
-                    {l.is_verified ? (
-                      <span style={{ color: 'var(--color-verified)' }}> · verified</span>
-                    ) : null}
-                    {l.expires_on ? <span className="muted"> · expires {calendarDate(l.expires_on)}</span> : null}
-                  </li>
-                ))}
-              </ul>
+              <p className="label">Evidence</p>
+              <EvidenceGate result={ctx.evidence}>{(ev) => <EvidenceSummary ev={ev} />}</EvidenceGate>
             </div>
           )}
         </>
@@ -429,31 +425,20 @@ export function ExperienceTab({ ctx }: { ctx: CandidateContext }) {
 export function SkillsTab({ ctx }: { ctx: CandidateContext }) {
   if (ctx.loading) return <Loading />;
   if (!ctx.isHiringTeam) return <Restricted />;
-  if (ctx.skills.error) return <Err message={ctx.skills.error} />;
-  const required = new Set(
-    (ctx.job.data?.skills ?? []).map((s) => s.name.toLowerCase())
-  );
-  if (ctx.skills.data.length === 0) return <p className="text-sm muted">No skills on profile yet.</p>;
+  if (!ctx.evidence) return <p className="text-sm muted">Skills are not available.</p>;
+  const required = new Set((ctx.job.data?.skills ?? []).map((s) => s.name.toLowerCase()));
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {ctx.skills.data.map((s) => (
-          <span
-            key={s.id}
-            className="pill"
-            style={{
-              color: s.is_verified ? 'var(--color-verified)' : 'var(--fg)',
-              borderColor: required.has(s.name.toLowerCase()) ? 'var(--color-brand-400)' : undefined,
-            }}
-          >
-            {s.is_verified ? '✓ ' : ''}
-            {s.name}
-            {s.proficiency && <span className="muted font-normal">· {PROFICIENCY_LABEL[s.proficiency] ?? s.proficiency}</span>}
-          </span>
-        ))}
-      </div>
-      <p className="hint">Outlined skills are ones this job asks for. ✓ means verified by Omelo.</p>
-    </div>
+    <EvidenceGate result={ctx.evidence}>
+      {(ev) => (
+        <div className="space-y-3">
+          <p className="text-xs muted">
+            From the <span className="font-semibold">{ev.identity.label || 'work'}</span> profile they applied with,
+            strongest evidence first.
+          </p>
+          <EvidenceSkills ev={ev} required={required} />
+        </div>
+      )}
+    </EvidenceGate>
   );
 }
 

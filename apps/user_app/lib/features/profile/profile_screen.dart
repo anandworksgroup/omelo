@@ -6,7 +6,9 @@ import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/theme.dart';
 import '../../core/responsive.dart';
 import '../../data/auth_repository.dart';
+import '../../data/identity_repository.dart';
 import '../applications/applications_screen.dart';
+import '../identities/identity_widgets.dart';
 
 /// U-80 — "My Omelo".
 ///
@@ -104,28 +106,9 @@ class ProfileScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.work_outline, size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'A work identity was created for you automatically. You can '
-                    'apply right now.',
-                    style: TextStyle(fontSize: 13.5, height: 1.4),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const _IdentitiesSummary(),
 
-          const SizedBox(height: 26),
+          const SizedBox(height: 18),
           _Tile(
             icon: Icons.assignment_outlined,
             label: 'My applications',
@@ -150,12 +133,10 @@ class ProfileScreen extends ConsumerWidget {
                   color: scheme.onSurfaceVariant)),
           const SizedBox(height: 8),
           for (final item in const [
-            ('Skills, experience and education', 'A1 §11'),
-            ('Multiple kinds of work (up to 5)', 'A1 §11.2'),
+            ('Education', 'A1 §11'),
             ('Resume builder', 'A1 §11.3'),
             ('Documents and sharing', 'A1 §11.4'),
             ('Verification centre', 'A1 §11.5'),
-            ('Who can find me', 'A1 §11.6'),
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: 7),
@@ -204,6 +185,61 @@ class _Tile extends StatelessWidget {
           style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
+    );
+  }
+}
+
+/// "My work identities" entry: the main identity at a glance.
+class _IdentitiesSummary extends ConsumerWidget {
+  const _IdentitiesSummary();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final list = ref.watch(myIdentitiesProvider).value ?? const [];
+    final main = list.where((i) => i.isPrimary).firstOrNull;
+    final active = list.where((i) => i.isActive).length;
+
+    return Material(
+      color: scheme.primaryContainer.withValues(alpha: 0.4),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => context.push('/identities'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              if (main != null)
+                CompletenessRing(score: main.completenessScore, size: 46)
+              else
+                const Icon(Icons.work_outline, size: 26),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('My work identities',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 3),
+                    Text(
+                      main == null
+                          ? 'One profile for each kind of work you do.'
+                          : active > 1
+                              ? 'Main: ${main.label} · $active active'
+                              : 'Main: ${main.label} · add another kind of work',
+                      style: TextStyle(
+                          fontSize: 13.5, color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

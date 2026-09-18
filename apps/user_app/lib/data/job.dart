@@ -31,6 +31,7 @@ class Job {
     required this.professionName,
     required this.benefits,
     required this.publishedAt,
+    this.professionId,
   });
 
   final String id;
@@ -58,6 +59,9 @@ class Job {
   final int? openings;
   final String? categorySlug;
   final String? professionName;
+
+  /// Set on job detail; used to pick the matching work identity to apply as.
+  final String? professionId;
   final List<String> benefits;
   final DateTime? publishedAt;
 
