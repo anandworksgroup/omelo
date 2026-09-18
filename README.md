@@ -27,6 +27,7 @@ on. One platform, one schema, every trade.
 | **Omelo Meet** | **Built.** Native interview rooms: waiting room, host controls, chat, profession-specific questions, private structured feedback. Video switches on when LiveKit keys are added ([A6](architecture/A6-omelo-meet.md)) |
 | **Messaging & notifications** | **Built.** Job-context messaging, in-app inbox in both apps, transactional email outbox (sends when a Resend key is added) |
 | **Production readiness** | Ready to deploy — see [DEPLOYMENT.md](DEPLOYMENT.md). CI in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| **Roadmap** | [A7 — Omelo Evolution Plan](architecture/A7-evolution-plan.md): 12 phases executed as 8 release gates |
 
 Database: [`sql/README.md`](sql/README.md) · migrations in [`supabase/migrations`](supabase/migrations) · Edge Functions in [`supabase/functions`](supabase/functions) · end-to-end tests in [`tests/api`](tests/api)
 
