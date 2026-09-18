@@ -60,3 +60,4 @@ __pycache__/
 
 # ---- Local-only notes (credentials for dev demo accounts) --------
 *.local.md
+tests/api/.talent_state.json

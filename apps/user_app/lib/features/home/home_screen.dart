@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../messages/inbox_providers.dart' show notificationsProvider;
 import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/app_state.dart';
 import '../../core/location.dart';
 import '../../core/responsive.dart';
 import '../discover/discover_controller.dart';
-import '../discover/job_card.dart';
+import '../../data/invitations_repository.dart';
+import '../../data/job_events.dart' show JobSurface;
+import '../discover/tracked_job_card.dart';
 import '../identities/identity_widgets.dart' show IdentityNudgeCard;
 import '../settings/account_widgets.dart' show DeletionBanner;
 
@@ -74,6 +77,8 @@ class HomeScreen extends ConsumerWidget {
               ),
 
               if (signedIn)
+                const InvitationsHomeCard(padding: EdgeInsets.only(top: 20)),
+              if (signedIn)
                 const IdentityNudgeCard(padding: EdgeInsets.only(top: 20)),
 
               if (!signedIn) ...[
@@ -133,10 +138,12 @@ class HomeScreen extends ConsumerWidget {
               else
                 ResponsiveCardGrid(
                   children: [
-                    for (final job in state.jobs.take(6))
-                      JobCard(
-                        job: job,
-                        onTap: () => context.push('/job/${job.id}'),
+                    for (var i = 0; i < state.jobs.length && i < 6; i++)
+                      TrackedJobCard(
+                        key: ValueKey('home-${state.jobs[i].id}'),
+                        job: state.jobs[i],
+                        surface: JobSurface.recommended,
+                        rank: i + 1,
                       ),
                   ],
                 ),
@@ -203,6 +210,67 @@ class _Callout extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "2 employers invited you to apply" — only while some are waiting.
+class InvitationsHomeCard extends ConsumerWidget {
+  const InvitationsHomeCard({super.key, this.padding = EdgeInsets.zero});
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // A new "invited you to apply" notification means a new invitation.
+    ref.listen<int>(
+        notificationsProvider.select(
+            (s) => s.items.where((n) => n.type == 'job_invitation').length),
+        (_, __) => ref.invalidate(myInvitationsProvider));
+    final pending = ref.watch(pendingInvitationsProvider);
+    if (pending <= 0) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: padding,
+      child: Material(
+        color: scheme.tertiaryContainer.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => context.push('/invitations'),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 72),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Badge(
+                    label: Text('$pending'),
+                    child: Icon(Icons.mail_outline,
+                        size: 30, color: scheme.onTertiaryContainer),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(invitedYouTitle(pending),
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 3),
+                        Text('See the jobs and answer them.',
+                            style: TextStyle(
+                                fontSize: 13.5,
+                                color: scheme.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

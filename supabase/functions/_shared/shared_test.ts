@@ -43,10 +43,11 @@ const payload = {
   pay_amount: 22000, pay_currency: "INR", pay_period: "month", start_date: "2026-10-01",
   expires_at: "2026-09-30T00:00:00Z", preview: "Can you <b>come</b> Friday?", conversation_id: "c-1",
   code: "<i>123456</i>", scheduled_for: "2026-10-02T00:00:00Z",
+  message: "Hello <b>come</b> by", invitation_id: "inv-1", identity_label: "Cook", location_text: "Andheri", pay_min: 20000, pay_max: 26000,
 };
 
 for (const t of ["verify_email", "account_deletion_scheduled", "interview_invitation", "next_round_invitation", "interview_rescheduled", "interview_cancelled",
-                 "interview_reminder", "interview_completed", "offer_received", "new_message"]) {
+                 "interview_reminder", "interview_completed", "offer_received", "new_message", "job_invitation"]) {
   Deno.test(`email ${t} renders and escapes HTML`, () => {
     const r = renderEmail(t, payload, links);
     assert(r && r.html.length > 200 && r.text.length > 20);
@@ -63,4 +64,10 @@ Deno.test("invitation deep-links into Omelo Meet, never a third-party tool", () 
 
 Deno.test("unknown template renders nothing", () => {
   assertEquals(renderEmail("nope", payload, links), null);
+});
+
+Deno.test("job invitation links to the invitation in the worker app", () => {
+  const r = renderEmail("job_invitation", payload, links)!;
+  assert(r.html.includes("https://app.omelo.com/#/invitations/inv-1"));
+  assert(r.html.includes("20,000") && !r.html.includes("<b>come"));
 });

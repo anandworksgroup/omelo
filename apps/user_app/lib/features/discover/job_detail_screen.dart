@@ -11,7 +11,10 @@ import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
 import '../../data/job.dart';
+import '../../data/job_events.dart';
 import '../../data/jobs_repository.dart';
+import '../../data/saved_jobs_repository.dart';
+import 'tracked_job_card.dart' show toggleSavedJob;
 
 final jobDetailProvider =
     FutureProvider.family<JobDetail, String>((ref, jobId) async {
@@ -23,18 +26,57 @@ final jobDetailProvider =
       );
 });
 
-class JobDetailScreen extends ConsumerWidget {
-  const JobDetailScreen({super.key, required this.jobId});
+class JobDetailScreen extends ConsumerStatefulWidget {
+  const JobDetailScreen({
+    super.key,
+    required this.jobId,
+    this.surface = JobSurface.other,
+    this.rank,
+  });
   final String jobId;
 
+  /// Where the worker opened it from (`?from=`), for funnel tracking.
+  final JobSurface surface;
+
+  /// Position in that list (`?rank=`), 1-based.
+  final int? rank;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<JobDetailScreen> createState() => _JobDetailScreenState();
+}
+
+class _JobDetailScreenState extends ConsumerState<JobDetailScreen> {
+  String get jobId => widget.jobId;
+
+  @override
+  void initState() {
+    super.initState();
+    // One view per opening; the server de-duplicates repeats.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      trackJobEvent(ref, jobId, JobEventType.view, widget.surface,
+          rank: widget.rank);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final detail = ref.watch(jobDetailProvider(jobId));
+    final signedIn = ref.watch(authRepositoryProvider).isSignedIn;
+    final saved = signedIn &&
+        (ref.watch(savedJobIdsProvider).value?.contains(jobId) ?? false);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Job'),
         actions: [
+          if (signedIn)
+            IconButton(
+              onPressed: () => toggleSavedJob(
+                  context, ref, jobId, JobSurface.jobPage),
+              icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border),
+              tooltip: saved ? 'Saved. Tap to remove' : 'Save job',
+            ),
           IconButton(
             onPressed: () => _report(context),
             icon: const Icon(Icons.flag_outlined),
@@ -298,8 +340,9 @@ class _Content extends StatelessWidget {
         const SizedBox(height: 24),
         Row(
           children: [
-            const _Heading('About the employer'),
-            const Spacer(),
+            // Expanded, not Spacer: wraps instead of overflowing on a
+            // narrow phone with large text.
+            const Expanded(child: _Heading('About the employer')),
             if (j.companyId != null)
               TextButton(
                 onPressed: () => context.push('/company/${j.companyId}'),
@@ -520,7 +563,13 @@ class _ApplyBar extends ConsumerWidget {
         border: Border(top: BorderSide(color: scheme.outlineVariant)),
       ),
       child: SafeArea(
-        child: ContentWidth.reading(
+        // Not ContentWidth: its Align fills all the height it is offered,
+        // and a bottom bar is offered the whole screen, which hid the job.
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Breakpoints.readingWidth),
+          child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: applied
               ? Row(
@@ -557,6 +606,8 @@ class _ApplyBar extends ConsumerWidget {
                         : 'Apply'),
                   ),
                 ),
+          ),
+          ),
         ),
       ),
     );

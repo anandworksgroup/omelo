@@ -6,12 +6,14 @@ import { usePathname } from 'next/navigation';
 const TABS = [
   { href: '/admin', label: 'System health' },
   { href: '/admin/kpis', label: 'KPIs' },
+  { href: '/admin/matching', label: 'Matching' },
+  { href: '/admin/companies', label: 'Companies' },
 ];
 
 export default function AdminTabs() {
   const path = usePathname();
   return (
-    <nav aria-label="Admin" className="flex gap-1">
+    <nav aria-label="Admin" className="flex gap-1 overflow-x-auto max-w-full">
       {TABS.map((t) => {
         const active = path === t.href;
         return (

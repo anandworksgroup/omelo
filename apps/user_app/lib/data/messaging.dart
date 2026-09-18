@@ -324,6 +324,7 @@ class AppNotification {
     return switch (type) {
       'application' => '/applications/$id',
       'conversation' => '/messages/$id',
+      'candidate_invitation' => '/invitations/$id',
       _ => null,
     };
   }
@@ -331,7 +332,8 @@ class AppNotification {
 
 /// Turns a notification deeplink into a route this app has, or null.
 ///
-/// Accepts `/applications/<uuid>`, `/messages/<uuid>`, `/meet/<room>` and the
+/// Accepts `/applications/<uuid>`, `/messages/<uuid>`, `/invitations/<uuid>`,
+/// `/job/<uuid>` (opened as surface `notification`), `/meet/<room>` and the
 /// list screens, as a path or a full https link to the same path. Anything
 /// else — employer dashboard links, typos, other sites — is ignored so a bad
 /// row can never send the worker somewhere broken.
@@ -351,6 +353,7 @@ String? workerDeeplink(String? link) {
       'applications' => '/applications',
       'messages' => '/messages',
       'notifications' => '/notifications',
+      'invitations' => '/invitations',
       _ => null,
     };
   }
@@ -359,13 +362,22 @@ String? workerDeeplink(String? link) {
   return switch (s[0]) {
     'applications' when isUuid(id) => '/applications/$id',
     'messages' when isUuid(id) => '/messages/$id',
+    'invitations' when isUuid(id) => '/invitations/$id',
+    'job' || 'jobs' when isUuid(id) => '/job/$id?from=notification',
     'meet' when isValidRoomName(id) => '/meet/$id',
     _ => null,
   };
 }
 
 /// Groups notification types for icons.
-enum NotificationKind { interview, application, offer, message, other }
+enum NotificationKind {
+  interview,
+  application,
+  offer,
+  message,
+  invitation,
+  other
+}
 
 NotificationKind notificationKind(String type) => switch (type) {
       'interview_scheduled' ||
@@ -376,6 +388,7 @@ NotificationKind notificationKind(String type) => switch (type) {
       'application_update' || 'application_viewed' => NotificationKind.application,
       'offer_received' || 'offer_update' => NotificationKind.offer,
       'message_received' => NotificationKind.message,
+      'job_invitation' => NotificationKind.invitation,
       _ => NotificationKind.other,
     };
 

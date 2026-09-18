@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/location.dart';
 import '../../core/responsive.dart';
+import '../../data/job_events.dart' show JobSurface;
 import '../../data/jobs_repository.dart';
 import 'discover_controller.dart';
 import 'filters_sheet.dart';
-import 'job_card.dart';
+import 'tracked_job_card.dart';
 import '../identities/identity_widgets.dart' show IdentityNudgeCard;
 
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -134,10 +134,16 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               // browser. Cards keep a readable width instead of stretching.
               ResponsiveCardGrid(
                 children: [
-                  for (final job in state.jobs)
-                    JobCard(
-                      job: job,
-                      onTap: () => context.push('/job/${job.id}'),
+                  for (var i = 0; i < state.jobs.length; i++)
+                    TrackedJobCard(
+                      key: ValueKey('job-${state.jobs[i].id}'),
+                      job: state.jobs[i],
+                      // A typed search is its own list; everything else here
+                      // is "near you".
+                      surface: ref.read(filtersProvider).search != null
+                          ? JobSurface.search
+                          : JobSurface.nearby,
+                      rank: i + 1,
                     ),
                 ],
               ),

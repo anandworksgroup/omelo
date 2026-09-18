@@ -7,6 +7,9 @@ import '../../core/theme.dart';
 import '../../core/responsive.dart';
 import '../../data/auth_repository.dart';
 import '../../data/identity_repository.dart';
+import '../../data/invitations_repository.dart';
+import '../../data/job_events.dart' show flushJobEvents;
+import '../../data/messaging.dart' show badgeLabel;
 import '../applications/applications_screen.dart';
 import '../identities/identity_widgets.dart';
 
@@ -110,6 +113,22 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 18),
           _Tile(
+            icon: Icons.mail_outline,
+            label: 'Job invitations',
+            badge: ref.watch(pendingInvitationsProvider),
+            onTap: () => context.push('/invitations'),
+          ),
+          _Tile(
+            icon: Icons.visibility_outlined,
+            label: 'Employers who viewed you',
+            onTap: () => context.push('/profile-views'),
+          ),
+          _Tile(
+            icon: Icons.bookmark_border,
+            label: 'Saved jobs',
+            onTap: () => context.push('/saved'),
+          ),
+          _Tile(
             icon: Icons.assignment_outlined,
             label: 'My applications',
             onTap: () => context.go('/applications'),
@@ -157,6 +176,8 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 30),
           OutlinedButton(
             onPressed: () async {
+              // Send waiting funnel events while the session is still valid.
+              await flushJobEvents(ref);
               await ref.read(authRepositoryProvider).signOut();
               ref.invalidate(myApplicationsProvider);
               if (context.mounted) context.go('/discover');
@@ -171,19 +192,40 @@ class ProfileScreen extends ConsumerWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile({required this.icon, required this.label, required this.onTap});
+  const _Tile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.badge = 0,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
+  /// Count waiting for the worker, shown as a badge when above zero.
+  final int badge;
+
   @override
   Widget build(BuildContext context) {
+    final text = badgeLabel(badge);
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      minTileHeight: 56,
       leading: Icon(icon),
       title: Text(label,
           style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (text != null)
+            Badge(
+              label: Text(text, semanticsLabel: '$badge waiting'),
+              largeSize: 22,
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
       onTap: onTap,
     );
   }

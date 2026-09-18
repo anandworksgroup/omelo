@@ -7,6 +7,7 @@ import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/account_repository.dart';
 import '../../data/auth_repository.dart';
+import '../../data/job_events.dart' show flushJobEvents;
 import '../applications/applications_screen.dart' show myApplicationsProvider;
 import 'account_widgets.dart';
 
@@ -96,6 +97,8 @@ class SettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 28),
                         OutlinedButton.icon(
                           onPressed: () async {
+                            // Send waiting funnel events first.
+                            await flushJobEvents(ref);
                             await ref.read(authRepositoryProvider).signOut();
                             ref.invalidate(myApplicationsProvider);
                             if (context.mounted) context.go('/discover');

@@ -8,6 +8,7 @@ import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
 import '../../data/identity_repository.dart';
+import '../../data/invitations_repository.dart' show myInvitationsProvider;
 import '../../data/job.dart';
 import '../applications/applications_screen.dart';
 import '../discover/job_detail_screen.dart';
@@ -18,8 +19,12 @@ import '../discover/job_detail_screen.dart';
 /// receive, AND an explicit statement of what they will not. Naming the limit
 /// is what builds trust, not just listing the disclosure.
 class ApplyScreen extends ConsumerStatefulWidget {
-  const ApplyScreen({super.key, required this.jobId});
+  const ApplyScreen({super.key, required this.jobId, this.identityId});
   final String jobId;
+
+  /// Start on this identity when it is active — the one an employer
+  /// invited (`/apply/<job>?identity=<id>`).
+  final String? identityId;
 
   @override
   ConsumerState<ApplyScreen> createState() => _ApplyScreenState();
@@ -246,13 +251,12 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     );
   }
 
-  WorkIdentity? _selectedIdentity(List<WorkIdentity> active, Job j) {
-    for (final i in active) {
-      if (i.id == _identityId) return i;
-    }
-    return defaultIdentityForJob(active,
-        jobProfessionId: j.professionId, jobProfessionName: j.professionName);
-  }
+  WorkIdentity? _selectedIdentity(List<WorkIdentity> active, Job j) =>
+      pickApplyIdentity(active,
+          pickedId: _identityId,
+          invitedId: widget.identityId,
+          jobProfessionId: j.professionId,
+          jobProfessionName: j.professionName);
 
   Future<void> _submit(
       JobDetail d, JobQuestion? question, WorkIdentity? identity) async {
@@ -285,6 +289,8 @@ class _ApplyScreenState extends ConsumerState<ApplyScreen> {
     }
 
     ref.invalidate(myApplicationsProvider);
+    // An invitation for this job is now answered (the server marks it).
+    ref.invalidate(myInvitationsProvider);
     setState(() => _busy = false);
 
     if (!mounted) return;

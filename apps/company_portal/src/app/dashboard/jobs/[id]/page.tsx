@@ -12,7 +12,10 @@ import {
   timeAgo,
 } from '@/lib/format';
 import { closeJob, pauseJob, publishJob } from '../../actions';
+import { TALENT_ROLES, parseFunnel, parseInvitations } from '@/lib/talent';
 import RoundsEditor from './rounds-editor';
+import FunnelPanel from './funnel';
+import InvitationsPanel from './invitations';
 
 export default async function JobDetailPage({
   params,
@@ -55,6 +58,18 @@ export default async function JobDetailPage({
     .eq('job_id', id)
     .order('position');
   const canEditRounds = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(ctx.role);
+
+  const [funnelRes, invitationsRes] = await Promise.all([
+    supabase.rpc('omelo_job_funnel', { p_job_id: id }),
+    supabase.rpc('omelo_job_invitations', { p_job_id: id }),
+  ]);
+  const funnel = funnelRes.error ? null : parseFunnel(funnelRes.data);
+  const invitations = parseInvitations(invitationsRes.data).map((inv) => ({
+    ...inv,
+    sentAgo: timeAgo(inv.sentAt),
+    answeredAgo: timeAgo(inv.respondedAt),
+  }));
+  const canUseTalent = TALENT_ROLES.includes(ctx.role);
 
   const stages = [...(job.job_stages ?? [])].sort((a, b) => a.position - b.position);
   const required = (job.job_skills ?? []).filter((s) => s.requirement_level === 'required');
@@ -102,6 +117,11 @@ export default async function JobDetailPage({
               {job.view_count} views · {apps?.length ?? 0} applications
             </p>
             <div className="flex gap-2 flex-wrap">
+              {canUseTalent && (
+                <Link href={`/dashboard/talent?job=${job.id}`} className="btn btn-primary">
+                  Find candidates
+                </Link>
+              )}
               <form action={pauseJob}>
                 <input type="hidden" name="job_id" value={job.id} />
                 <button className="btn btn-ghost">Pause</button>
@@ -207,6 +227,18 @@ export default async function JobDetailPage({
       ) : (
         <RoundsEditor jobId={job.id} rounds={plannedRounds ?? []} canEdit={canEditRounds} />
       )}
+
+      {/* Funnel */}
+      <FunnelPanel funnel={funnel} error={funnelRes.error?.message} />
+
+      {/* Invitations */}
+      <InvitationsPanel
+        jobId={job.id}
+        invitations={invitations}
+        error={invitationsRes.error?.message}
+        canManage={canUseTalent}
+        canSearch={canUseTalent && isPublished}
+      />
 
       {/* Pipeline */}
       <section className="card p-5">

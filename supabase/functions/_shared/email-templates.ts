@@ -33,7 +33,9 @@ function modeLine(p: Payload): string {
   }
 }
 
-function layout(title: string, bodyHtml: string, button?: { label: string; href: string }): string {
+const DEFAULT_FOOTER = "You are receiving this because you applied for a job on Omelo.";
+
+function layout(title: string, bodyHtml: string, button?: { label: string; href: string }, footer = DEFAULT_FOOTER): string {
   const btn = button
     ? `<p style="margin:28px 0"><a href="${esc(button.href)}" style="background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:600;display:inline-block">${esc(button.label)}</a></p>`
     : "";
@@ -45,7 +47,7 @@ function layout(title: string, bodyHtml: string, button?: { label: string; href:
 <h1 style="font-size:20px;line-height:1.35;margin:0 0 14px">${esc(title)}</h1>
 ${bodyHtml}
 ${btn}
-<p style="font-size:12px;color:#6b7280;margin-top:28px">You are receiving this because you applied for a job on Omelo. Omelo will never ask you to pay a fee for an interview or a job.</p>
+<p style="font-size:12px;color:#6b7280;margin-top:28px">${esc(footer)} Omelo will never ask you to pay a fee for an interview or a job.</p>
 </td></tr></table></td></tr></table></body></html>`;
 }
 
@@ -161,6 +163,27 @@ export function renderEmail(template: string, p: Payload, links: Links): Rendere
         subject: `New message from ${company} about ${job}`,
         html: layout(title, body, button),
         text: `${title}\n\nAbout your application for ${job}:\n"${p.preview ?? ""}"\n\n${button.label}: ${button.href}`,
+      };
+    }
+    case "job_invitation": {
+      const title = `${company} invited you to apply`;
+      const pay = p.pay_min
+        ? `${p.pay_currency ?? ""} ${Number(p.pay_min).toLocaleString("en-IN")}${p.pay_max && p.pay_max !== p.pay_min ? ` – ${Number(p.pay_max).toLocaleString("en-IN")}` : ""} per ${p.pay_period ?? "month"}`.trim()
+        : "";
+      const d = details([["Job", job], ["Where", String(p.location_text ?? "")], ["Pay", pay],
+                         ["Your profile", String(p.identity_label ?? "")]]);
+      const note = p.message
+        ? `<blockquote style="margin:12px 0;padding:10px 14px;border-left:3px solid #0f766e;background:#f4f5f7;font-size:15px;line-height:1.6">${esc(p.message)}</blockquote>`
+        : "";
+      const body = `<p style="font-size:15px;line-height:1.6">${esc(company)} found your profile on Omelo and would like you to apply.</p>${note}${d.html}
+<p style="font-size:13px;color:#6b7280">You were shown to this employer because of your visibility settings. You can change them, or turn off invitations, in Omelo at any time.</p>`;
+      const href = p.invitation_id ? `${links.workerAppUrl}/invitations/${p.invitation_id}` : links.workerAppUrl;
+      const button = { label: "See the invitation", href };
+      return {
+        subject: `${company} invited you to apply: ${job}`,
+        html: layout(title, body, button,
+          "You are receiving this because your Omelo profile is visible to employers."),
+        text: `${title}\n\n${p.message ? `"${p.message}"\n\n` : ""}${d.text}\n\n${button.label}: ${button.href}`,
       };
     }
     case "verify_email": {

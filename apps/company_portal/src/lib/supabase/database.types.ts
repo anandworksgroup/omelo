@@ -484,6 +484,8 @@ export type Database = {
       candidate_invitations: {
         Row: {
           company_id: string
+          decline_reason: string | null
+          expires_at: string
           id: string
           job_id: string
           message: string | null
@@ -492,10 +494,13 @@ export type Database = {
           response: string | null
           sent_at: string
           sent_by: string | null
+          viewed_at: string | null
           work_identity_id: string | null
         }
         Insert: {
           company_id: string
+          decline_reason?: string | null
+          expires_at?: string
           id?: string
           job_id: string
           message?: string | null
@@ -504,10 +509,13 @@ export type Database = {
           response?: string | null
           sent_at?: string
           sent_by?: string | null
+          viewed_at?: string | null
           work_identity_id?: string | null
         }
         Update: {
           company_id?: string
+          decline_reason?: string | null
+          expires_at?: string
           id?: string
           job_id?: string
           message?: string | null
@@ -516,6 +524,7 @@ export type Database = {
           response?: string | null
           sent_at?: string
           sent_by?: string | null
+          viewed_at?: string | null
           work_identity_id?: string | null
         }
         Relationships: [
@@ -3340,6 +3349,77 @@ export type Database = {
           },
         ]
       }
+      match_events: {
+        Row: {
+          company_id: string
+          engine_version: string | null
+          event: string
+          id: number
+          job_id: string
+          occurred_at: string
+          person_id: string | null
+          rank: number | null
+          score: number | null
+          surface: string
+          work_identity_id: string | null
+        }
+        Insert: {
+          company_id: string
+          engine_version?: string | null
+          event: string
+          id?: never
+          job_id: string
+          occurred_at?: string
+          person_id?: string | null
+          rank?: number | null
+          score?: number | null
+          surface: string
+          work_identity_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          engine_version?: string | null
+          event?: string
+          id?: never
+          job_id?: string
+          occurred_at?: string
+          person_id?: string | null
+          rank?: number | null
+          score?: number | null
+          surface?: string
+          work_identity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           computed_at: string
@@ -5637,6 +5717,7 @@ export type Database = {
       work_identities: {
         Row: {
           about: string | null
+          allow_invitations: boolean
           category_id: string | null
           completeness_score: number
           created_at: string
@@ -5655,6 +5736,7 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          allow_invitations?: boolean
           category_id?: string | null
           completeness_score?: number
           created_at?: string
@@ -5673,6 +5755,7 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          allow_invitations?: boolean
           category_id?: string | null
           completeness_score?: number
           created_at?: string
@@ -5719,6 +5802,22 @@ export type Database = {
     }
     Functions: {
       omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
+      omelo_admin_matching_metrics: { Args: { p_days?: number }; Returns: Json }
+      omelo_admin_set_company_verification: {
+        Args: { p_company: string; p_method?: string; p_verified: boolean }
+        Returns: undefined
+      }
+      omelo_admin_set_entitlements: {
+        Args: {
+          p_company: string
+          p_outreach_quota_daily?: number
+          p_plan: string
+          p_search_quota_monthly?: number
+          p_talent_search: boolean
+          p_valid_until?: string
+        }
+        Returns: undefined
+      }
       omelo_admin_system_health: { Args: { p_hours?: number }; Returns: Json }
       omelo_am_i_platform_admin: { Args: never; Returns: boolean }
       omelo_archive_work_identity: {
@@ -5811,6 +5910,12 @@ export type Database = {
           rank: number
         }[]
       }
+      omelo_invite_to_apply: {
+        Args: { p_identity: string; p_job_id: string; p_message?: string }
+        Returns: string
+      }
+      omelo_job_funnel: { Args: { p_job_id: string }; Returns: Json }
+      omelo_job_invitations: { Args: { p_job_id: string }; Returns: Json }
       omelo_mark_application_viewed: {
         Args: { p_application_id: string }
         Returns: undefined
@@ -5818,6 +5923,10 @@ export type Database = {
       omelo_mark_conversation_read: {
         Args: { p_conversation_id: string }
         Returns: number
+      }
+      omelo_mark_invitation_viewed: {
+        Args: { p_invitation: string }
+        Returns: undefined
       }
       omelo_meet_admit: {
         Args: { p_admit?: boolean; p_interview_id: string; p_person_id: string }
@@ -5837,10 +5946,12 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["application_state"]
       }
+      omelo_my_invitations: { Args: never; Returns: Json }
       omelo_my_match: {
         Args: { p_job_id: string; p_work_identity_id?: string }
         Returns: Json
       }
+      omelo_my_profile_views: { Args: { p_days?: number }; Returns: Json }
       omelo_my_sessions: {
         Args: never
         Returns: {
@@ -5905,6 +6016,7 @@ export type Database = {
         }
         Returns: number
       }
+      omelo_pool_members: { Args: { p_pool: string }; Returns: Json }
       omelo_profile_schema_for: {
         Args: { p_work_identity_id?: string }
         Returns: {
@@ -5975,6 +6087,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      omelo_respond_to_invitation: {
+        Args: { p_invitation: string; p_reason?: string }
+        Returns: undefined
+      }
       omelo_respond_to_offer: {
         Args: { p_accept: boolean; p_offer_id: string; p_reason?: string }
         Returns: Json
@@ -6018,6 +6134,16 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_search_talent: {
+        Args: {
+          p_job_id: string
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_radius_km?: number
+        }
+        Returns: Json
+      }
       omelo_send_message: {
         Args: { p_body: string; p_conversation_id: string }
         Returns: number
@@ -6043,9 +6169,18 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: string
       }
+      omelo_talent_profile: {
+        Args: { p_identity: string; p_job_id?: string }
+        Returns: Json
+      }
+      omelo_track_job_events: { Args: { p_events: Json }; Returns: number }
       omelo_view_offer: { Args: { p_offer_id: string }; Returns: undefined }
       omelo_withdraw_application: {
         Args: { p_application_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      omelo_withdraw_invitation: {
+        Args: { p_invitation: string }
         Returns: undefined
       }
       omelo_withdraw_offer: {
@@ -6255,6 +6390,7 @@ export type Database = {
         | "profile_reminder"
         | "system"
         | "message_received"
+        | "job_invitation"
       offer_status:
         | "draft"
         | "sent"
@@ -6733,6 +6869,7 @@ export const Constants = {
         "profile_reminder",
         "system",
         "message_received",
+        "job_invitation",
       ],
       offer_status: [
         "draft",

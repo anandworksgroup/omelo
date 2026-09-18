@@ -220,8 +220,8 @@ recommendations, audit, intelligence.
 | OfferSent, OfferAccepted, OfferDeclined, OfferWithdrawn, WorkerHired, EmploymentVerified | ✓ | offer functions, employment trigger |
 | JobPublished, JobPaused, JobClosed, JobExpired | ✓ | jobs trigger |
 | WorkerRegistered, IdentityCreated, ProfileUpdated, SkillAdded, JobCreated | ○ R1/R2 | signup trigger, identity/profile triggers |
-| JobImpression, JobViewed, InterviewJoined | ○ R3 | `match_events`, Meet join |
-| TalentSearched, CandidateInvited, InvitationAccepted | ○ R3 | talent search functions |
+| JobViewed (impressions live in `match_events`), InterviewJoined | ✓ R1/R3 | `omelo_track_job_events`, Meet join |
+| TalentSearched, CandidateInvited, InvitationAccepted, InvitationDeclined, InvitationWithdrawn | ✓ R3 | talent search + invitation functions |
 | CandidateSubmitted, RepresentationGranted/Revoked, PlacementMade | ○ R4 | agency functions |
 | ShiftAssigned, AttendanceRecorded, TimesheetApproved | ○ R5 | workforce functions |
 
@@ -307,3 +307,17 @@ All computed from `domain_events`, `match_events` (R3) and existing tables — a
 | Worker app: identities hub, per-identity editor (adaptive questions, skills, experience, preferences, places, visibility, evidence), apply-as chooser, completeness nudges | ✓ |
 | Portal: "Applied as", evidence panel, profile answers, identity-scoped history (review page + Meet panel) | ✓ |
 | Proven as real users | ✓ `tests/api/identity_e2e.py` (50 checks) + all earlier suites re-run |
+
+### Release 3 status (backend proven — migrations 41–43)
+
+| Item | State |
+|---|---|
+| Funnel: impressions → views → applies attributed to surface, rank, score, engine version (`match_events`) | ✓ server-written only (invariant 34) |
+| Job funnel for employers; matching metrics by surface and score band for Omelo | ✓ `omelo_job_funnel`, `omelo_admin_matching_metrics` |
+| Talent search = the same scorer reversed; consent, verification, plan and monthly quota enforced | ✓ `omelo_search_talent` |
+| Consent actually works: person visibility derived from identities (was a hidden private master switch) | ✓ invariant 36 |
+| Invite to apply → notification + email → apply marks it accepted; decline with reason; withdraw | ✓ closed loop |
+| Talent pools hold only visible identities; profile views recorded by the server | ✓ invariant 35 |
+| Worker controls: visibility per identity, "let employers invite me", who viewed me | ✓ |
+| Portal talent search, profiles, pools, job funnel, admin matching + company tools; worker invitations inbox, event tracking | see commit |
+| Proven as real users | ✓ `tests/api/talent_e2e.py` (two-phase: Omelo grants the probe company) + all earlier suites re-run |

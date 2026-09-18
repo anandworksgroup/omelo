@@ -13,15 +13,20 @@ import '../features/discover/job_detail_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/identities/identities_screen.dart';
 import '../features/identities/identity_editor_screen.dart';
+import '../features/invitations/invitation_detail_screen.dart';
+import '../features/invitations/invitations_screen.dart';
 import '../features/meet/meet_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/messages/thread_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/profile/profile_views_screen.dart';
+import '../features/saved/saved_jobs_screen.dart';
 import '../features/settings/reset_password_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../data/job_events.dart' show JobSurface;
 import 'app_state.dart';
 import 'auth_links.dart';
 
@@ -59,8 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/job/:id',
-        builder: (_, state) =>
-            JobDetailScreen(jobId: state.pathParameters['id']!),
+        builder: (_, state) => JobDetailScreen(
+          jobId: state.pathParameters['id']!,
+          surface: JobSurface.fromWire(state.uri.queryParameters['from']),
+          rank: int.tryParse(state.uri.queryParameters['rank'] ?? ''),
+        ),
       ),
       GoRoute(
         path: '/company/:id',
@@ -69,7 +77,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/apply/:id',
-        builder: (_, state) => ApplyScreen(jobId: state.pathParameters['id']!),
+        builder: (_, state) => ApplyScreen(
+          jobId: state.pathParameters['id']!,
+          identityId: state.uri.queryParameters['identity'],
+        ),
       ),
       // Notification deeplinks (`/applications/<id>`) land here. Declared
       // before the shell so it opens full screen, like job detail.
@@ -108,6 +119,29 @@ final routerProvider = Provider<GoRouter>((ref) {
           identityId: state.pathParameters['id']!,
           section: state.uri.queryParameters['section'],
         ),
+      ),
+      // Release 3: invitations to apply (notification deeplink
+      // `/invitations/<id>`), saved jobs and who viewed my profile.
+      GoRoute(
+        path: '/invitations',
+        redirect: _requireSignIn,
+        builder: (_, __) => const InvitationsScreen(),
+      ),
+      GoRoute(
+        path: '/invitations/:id',
+        redirect: _requireSignIn,
+        builder: (_, state) => InvitationDetailScreen(
+            invitationId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/saved',
+        redirect: _requireSignIn,
+        builder: (_, __) => const SavedJobsScreen(),
+      ),
+      GoRoute(
+        path: '/profile-views',
+        redirect: _requireSignIn,
+        builder: (_, __) => const ProfileViewsScreen(),
       ),
       GoRoute(
         path: '/notifications',

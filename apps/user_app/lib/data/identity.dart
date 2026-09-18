@@ -57,6 +57,11 @@ enum IdentityVisibility {
       : null;
 }
 
+/// Employers can only invite an identity they can find, so "Let employers
+/// invite me to apply" means nothing while it is [IdentityVisibility.private].
+bool invitationsPossible(IdentityVisibility v) =>
+    v != IdentityVisibility.private;
+
 /// Shown under the visibility choices.
 const kVisibilitySearchNote =
     'Employers can only search for workers after Omelo has verified them and '
@@ -856,6 +861,28 @@ WorkIdentity? defaultIdentityForJob(
     if (m != null) return m;
   }
   return preferPrimary(active);
+}
+
+/// The identity the apply screen starts on.
+///
+/// The one the worker tapped wins; then the one an employer invited (when it
+/// is still active); then [defaultIdentityForJob].
+WorkIdentity? pickApplyIdentity(
+  List<WorkIdentity> identities, {
+  String? pickedId,
+  String? invitedId,
+  String? jobProfessionId,
+  String? jobProfessionName,
+}) {
+  final active = identities.where((i) => i.isActive).toList();
+  for (final id in [pickedId, invitedId]) {
+    if (id == null) continue;
+    for (final i in active) {
+      if (i.id == id) return i;
+    }
+  }
+  return defaultIdentityForJob(active,
+      jobProfessionId: jobProfessionId, jobProfessionName: jobProfessionName);
 }
 
 /// One line under the identity chooser.

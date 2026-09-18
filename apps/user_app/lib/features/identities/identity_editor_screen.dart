@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/identity_repository.dart';
+import '../../data/invitations_repository.dart';
 import 'identity_sections.dart';
 import 'identity_widgets.dart';
 import 'profile_field_input.dart';
@@ -654,7 +655,110 @@ class _VisibilitySectionState extends ConsumerState<_VisibilitySection> {
           enabled: !_busy && widget.identity.isActive,
           onChanged: _set,
         ),
+        const SizedBox(height: 12),
+        _AllowInvitationsTile(identity: widget.identity),
       ],
+    );
+  }
+}
+
+/// "Let employers invite me to apply" (`work_identities.allow_invitations`).
+/// Only meaningful when employers can find the identity at all.
+class _AllowInvitationsTile extends ConsumerStatefulWidget {
+  const _AllowInvitationsTile({required this.identity});
+  final WorkIdentity identity;
+
+  @override
+  ConsumerState<_AllowInvitationsTile> createState() =>
+      _AllowInvitationsTileState();
+}
+
+class _AllowInvitationsTileState extends ConsumerState<_AllowInvitationsTile> {
+  bool? _value;
+  bool _busy = false;
+
+  Future<void> _set(bool v) async {
+    final before = _value;
+    setState(() {
+      _value = v;
+      _busy = true;
+    });
+    try {
+      await ref
+          .read(invitationsRepositoryProvider)
+          .setAllowInvitations(widget.identity.id, v);
+      ref.invalidate(allowInvitationsProvider(widget.identity.id));
+      if (mounted) {
+        showSnack(
+            context,
+            v
+                ? 'Employers can invite you to apply.'
+                : 'Employers cannot send you invitations.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _value = before);
+        showSnack(context, identityError(e));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (!invitationsPossible(widget.identity.visibility)) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.mail_lock_outlined, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Invitations to apply: off while this identity is "Only me". '
+                'Choose another option above so employers can find you and '
+                'invite you.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final loaded = ref.watch(allowInvitationsProvider(widget.identity.id));
+    final value = _value ?? loaded.valueOrNull ?? true;
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SwitchListTile(
+        value: value,
+        onChanged: _busy || loaded.isLoading || !widget.identity.isActive
+            ? null
+            : _set,
+        contentPadding: const EdgeInsets.fromLTRB(14, 6, 10, 6),
+        title: const Text('Let employers invite me to apply',
+            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700)),
+        subtitle: const Padding(
+          padding: EdgeInsets.only(top: 3),
+          child: Text(
+            'Employers who find this profile can send you a job and ask you '
+            'to apply. You choose whether to answer.',
+            style: TextStyle(fontSize: 13.5, height: 1.35),
+          ),
+        ),
+      ),
     );
   }
 }

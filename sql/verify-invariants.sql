@@ -102,7 +102,14 @@ with checks as (
                           -- Release 2 (38): professional identity
                           'omelo_create_work_identity','omelo_set_primary_identity','omelo_archive_work_identity',
                           'omelo_delete_work_identity','omelo_identity_profile','omelo_save_identity_profile',
-                          'omelo_identity_evidence')
+                          'omelo_identity_evidence',
+                          -- Release 3 (41): marketplace — funnel, talent search, invitations, pools, admin
+                          'omelo_track_job_events','omelo_search_talent','omelo_talent_profile',
+                          'omelo_invite_to_apply','omelo_withdraw_invitation','omelo_respond_to_invitation',
+                          'omelo_mark_invitation_viewed','omelo_my_invitations','omelo_job_invitations',
+                          'omelo_pool_members','omelo_my_profile_views','omelo_job_funnel',
+                          'omelo_admin_matching_metrics','omelo_admin_set_company_verification',
+                          'omelo_admin_set_entitlements')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -354,7 +361,7 @@ with checks as (
                                'omelo-account-deletions','omelo-outbox-retention')
 
   -- ---------------------------------------------------------------
-  -- RELEASE 2 (migrations 38-39): professional identity
+  -- RELEASE 2 (migrations 38-40): professional identity
   -- ---------------------------------------------------------------
   union all
   select 31, 'Employers read identity-scoped rows only for identities they may see',
@@ -383,6 +390,41 @@ with checks as (
          case when exists (select 1 from pg_trigger where tgname = 'work_identities_guard_fields' and not tgisinternal)
                and exists (select 1 from pg_trigger where tgname = 'person_attributes_validate' and not tgisinternal)
               then 'OK' else 'FAIL: identity guard or attribute validation trigger missing' end
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 3 (migrations 41-43): marketplace
+  -- Before 41 anyone could INSERT profile_views ("viewed by company X") and
+  -- employers could write invitations directly.
+  -- ---------------------------------------------------------------
+  union all
+  select 34, 'Funnel events, profile views and invitations are written by the server only',
+         case when count(*) = 0
+               and not has_table_privilege('authenticated', 'public.match_events', 'insert')
+               and not has_table_privilege('authenticated', 'public.match_events', 'select')
+               and not has_table_privilege('authenticated', 'public.profile_views', 'insert')
+               and not has_table_privilege('authenticated', 'public.candidate_invitations', 'insert')
+               and not has_table_privilege('authenticated', 'public.candidate_invitations', 'update')
+              then 'OK' else 'FAIL: client write path — ' || coalesce(string_agg(tablename || '.' || policyname, ', '), 'table privileges') end
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in ('match_events','profile_views','candidate_invitations')
+    and cmd in ('INSERT','UPDATE','DELETE','ALL')
+
+  union all
+  select 35, 'Talent pools hold only visible identities; applications are attributed',
+         case when exists (select 1 from pg_trigger where tgname = 'talent_pool_members_guard' and not tgisinternal)
+               and exists (select 1 from pg_trigger where tgname = 'applications_attribute' and not tgisinternal)
+               and exists (select 1 from pg_trigger where tgname = 'work_identities_sync_person_visibility' and not tgisinternal)
+              then 'OK' else 'FAIL: pool guard, attribution or visibility-sync trigger missing' end
+
+  union all
+  select 36, 'Person visibility mirrors their identities (no hidden master switch)',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || count(*)::text || ' persons out of sync' end
+  from persons p
+  where p.discoverability is distinct from
+        coalesce((select max(wi.discoverability) from work_identities wi
+                   where wi.person_id = p.id and wi.status = 'active'), 'private')
 )
 select n as "#", invariant, result from checks order by n;
 

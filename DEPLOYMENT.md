@@ -33,7 +33,7 @@ tests/api/             end-to-end tests against a live project, as real users
       set value = 'https://<ref>.supabase.co/functions/v1', updated_at = now()
     where key = 'functions_base_url';
    ```
-4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 33 rows must read OK.**
+4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 36 rows must read OK.**
 5. Dashboard settings (not expressible as migrations):
    - **Auth → Passwords:** enable *Leaked password protection*; minimum length 8+.
    - **Auth → URL configuration:** set Site URL to the portal URL; add the
@@ -50,7 +50,11 @@ tests/api/             end-to-end tests against a live project, as real users
    insert into platform_admins (person_id, role, is_active)
    select id, 'superadmin', true from persons where email = '<you@company.com>';
    ```
-7. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
+7. Talent search is an Omelo-granted capability. A platform admin verifies a company and
+   enables it (portal `/admin` → Companies, or SQL): `omelo_admin_set_company_verification(company, true)`
+   and `omelo_admin_set_entitlements(company, 'pro', true, <searches per month, 0 = unlimited>,
+   <invitations per day, 0 = unlimited>)`. Employers cannot grant it to themselves.
+8. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
    provider is wired), `require_verified_email_to_accept_offer` (progressive trust; default `false`).
 
 ## 2. Edge Functions
@@ -125,6 +129,8 @@ python tests/api/messaging_e2e.py
 python tests/api/meet_e2e.py
 python tests/api/account_e2e.py
 python tests/api/identity_e2e.py
+python tests/api/talent_e2e.py setup   # then apply the SQL it prints (Omelo-only fixture)
+python tests/api/talent_e2e.py run
 ```
 
 Point `tests/api/omelo_api.py` (`BASE`, `KEY`) at the new project first. Each
@@ -136,7 +142,7 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 
 ## 6. Launch checklist
 
-- [ ] `verify-invariants.sql` — 33/33 OK
+- [ ] `verify-invariants.sql` — 36/36 OK
 - [ ] Leaked password protection on; Site URL and redirect URLs set
 - [ ] `functions_base_url` updated; `select * from cron.job` shows the 4 `omelo-*` jobs
 - [ ] First platform admin granted; `/admin` shows healthy cron runs and 0 function failures

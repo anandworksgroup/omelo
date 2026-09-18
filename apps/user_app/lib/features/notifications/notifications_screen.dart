@@ -89,8 +89,9 @@ class NotificationsScreen extends ConsumerWidget {
             : 'No notifications yet',
         body: s.failed
             ? 'Check your internet and pull down to try again.'
-            : 'When an employer views your application, invites you to an '
-                'interview or sends a message, you will see it here.',
+            : 'When an employer invites you to apply, views your '
+                'application, invites you to an interview or sends a '
+                'message, you will see it here.',
       );
     }
 
@@ -168,6 +169,7 @@ class _NotificationTile extends StatelessWidget {
       NotificationKind.application => Icons.assignment_outlined,
       NotificationKind.offer => Icons.workspace_premium_outlined,
       NotificationKind.message => Icons.chat_bubble_outline,
+      NotificationKind.invitation => Icons.mail_outline,
       NotificationKind.other => Icons.notifications_outlined,
     };
 
