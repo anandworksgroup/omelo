@@ -1,7 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/auth'];
+// /auth covers /auth/callback and /auth/reset (the recovery link lands there
+// signed out, before the code exchange).
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot-password', '/auth'];
 
 /**
  * Refreshes the Supabase session on every request and gates the dashboard.

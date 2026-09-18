@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { reportError } from '@/lib/observability';
 
 export type AuthState = { error?: string; notice?: string };
 
@@ -93,7 +95,91 @@ export async function signUp(
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) reportError(error, { action: 'signOut' });
   revalidatePath('/', 'layout');
   redirect('/sign-in');
+}
+
+/** The origin the user is on, for auth email links (never user input). */
+async function siteOrigin(): Promise<string> {
+  const h = await headers();
+  const origin = h.get('origin');
+  if (origin) return origin;
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? (host?.startsWith('localhost') ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
+
+const RESET_NOTICE =
+  'If an account exists for that email, a link to reset your password is on its way. It can take a few minutes to arrive — check your spam folder too.';
+
+/**
+ * Sends a password reset link. The response is the same whether or not the
+ * email belongs to an account, so this cannot be used to discover accounts.
+ */
+export async function requestPasswordReset(
+  _prev: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const email = String(formData.get('email') ?? '').trim();
+  if (!email || !email.includes('@')) return { error: 'Enter the email you sign in with.' };
+
+  const supabase = await createClient();
+  // PKCE: the code verifier is stored in this browser's cookies, so the link
+  // must be opened in the same browser. /auth/reset exchanges the code.
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await siteOrigin()}/auth/reset`,
+  });
+  // Never surface the error: it could reveal whether the account exists.
+  if (error) reportError(error, { action: 'requestPasswordReset', status: error.status });
+
+  return { notice: RESET_NOTICE };
+}
+
+/**
+ * Sets a new password for the signed-in user. Used by the reset flow (after
+ * the recovery link signs them in) and by Settings -> Change password.
+ */
+export async function updatePassword(
+  _prev: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const password = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('confirm') ?? '');
+  const mode = String(formData.get('mode') ?? 'settings');
+
+  if (password.length < 8) return { error: 'Use at least 8 characters for your password.' };
+  if (password !== confirm) return { error: 'The two passwords do not match.' };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return {
+      error:
+        mode === 'reset'
+          ? 'This reset link has expired. Request a new one.'
+          : 'You are signed out. Sign in and try again.',
+    };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes('different from the old'))
+      return { error: 'Choose a password different from your current one.' };
+    if (msg.includes('weak') || msg.includes('pwned') || msg.includes('known'))
+      return { error: 'That password is too easy to guess. Try a longer or less common one.' };
+    if (msg.includes('reauthent'))
+      return { error: 'For security, sign out and back in, then change your password.' };
+    reportError(error, { action: 'updatePassword', mode, status: error.status });
+    return { error: 'Your password could not be changed. Try again in a moment.' };
+  }
+
+  if (mode === 'reset') {
+    revalidatePath('/', 'layout');
+    redirect('/dashboard');
+  }
+  return { notice: 'Password changed.' };
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
+import { reportError } from '@/lib/observability';
 
 export type ActionState = { error?: string; ok?: boolean; message?: string };
 
@@ -56,7 +57,7 @@ export async function createCompany(
       .select('name, geo')
       .eq('id', hq)
       .single();
-    await supabase.from('company_locations').insert({
+    const { error: hqError } = await supabase.from('company_locations').insert({
       company_id: data.id,
       location_id: hq,
       name: 'Head office',
@@ -64,6 +65,8 @@ export async function createCompany(
       geo: loc?.geo ?? null,
       is_hq: true,
     });
+    // The company exists; a missing HQ row only loses geo inheritance.
+    if (hqError) reportError(hqError, { action: 'createCompany.hq_location', companyId: data.id });
   }
 
   revalidatePath('/', 'layout');
@@ -196,15 +199,17 @@ export async function createJob(
 
   if (error) return { error: error.message };
 
-  await supabase.from('job_stages').insert(
+  const { error: stagesError } = await supabase.from('job_stages').insert(
     DEFAULT_STAGES.map((s) => ({ ...s, job_id: job.id })) as never
   );
+  if (stagesError) reportError(stagesError, { action: 'createJob.stages', jobId: job.id });
 
   const benefits = formData.getAll('benefits').map(String);
   if (benefits.length) {
-    await supabase.from('job_benefits').insert(
+    const { error: benefitsError } = await supabase.from('job_benefits').insert(
       benefits.map((b) => ({ job_id: job.id, benefit_type: b })) as never
     );
+    if (benefitsError) reportError(benefitsError, { action: 'createJob.benefits', jobId: job.id });
   }
 
   // Requirements seeded from the profession taxonomy so an employer who
@@ -216,7 +221,7 @@ export async function createJob(
     .gte('importance', 0.65);
 
   if (profSkills?.length) {
-    await supabase.from('job_skills').insert(
+    const { error: skillsError } = await supabase.from('job_skills').insert(
       profSkills.map((s) => ({
         job_id: job.id,
         skill_id: s.skill_id,
@@ -224,11 +229,12 @@ export async function createJob(
         weight: s.importance,
       })) as never
     );
+    if (skillsError) reportError(skillsError, { action: 'createJob.skills', jobId: job.id });
   }
 
   const question = String(formData.get('question') ?? '').trim();
   if (question) {
-    await supabase.from('job_questions').insert({
+    const { error: questionError } = await supabase.from('job_questions').insert({
       job_id: job.id,
       position: 1,
       prompt: question,
@@ -236,6 +242,7 @@ export async function createJob(
       is_required: true,
       is_knockout: false,
     } as never);
+    if (questionError) reportError(questionError, { action: 'createJob.question', jobId: job.id });
   }
 
   revalidatePath('/dashboard/jobs');
@@ -246,11 +253,12 @@ export async function setJobStatus(jobId: string, status: string) {
   const ctx = await getCompanyContext();
   if (!ctx) return;
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from('jobs')
     .update({ status: status as never })
     .eq('id', jobId)
     .eq('company_id', ctx.companyId);
+  if (error) reportError(error, { action: 'setJobStatus', jobId, status });
   revalidatePath('/dashboard/jobs');
   revalidatePath(`/dashboard/jobs/${jobId}`);
 }

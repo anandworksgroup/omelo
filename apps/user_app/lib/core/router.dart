@@ -17,14 +17,25 @@ import '../features/messages/thread_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/settings/reset_password_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import 'app_state.dart';
+import 'auth_links.dart';
 
 /// Deeplink-first routing (A1 §16): every notification must resolve to a
 /// screen, so every screen has a real URL.
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
+    // A password-recovery link signs the worker in with a one-time session.
+    // Until they choose a new password, every navigation lands on the
+    // "Set a new password" screen.
+    refreshListenable: PasswordRecovery.pending,
+    redirect: (_, state) =>
+        PasswordRecovery.pending.value && state.uri.path != '/reset-password'
+            ? '/reset-password'
+            : null,
     routes: [
       GoRoute(path: '/', builder: (_, __) => const _Boot()),
       GoRoute(
@@ -86,6 +97,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/notifications',
         redirect: _requireSignIn,
         builder: (_, __) => const NotificationsScreen(),
+      ),
+      // Account settings (notification deeplink `/settings`).
+      GoRoute(
+        path: '/settings',
+        redirect: _requireSignIn,
+        builder: (_, __) => const SettingsScreen(),
+      ),
+      // Where password-reset emails come back to (web hash URL; mobile via
+      // com.omelo.app://reset-password and the recovery auth event).
+      GoRoute(
+        path: '/reset-password',
+        builder: (_, __) => const ResetPasswordScreen(),
       ),
       ShellRoute(
         builder: (_, __, child) => AppShell(child: child),

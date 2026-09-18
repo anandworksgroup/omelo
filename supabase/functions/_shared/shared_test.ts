@@ -42,14 +42,15 @@ const payload = {
   previous_scheduled_at: "2026-09-24T05:30:00Z", cancel_reason: "Role filled", title: "Cook",
   pay_amount: 22000, pay_currency: "INR", pay_period: "month", start_date: "2026-10-01",
   expires_at: "2026-09-30T00:00:00Z", preview: "Can you <b>come</b> Friday?", conversation_id: "c-1",
+  code: "<i>123456</i>", scheduled_for: "2026-10-02T00:00:00Z",
 };
 
-for (const t of ["interview_invitation", "next_round_invitation", "interview_rescheduled", "interview_cancelled",
+for (const t of ["verify_email", "account_deletion_scheduled", "interview_invitation", "next_round_invitation", "interview_rescheduled", "interview_cancelled",
                  "interview_reminder", "interview_completed", "offer_received", "new_message"]) {
   Deno.test(`email ${t} renders and escapes HTML`, () => {
     const r = renderEmail(t, payload, links);
     assert(r && r.html.length > 200 && r.text.length > 20);
-    assert(!r.html.includes("<script>") && !r.html.includes("<b>come"));
+    assert(!r.html.includes("<script>") && !r.html.includes("<b>come") && !r.html.includes("<i>123456"));
   });
 }
 

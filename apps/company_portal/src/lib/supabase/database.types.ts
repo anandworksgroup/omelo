@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          cancelled_at: string | null
+          person_id: string
+          reason: string | null
+          requested_at: string
+          scheduled_for: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          person_id: string
+          reason?: string | null
+          requested_at?: string
+          scheduled_for: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          person_id?: string
+          reason?: string | null
+          requested_at?: string
+          scheduled_for?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_events: {
         Row: {
           actor_id: string | null
@@ -5683,6 +5715,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
+      omelo_admin_system_health: { Args: { p_hours?: number }; Returns: Json }
+      omelo_am_i_platform_admin: { Args: never; Returns: boolean }
+      omelo_cancel_account_deletion: { Args: never; Returns: boolean }
       omelo_cancel_interview: {
         Args: { p_interview_id: string; p_reason: string }
         Returns: undefined
@@ -5739,6 +5775,10 @@ export type Database = {
         Args: { p_interview_id: string }
         Returns: undefined
       }
+      omelo_confirm_verification: {
+        Args: { p_channel: string; p_code: string }
+        Returns: Json
+      }
       omelo_interview_question_suggestions: {
         Args: { p_job_id: string; p_round_kind?: string }
         Returns: {
@@ -5779,6 +5819,18 @@ export type Database = {
         Args: { p_job_id: string; p_work_identity_id?: string }
         Returns: Json
       }
+      omelo_my_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          ip_hint: string
+          is_current: boolean
+          last_active_at: string
+          user_agent: string
+        }[]
+      }
+      omelo_my_trust_status: { Args: never; Returns: Json }
       omelo_nearby_jobs: {
         Args: {
           p_category_id?: string
@@ -5883,6 +5935,15 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_request_account_deletion: {
+        Args: { p_reason?: string }
+        Returns: Json
+      }
+      omelo_request_email_verification: { Args: never; Returns: Json }
+      omelo_request_phone_verification: {
+        Args: { p_phone: string }
+        Returns: Json
+      }
       omelo_reschedule_interview: {
         Args: {
           p_duration_minutes?: number
@@ -5896,6 +5957,8 @@ export type Database = {
         Args: { p_accept: boolean; p_offer_id: string; p_reason?: string }
         Returns: Json
       }
+      omelo_revoke_other_sessions: { Args: never; Returns: number }
+      omelo_revoke_session: { Args: { p_session_id: string }; Returns: boolean }
       omelo_save_interview_feedback: {
         Args: {
           p_answers?: Json

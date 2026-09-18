@@ -277,3 +277,19 @@ All computed from `domain_events`, `match_events` (R3) and existing tables — a
 | Missing events | `WorkerRegistered`, `IdentityCreated`, `ProfileUpdated`, `SkillAdded`, `JobCreated`, `InterviewJoined` |
 
 **Gate:** DEPLOYMENT.md checklist fully ticked + the items above tested as real users.
+
+### Release 1 status (code complete — owner actions pending)
+
+| Item | State |
+|---|---|
+| Password recovery (portal + worker app, web + mobile deep link) | ✓ built; needs custom SMTP + redirect URLs |
+| Progressive email verification (hashed OTP), phone OTP behind a flag | ✓ |
+| Optional "verified email to accept offers" | ✓ flag, default off |
+| Sessions / devices, sign out elsewhere | ✓ |
+| Account deletion (14-day grace, daily job) — FKs fixed so deletion can never be blocked | ✓ |
+| Application rate limit (30/h, 100/day) | ✓ |
+| Missing events (WorkerRegistered, IdentityCreated, ProfileUpdated, SkillAdded, JobCreated, InterviewJoined, EmailVerified, account events) | ✓ |
+| Admin System health + KPIs (cohort funnel) | ✓ `/admin` in the portal |
+| Error tracking (Sentry, no-op without DSN) in both apps | ✓ |
+| Outbox retention | ✓ |
+| Owner actions (§6) | ○ |

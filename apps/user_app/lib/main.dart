@@ -1,26 +1,54 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/auth_links.dart';
 import 'core/env.dart';
+import 'core/observability.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
+import 'data/account.dart' show omeloAppUserAgent;
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  Env.logStartupCheck();
+void main() {
+  // Everything runs inside one guarded zone so uncaught async errors are
+  // reported too. Reporting is a no-op unless built with SENTRY_DSN.
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    Observability.install();
+    Env.logStartupCheck();
 
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    publishableKey: Env.supabaseKey,
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce,
-    ),
-  );
+    await Supabase.initialize(
+      url: Env.supabaseUrl,
+      publishableKey: Env.supabaseKey,
+      // The mobile app names itself so "Devices signed in" can say
+      // "Omelo app on Android". Browsers send their own user agent.
+      headers: kIsWeb
+          ? null
+          : {'User-Agent': omeloAppUserAgent(_platformName())},
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
+    PasswordRecovery.listen(Supabase.instance.client.auth);
 
-  runApp(const ProviderScope(child: OmeloApp()));
+    runApp(const ProviderScope(child: OmeloApp()));
+  }, (error, stack) {
+    unawaited(reportError(error, stack, context: 'zone'));
+  });
 }
+
+String _platformName() => switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'Android',
+      TargetPlatform.iOS => 'iPhone',
+      TargetPlatform.macOS => 'Mac',
+      TargetPlatform.windows => 'Windows',
+      TargetPlatform.linux => 'Linux',
+      TargetPlatform.fuchsia => 'Fuchsia',
+    };
 
 class OmeloApp extends ConsumerWidget {
   const OmeloApp({super.key});

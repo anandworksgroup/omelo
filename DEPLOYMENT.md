@@ -33,13 +33,25 @@ tests/api/             end-to-end tests against a live project, as real users
       set value = 'https://<ref>.supabase.co/functions/v1', updated_at = now()
     where key = 'functions_base_url';
    ```
-4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 27 rows must read OK.**
+4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 30 rows must read OK.**
 5. Dashboard settings (not expressible as migrations):
    - **Auth → Passwords:** enable *Leaked password protection*; minimum length 8+.
    - **Auth → URL configuration:** set Site URL to the portal URL; add the
      worker web app URL and the mobile deep-link scheme to redirect URLs.
    - **Database → Backups:** enable PITR for production.
    - **Realtime:** enabled (migrations add the tables to `supabase_realtime`).
+   - **Auth → SMTP:** use a custom SMTP server (Resend SMTP works) — the default mailer is heavily
+     rate-limited and password-reset emails depend on it.
+   - **Auth → URL configuration → Redirect URLs:** add `<portal>/auth/reset`, `<portal>/auth/callback`,
+     the worker web URL (`<worker-web>/#/reset-password`) and the mobile scheme
+     `com.omelo.app://reset-password`.
+6. Grant the first platform admin (unlocks `/admin` system health and KPIs in the portal):
+   ```sql
+   insert into platform_admins (person_id, role, is_active)
+   select id, 'superadmin', true from persons where email = '<you@company.com>';
+   ```
+7. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
+   provider is wired), `require_verified_email_to_accept_offer` (progressive trust; default `false`).
 
 ## 2. Edge Functions
 
@@ -111,6 +123,7 @@ flutter build ipa --release $DEFINES          # App Store (on macOS)
 python tests/api/hiring_loop_e2e.py
 python tests/api/messaging_e2e.py
 python tests/api/meet_e2e.py
+python tests/api/account_e2e.py
 ```
 
 Point `tests/api/omelo_api.py` (`BASE`, `KEY`) at the new project first. Each
@@ -122,9 +135,11 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 
 ## 6. Launch checklist
 
-- [ ] `verify-invariants.sql` — 27/27 OK
+- [ ] `verify-invariants.sql` — 30/30 OK
 - [ ] Leaked password protection on; Site URL and redirect URLs set
-- [ ] `functions_base_url` updated; `select * from cron.job` shows `omelo-comms-dispatch` and `omelo-meet-housekeeping`
+- [ ] `functions_base_url` updated; `select * from cron.job` shows the 4 `omelo-*` jobs
+- [ ] First platform admin granted; `/admin` shows healthy cron runs and 0 function failures
+- [ ] Custom SMTP configured; password reset email received on portal and worker app
 - [ ] Edge Function secrets set (LiveKit, Resend, `WORKER_APP_URL`, `IP_HASH_SALT`)
 - [ ] Sending domain verified in Resend; a test invitation email received
 - [ ] Two-person Omelo Meet call tested on web, Android and iOS

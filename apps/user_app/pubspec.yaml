@@ -14,6 +14,9 @@ dependencies:
 
   # Backend
   supabase_flutter: ^2.8.0
+  # Already in the tree via supabase; used directly for optional error reports
+  # (lib/core/observability.dart) instead of adding an SDK.
+  http: ^1.2.0
 
   # State + routing
   flutter_riverpod: ^2.6.1

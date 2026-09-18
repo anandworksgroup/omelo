@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
 
 import '../../core/responsive.dart';
+import '../../data/account_repository.dart';
 import '../../data/auth_repository.dart';
 
 /// Worker sign-in.
@@ -67,6 +69,43 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
+  /// Sends a reset link. The answer is the same whether or not an account
+  /// uses the email, so this cannot be used to find out who has one.
+  Future<void> _forgotPassword() async {
+    final email = await showDialog<String>(
+      context: context,
+      builder: (_) => _ForgotPasswordDialog(initialEmail: _email.text.trim()),
+    );
+    if (email == null || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+      _notice = null;
+    });
+    String? error;
+    try {
+      await ref.read(accountRepositoryProvider).sendPasswordReset(email);
+    } on AuthException catch (e) {
+      // Rate limits apply to everyone, so saying so reveals nothing.
+      if (e.statusCode == '429' || e.message.toLowerCase().contains('seconds')) {
+        error = 'Please wait a minute before asking for another link.';
+      }
+      // Any other auth error gets the same neutral answer as success.
+    } catch (_) {
+      error = 'Could not send the link. Check your connection and try again.';
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _error = error;
+      _notice = error == null
+          ? 'If an account uses $email, we have sent it a link to set a new '
+              'password. Check your inbox and spam folder. Open the link on '
+              'this phone or computer.'
+          : null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -121,6 +160,16 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               helperText: _isSignUp ? 'At least 8 characters' : null,
             ),
           ),
+
+          if (!_isSignUp)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: _busy ? null : _forgotPassword,
+                child: const Text('Forgot password?'),
+              ),
+            ),
 
           if (_error != null) ...[
             const SizedBox(height: 16),
@@ -193,6 +242,72 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         ],
         ),
       ),
+    );
+  }
+}
+
+class _ForgotPasswordDialog extends StatefulWidget {
+  const _ForgotPasswordDialog({required this.initialEmail});
+  final String initialEmail;
+
+  @override
+  State<_ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
+  late final _email = TextEditingController(text: widget.initialEmail);
+  String? _error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    final email = _email.text.trim();
+    if (!looksLikeEmail(email)) {
+      setState(() => _error = 'Enter the email you signed up with.');
+      return;
+    }
+    Navigator.pop(context, email);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Forgot your password?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'We will email you a link to set a new password.',
+            style: TextStyle(fontSize: 15, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _email,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            autocorrect: false,
+            autofillHints: const [AutofillHints.email],
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: const Icon(Icons.mail_outline),
+              errorText: _error,
+            ),
+            onSubmitted: (_) => _send(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _send, child: const Text('Send link')),
+      ],
     );
   }
 }

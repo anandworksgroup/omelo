@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { reportError } from '@/lib/observability';
 
 export default function RouteError({
   error,
@@ -13,7 +14,7 @@ export default function RouteError({
   reset?: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    reportError(error, { boundary: 'error' });
   }, [error]);
 
   return (

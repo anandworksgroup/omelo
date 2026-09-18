@@ -1,6 +1,7 @@
 'use client'; // Error boundaries must be Client Components
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/observability';
 
 /*
  * Replaces the root layout when it fails, so globals.css is not available:
@@ -16,7 +17,7 @@ export default function GlobalError({
   reset?: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    reportError(error, { boundary: 'global-error' });
   }, [error]);
 
   return (

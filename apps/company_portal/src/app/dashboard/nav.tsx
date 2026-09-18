@@ -13,16 +13,23 @@ const NAV = [
   { href: '/dashboard/interviews', label: 'Interviews' },
   { href: '/dashboard/offers', label: 'Offers' },
   { href: '/dashboard/company', label: 'Company' },
+  { href: '/dashboard/settings', label: 'Settings' },
 ];
+
+/** Shown only to platform admins (decided server-side by the layout). */
+const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
 
 /** Dashboard navigation. Rendered twice (desktop row, mobile strip). */
 export default function DashboardNav({
   companyId,
   variant,
+  isAdmin = false,
 }: {
   companyId: string;
   variant: 'desktop' | 'mobile';
+  isAdmin?: boolean;
 }) {
+  const items: { href: string; label: string; badge?: boolean }[] = isAdmin ? [...NAV, ADMIN_ITEM] : NAV;
   const unreadMessages = useUnreadMessages(companyId);
   const path = usePathname();
 
@@ -33,7 +40,7 @@ export default function DashboardNav({
         variant === 'desktop' ? 'hidden md:flex gap-1 ml-2' : 'md:hidden flex gap-1 px-4 pb-2 overflow-x-auto'
       }
     >
-      {NAV.map((n) => {
+      {items.map((n) => {
         const active = n.href === '/dashboard' ? path === n.href : path === n.href || path.startsWith(n.href + '/');
         return (
           <Link

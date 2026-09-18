@@ -136,6 +136,11 @@ class ProfileScreen extends ConsumerWidget {
             label: 'Find work',
             onTap: () => context.go('/discover'),
           ),
+          _Tile(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            onTap: () => context.push('/settings'),
+          ),
 
           const SizedBox(height: 26),
           Text('Not built yet',

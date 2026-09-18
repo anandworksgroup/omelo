@@ -9,10 +9,13 @@ import '../../core/app_state.dart';
 import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
+import '../../data/account_repository.dart'
+    show trustStatusProvider, isVerifyEmailToAcceptError;
 import '../../data/applications_repository.dart';
 import '../../data/messaging_repository.dart'
     show messagingRepositoryProvider, messagingError;
 import 'applications_screen.dart';
+import '../settings/account_widgets.dart' show showEmailVerificationSheet;
 import 'hiring_widgets.dart';
 
 final applicationDetailProvider = FutureProvider.autoDispose
@@ -225,6 +228,11 @@ class _ApplicationDetailScreenState
                   offer: offer,
                   now: now,
                   companyName: a.companyOrEmployer,
+                  mustVerifyEmail: ref
+                          .watch(trustStatusProvider)
+                          .value
+                          ?.mustVerifyEmailToAcceptOffer ??
+                      false,
                   onAccept: () => _accept(offer, a),
                   onDecline: () => _decline(offer),
                 ),
@@ -362,7 +370,23 @@ class _ApplicationDetailScreenState
         'The employer has been told you cannot attend.');
   }
 
+  /// Opens the email check. True once the email is verified.
+  Future<bool> _verifyEmail() async {
+    final trust = ref.read(trustStatusProvider).value;
+    final ok = await showEmailVerificationSheet(
+        context, trust?.email ?? ref.read(currentUserProvider)?.email);
+    ref.invalidate(trustStatusProvider);
+    return ok;
+  }
+
   Future<void> _accept(Offer offer, ApplicationSummary a) async {
+    // The server may require a verified email before accepting (flag
+    // email_required_to_accept_offer). Check first rather than fail.
+    if (ref.read(trustStatusProvider).value?.mustVerifyEmailToAcceptOffer ==
+        true) {
+      if (!await _verifyEmail() || !mounted) return;
+    }
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -384,11 +408,43 @@ class _ApplicationDetailScreenState
         ],
       ),
     );
-    if (ok != true) return;
-    final done = await _run(
-        () => _repo.respondToOffer(offer.id, accept: true), "You're hired!");
-    if (done && mounted) setState(() => _justHired = true);
+    if (ok != true || !mounted) return;
+    var done = false;
+    setState(() => _busy = true);
+    try {
+      await _repo.respondToOffer(offer.id, accept: true);
+      done = true;
+    } catch (e) {
+      if (!mounted) return;
+      if (isVerifyEmailToAcceptError(e)) {
+        // Turned on since the page loaded: verify, then try once more.
+        setState(() => _busy = false);
+        if (await _verifyEmail() && mounted) {
+          setState(() => _busy = true);
+          try {
+            await _repo.respondToOffer(offer.id, accept: true);
+            done = true;
+          } catch (e2) {
+            if (mounted) _snack(HiringActionError.message(e2));
+          }
+        }
+      } else {
+        _snack(HiringActionError.message(e));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+        _reload();
+      }
+    }
+    if (done && mounted) {
+      _snack("You're hired!");
+      setState(() => _justHired = true);
+    }
   }
+
+  void _snack(String text) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _decline(Offer offer) async {
     final reason = await showModalBottomSheet<String>(
@@ -779,6 +835,7 @@ class _OfferCard extends StatelessWidget {
     required this.companyName,
     required this.onAccept,
     required this.onDecline,
+    this.mustVerifyEmail = false,
   });
 
   final Offer offer;
@@ -786,6 +843,10 @@ class _OfferCard extends StatelessWidget {
   final String companyName;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
+
+  /// The server wants a verified email before this offer can be accepted;
+  /// [onAccept] then opens the email check first.
+  final bool mustVerifyEmail;
 
   @override
   Widget build(BuildContext context) {
@@ -862,10 +923,16 @@ class _OfferCard extends StatelessWidget {
               ResponsiveFieldRow(
                 spacing: 8,
                 children: [
-                  FilledButton(
-                    onPressed: onAccept,
-                    child: const Text('Accept offer'),
-                  ),
+                  mustVerifyEmail
+                      ? FilledButton.icon(
+                          onPressed: onAccept,
+                          icon: const Icon(Icons.mark_email_read_outlined),
+                          label: const Text('Verify your email to accept'),
+                        )
+                      : FilledButton(
+                          onPressed: onAccept,
+                          child: const Text('Accept offer'),
+                        ),
                   OutlinedButton(
                     onPressed: onDecline,
                     child: const Text('Decline'),

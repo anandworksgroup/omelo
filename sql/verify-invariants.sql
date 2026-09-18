@@ -93,7 +93,12 @@ with checks as (
                           'omelo_meet_join','omelo_meet_admit','omelo_meet_leave','omelo_meet_remove',
                           'omelo_meet_end','omelo_report_meet_abuse',
                           -- Messaging (32)
-                          'omelo_start_conversation','omelo_send_message','omelo_mark_conversation_read')
+                          'omelo_start_conversation','omelo_send_message','omelo_mark_conversation_read',
+                          -- Release 1 (35): trust, sessions, account lifecycle, admin observability
+                          'omelo_my_trust_status','omelo_request_email_verification','omelo_request_phone_verification',
+                          'omelo_confirm_verification','omelo_my_sessions','omelo_revoke_session','omelo_revoke_other_sessions',
+                          'omelo_request_account_deletion','omelo_cancel_account_deletion',
+                          'omelo_admin_system_health','omelo_admin_kpis','omelo_am_i_platform_admin')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -315,6 +320,34 @@ with checks as (
   from pg_policies
   where schemaname = 'public'
     and (coalesce(qual, '') || coalesce(with_check, '')) ~ '(?<!SELECT )auth\.uid\(\)'
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 1 (migrations 35-36)
+  -- ---------------------------------------------------------------
+  union all
+  select 28, 'Deleting an account is never blocked by a foreign key',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: NO ACTION/RESTRICT FKs to persons — ' || string_agg(c.conrelid::regclass::text || '.' || c.conname, ', ') end
+  from pg_constraint c
+  where c.contype = 'f' and c.confdeltype in ('a','r')
+    and c.confrelid in ('public.persons'::regclass, 'auth.users'::regclass)
+
+  union all
+  select 29, 'Verification codes are hashed and unreachable from the API',
+         case when not has_table_privilege('authenticated', 'omelo_private.verification_challenges', 'select')
+               and not has_table_privilege('anon', 'omelo_private.verification_challenges', 'select')
+               and not exists (select 1 from information_schema.columns
+                                where table_schema = 'omelo_private' and table_name = 'verification_challenges'
+                                  and column_name in ('code','plain_code'))
+              then 'OK' else 'FAIL: verification codes exposed or stored in clear' end
+
+  union all
+  select 30, 'Scheduled jobs are installed',
+         case when count(*) = 4 then 'OK'
+              else 'FAIL: only ' || count(*)::text || ' of 4 cron jobs present and active' end
+  from cron.job
+  where active and jobname in ('omelo-comms-dispatch','omelo-meet-housekeeping',
+                               'omelo-account-deletions','omelo-outbox-retention')
 )
 select n as "#", invariant, result from checks order by n;
 

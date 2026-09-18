@@ -67,6 +67,19 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="omelo"/>
             </intent-filter>
+
+            <!-- Password reset emails come back here:
+                 com.omelo.app://reset-password?code=...
+                 supabase_flutter (app_links) exchanges the code and the app
+                 opens "Set a new password". Custom scheme, so no domain
+                 verification. The URL must also be in Supabase -> Auth ->
+                 URL configuration -> Redirect URLs. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="com.omelo.app" android:host="reset-password"/>
+            </intent-filter>
         </activity>
 
         <meta-data

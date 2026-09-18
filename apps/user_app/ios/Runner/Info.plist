@@ -67,6 +67,16 @@
 				<string>omelo</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.omelo.app.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.omelo.app</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -41,6 +41,20 @@ def login(email, password):
     return d["access_token"], d["user"]["id"]
 
 
+def login_full(email, password):
+    """Like login(), but returns the whole session (incl. refresh_token)."""
+    s, d = _req("POST", "/auth/v1/token?grant_type=password",
+                body={"email": email, "password": password}, prefer=None)
+    if s != 200:
+        raise SystemExit(f"login failed for {email}: {s} {d}")
+    return d
+
+
+def refresh(refresh_token):
+    return _req("POST", "/auth/v1/token?grant_type=refresh_token",
+                body={"refresh_token": refresh_token}, prefer=None)
+
+
 def signup(email, password, name, role):
     s, d = _req("POST", "/functions/v1/auth-signup",
                 body={"email": email, "password": password, "full_name": name, "role": role},

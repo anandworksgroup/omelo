@@ -8,6 +8,7 @@ import '../../core/location.dart';
 import '../../core/responsive.dart';
 import '../discover/discover_controller.dart';
 import '../discover/job_card.dart';
+import '../settings/account_widgets.dart' show DeletionBanner;
 
 /// U-20 — Home.
 ///
@@ -37,6 +38,8 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+              if (signedIn)
+                const DeletionBanner(padding: EdgeInsets.only(bottom: 16)),
               Row(
                 children: [
                   Expanded(

@@ -163,6 +163,31 @@ export function renderEmail(template: string, p: Payload, links: Links): Rendere
         text: `${title}\n\nAbout your application for ${job}:\n"${p.preview ?? ""}"\n\n${button.label}: ${button.href}`,
       };
     }
+    case "verify_email": {
+      const code = String(p.code ?? "");
+      const title = "Your Omelo verification code";
+      const body = `<p style="font-size:15px;line-height:1.6">Enter this code in Omelo to verify your email address:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:8px;margin:18px 0">${esc(code)}</p>
+<p style="font-size:14px;color:#6b7280">It expires in ${esc(p.expires_minutes ?? 15)} minutes. If you did not ask for this, you can ignore this email.</p>`;
+      return {
+        subject: title,
+        html: layout(title, body),
+        text: `${title}: ${code}\n\nIt expires in ${p.expires_minutes ?? 15} minutes. If you did not ask for this, ignore this email.`,
+      };
+    }
+    case "account_deletion_scheduled": {
+      const on = p.scheduled_for
+        ? new Date(String(p.scheduled_for)).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+        : "in 14 days";
+      const title = "Your Omelo account will be deleted";
+      const body = `<p style="font-size:15px;line-height:1.6">You asked us to delete your Omelo account. Your profile, applications and messages will be permanently deleted on <b>${esc(on)}</b>.</p>
+<p style="font-size:15px;line-height:1.6">Changed your mind? Open Omelo and cancel the deletion in Settings before then.</p>`;
+      return {
+        subject: title,
+        html: layout(title, body, { label: "Open Settings", href: `${links.workerAppUrl}/settings` }),
+        text: `${title}\n\nYour account will be permanently deleted on ${on}. To keep it, cancel in Settings before then: ${links.workerAppUrl}/settings`,
+      };
+    }
     default:
       return null;
   }

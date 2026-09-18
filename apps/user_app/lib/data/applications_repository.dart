@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'account.dart' show applyErrorMessage;
 import 'auth_repository.dart';
 import 'hiring.dart';
 import 'jobs_repository.dart' show supabaseProvider;
@@ -282,16 +283,10 @@ class ApplicationsRepository {
           .single();
 
       return ApplyOutcome(applicationId: inserted['id'] as String);
-    } on PostgrestException catch (e) {
-      if (e.code == '23505') {
-        return const ApplyOutcome(
-            error: 'You have already applied to this job.');
-      }
-      return ApplyOutcome(error: e.message);
-    } catch (_) {
-      return const ApplyOutcome(
-        error: 'Could not send your application. Check your connection.',
-      );
+    } catch (e) {
+      // Includes the server's rate limit ("You have applied to a lot of jobs
+      // today…"), which is shown word for word.
+      return ApplyOutcome(error: applyErrorMessage(e));
     }
   }
 
