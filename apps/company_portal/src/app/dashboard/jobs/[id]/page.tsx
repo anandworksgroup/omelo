@@ -17,6 +17,7 @@ import RoundsEditor from './rounds-editor';
 import FunnelPanel from './funnel';
 import InvitationsPanel from './invitations';
 import GlobalHiringEditor from './global-editor';
+import JobTabs from './job-tabs';
 import { loadGlobalOptions } from '@/lib/global-data';
 import {
   REMOTE_SCOPE_LABEL,
@@ -142,6 +143,9 @@ export default async function JobDetailPage({
           {job.professions?.name ?? '—'} · {job.location_text ?? '—'} ·{' '}
           {WORKPLACE_LABEL[job.workplace_type] ?? job.workplace_type}
         </p>
+        <div className="mt-4">
+          <JobTabs jobId={job.id} active="details" />
+        </div>
       </div>
 
       {/* Publish controls */}

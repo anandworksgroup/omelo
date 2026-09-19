@@ -140,7 +140,11 @@ with checks as (
                           -- Release 6 (59): global employment & mobility
                           'omelo_convert_currency','omelo_normalized_pay','omelo_admin_add_exchange_rate',
                           'omelo_job_eligibility','omelo_candidate_eligibility','omelo_global_jobs',
-                          'omelo_country_guide','omelo_license_requirements','omelo_save_mobility','omelo_my_mobility')
+                          'omelo_country_guide','omelo_license_requirements','omelo_save_mobility','omelo_my_mobility',
+                          -- Release 7 (65-66): career + employer intelligence
+                          'omelo_suggest_career_goals','omelo_career_path','omelo_save_career_goal',
+                          'omelo_start_skill_assessment','omelo_submit_skill_assessment','omelo_market_insights',
+                          'omelo_job_intelligence','omelo_company_intelligence')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -754,6 +758,55 @@ with checks as (
          case when exists (select 1 from pg_trigger where tgname = 'employments_validate_global' and not tgisinternal)
                and not exists (select 1 from employments where pay_amount is not null and pay_currency is null)
               then 'OK' else 'FAIL: an employment''s pay without currency, or the guard is missing' end
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 7 (migrations 64-66): career + employer intelligence.
+  -- Attacked as real users in tests/api/career_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 69, 'R7-001 career goals, plans and assessment attempts are private to the worker',
+         case when (select count(*) from pg_policies where schemaname = 'public'
+                     and tablename in ('career_goals','career_plan_items','skill_assessment_attempts')
+                     and coalesce(qual, '') not like '%person_id = ( SELECT auth.uid() AS uid)%') = 0
+              then 'OK' else 'FAIL: a career record is readable beyond its owner' end
+  union all
+  select 70, 'R7-002 assessment answer keys never reach a client',
+         case when not has_table_privilege('authenticated', 'public.skill_assessment_questions', 'select')
+               and not has_table_privilege('anon', 'public.skill_assessment_questions', 'select')
+               and not exists (select 1 from pg_policies where tablename = 'skill_assessment_questions')
+               and pg_get_functiondef('public.omelo_start_skill_assessment(uuid,uuid)'::regprocedure) not like '%''answer_index''%'
+              then 'OK' else 'FAIL: the answer key is reachable' end
+  union all
+  select 71, 'R7-003 assessment evidence exists only with a passed Omelo assessment',
+         case when count(*) = 0 and exists (select 1 from pg_trigger where tgname = 'person_skills_guard_assessment' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' assessed skills without a passed attempt' end
+  from person_skills ps
+  where ps.evidence_type = 'assessment'
+    and not exists (select 1 from skill_assessment_attempts t join skill_assessments a on a.id = t.assessment_id
+                     where t.person_id = ps.person_id and a.skill_id = ps.skill_id and t.status = 'passed')
+  union all
+  select 72, 'R7-004 attempts and plans are written only by functions or their owner; one open attempt per assessment',
+         case when not has_table_privilege('authenticated', 'public.skill_assessment_attempts', 'insert')
+               and not has_table_privilege('authenticated', 'public.skill_assessment_attempts', 'update')
+               and exists (select 1 from pg_indexes where indexname = 'skill_assessment_attempts_one_open')
+               and exists (select 1 from pg_trigger where tgname = 'career_plan_items_validate' and not tgisinternal)
+               and not exists (select 1 from career_plan_items i join career_goals g on g.id = i.goal_id
+                                where g.person_id <> i.person_id)
+              then 'OK' else 'FAIL: attempts writable by clients, or a plan item on someone else''s goal' end
+  union all
+  select 73, 'R7-005 intelligence publishes pay only above a minimum cohort (3 jobs, 5 workers)',
+         case when pg_get_functiondef('public.omelo_job_intelligence(uuid)'::regprocedure) like '%o.pay_currency, v_cur)), 3)%'
+               and pg_get_functiondef('public.omelo_job_intelligence(uuid)'::regprocedure) like '%pwp.pay_currency, v_cur)), 5)%'
+               and pg_get_functiondef('public.omelo_market_insights(uuid,text,text)'::regprocedure) like '%(select count(m) from pay) >= 3%'
+              then 'OK' else 'FAIL: a pay figure can be computed from too few jobs or workers' end
+  union all
+  select 74, 'R7-006 reference data (resources, assessments, transitions, profession skills) is read-only for clients',
+         case when count(*) = 0 then 'OK' else 'FAIL: client write path — ' || string_agg(t || '.' || priv, ', ') end
+  from (select t, priv from unnest(array['learning_resources','skill_assessments','skill_assessment_questions',
+                                          'profession_transitions','profession_skills']) t,
+                            unnest(array['insert','update','delete']) priv
+         where has_table_privilege('authenticated', 'public.' || t, priv)
+            or has_table_privilege('anon', 'public.' || t, priv)) x
 )
 select n as "#", invariant, result from checks order by n;
 

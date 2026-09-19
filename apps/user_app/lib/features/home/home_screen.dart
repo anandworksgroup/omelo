@@ -7,6 +7,7 @@ import '../notifications/notifications_screen.dart' show NotificationBell;
 import '../../core/app_state.dart';
 import '../../core/location.dart';
 import '../../core/responsive.dart';
+import '../career/career_widgets.dart' show CareerHomeCard;
 import '../discover/discover_controller.dart';
 import '../../data/invitations_repository.dart';
 import '../../data/job_events.dart' show JobSurface;
@@ -102,6 +103,9 @@ class HomeScreen extends ConsumerWidget {
                 const InvitationsHomeCard(padding: EdgeInsets.only(top: 20)),
               if (signedIn)
                 const IdentityNudgeCard(padding: EdgeInsets.only(top: 20)),
+              // Release 7: where next — the career goal and path.
+              if (signedIn)
+                const CareerHomeCard(padding: EdgeInsets.only(top: 20)),
 
               if (!signedIn) ...[
                 const SizedBox(height: 20),

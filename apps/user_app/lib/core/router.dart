@@ -7,6 +7,8 @@ import '../features/applications/application_detail_screen.dart';
 import '../features/applications/applications_screen.dart';
 import '../features/apply/apply_screen.dart';
 import '../features/auth/sign_in_screen.dart';
+import '../features/career/assessment_screen.dart';
+import '../features/career/career_screen.dart';
 import '../features/company/company_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/discover/job_detail_screen.dart';
@@ -172,6 +174,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ...workRoutes(redirect: _requireSignIn),
       // Release 6: global mobility, jobs worldwide and country guides.
       ...globalRoutes(redirect: _requireSignIn),
+      // Release 7: my career — goal, readiness, skill gap, Omelo tests.
+      ...careerRoutes(redirect: _requireSignIn),
       GoRoute(
         path: '/saved',
         redirect: _requireSignIn,
@@ -296,6 +300,29 @@ List<RouteBase> globalRoutes({GoRouterRedirect? redirect}) => [
         path: '/countries/:code',
         builder: (_, state) =>
             CountryGuideScreen(code: state.pathParameters['code']!),
+      ),
+    ];
+
+/// Release 7 career screens: `/career?goal=&identity=` and
+/// `/career/assessment/<skill>?name=&identity=`. Public so tests can open
+/// them.
+List<RouteBase> careerRoutes({GoRouterRedirect? redirect}) => [
+      GoRoute(
+        path: '/career',
+        redirect: redirect,
+        builder: (_, state) => CareerScreen(
+          goalId: state.uri.queryParameters['goal'],
+          identityId: state.uri.queryParameters['identity'],
+        ),
+      ),
+      GoRoute(
+        path: '/career/assessment/:skill',
+        redirect: redirect,
+        builder: (_, state) => AssessmentScreen(
+          skillId: state.pathParameters['skill']!,
+          skillName: state.uri.queryParameters['name'],
+          identityId: state.uri.queryParameters['identity'],
+        ),
       ),
     ];
 

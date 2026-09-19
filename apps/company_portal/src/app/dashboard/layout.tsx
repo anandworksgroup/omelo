@@ -24,11 +24,15 @@ export default async function DashboardLayout({
   if (!ctx) redirect('/onboarding');
 
   const supabase = await createClient();
-  const [trustRes, isAdmin, memberships, invitesRes] = await Promise.all([
+  const [trustRes, isAdmin, memberships, invitesRes, agencyJobsRes] = await Promise.all([
     supabase.rpc('omelo_my_trust_status'),
     isPlatformAdmin(),
     getMemberships(),
     supabase.rpc('omelo_my_team_invitations'),
+    // Agencies get the Insights menu entry only when they post jobs themselves.
+    ctx.kind === 'agency'
+      ? supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', ctx.companyId)
+      : Promise.resolve({ count: 0 }),
   ]);
   if (trustRes.error) reportError(trustRes.error, { action: 'dashboardLayout.trustStatus' });
   if (invitesRes.error) reportError(invitesRes.error, { action: 'dashboardLayout.teamInvitations' });
@@ -81,7 +85,12 @@ export default async function DashboardLayout({
           </div>
         </div>
 
-        <DashboardNav companyId={ctx.companyId} kind={ctx.kind} isAdmin={isAdmin} />
+        <DashboardNav
+          companyId={ctx.companyId}
+          kind={ctx.kind}
+          isAdmin={isAdmin}
+          agencyHasJobs={(agencyJobsRes.count ?? 0) > 0}
+        />
       </header>
 
       {invitations.length > 0 && (

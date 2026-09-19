@@ -39,6 +39,7 @@ export default function GlobalHiringFields({
   workplace,
   initial,
   onCurrencyHint,
+  onCountryChange,
 }: {
   countries: CountryOption[];
   entities: EntityOption[];
@@ -46,6 +47,8 @@ export default function GlobalHiringFields({
   initial?: GlobalHiring;
   /** Called with a suggested pay currency when the country or entity changes. */
   onCurrencyHint?: (currency: string) => void;
+  /** Called with the job's country (or null) whenever it changes. */
+  onCountryChange?: (country: string | null) => void;
 }) {
   const uid = useId();
   const [g, setG] = useState<GlobalHiring>(initial ?? EMPTY_GLOBAL);
@@ -74,12 +77,16 @@ export default function GlobalHiringFields({
     const def = next ? entities.find((e) => e.country_code === next && e.is_default) : undefined;
     const cur = def?.currency ?? (next ? countryByCode.get(next)?.currency : null);
     if (cur) onCurrencyHint?.(cur);
+    onCountryChange?.(next);
   }
 
   function chooseEntity(id: string) {
     const e = entities.find((x) => x.id === id);
     setG((x) => ({ ...x, legal_entity_id: e ? e.id : null, country_code: e ? e.country_code : x.country_code }));
-    if (e) onCurrencyHint?.(e.currency);
+    if (e) {
+      onCurrencyHint?.(e.currency);
+      onCountryChange?.(e.country_code);
+    }
   }
 
   const toggleCountry = (c: string) =>

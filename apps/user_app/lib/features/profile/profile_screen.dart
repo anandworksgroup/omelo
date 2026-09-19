@@ -116,6 +116,11 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 18),
           _Tile(
+            icon: Icons.trending_up,
+            label: 'My career',
+            onTap: () => context.push('/career'),
+          ),
+          _Tile(
             icon: Icons.work_outline,
             label: 'My work',
             badge: ref.watch(pendingWorkCountProvider),

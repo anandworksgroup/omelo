@@ -15,6 +15,7 @@ const EMPLOYER_NAV: Item[] = [
   { href: '/dashboard/messages', label: 'Messages', badge: true },
   { href: '/dashboard/interviews', label: 'Interviews' },
   { href: '/dashboard/offers', label: 'Offers' },
+  { href: '/dashboard/insights', label: 'Insights' },
   { href: '/dashboard/workforce', label: 'Workforce' },
   { href: '/dashboard/agencies', label: 'Agencies' },
   { href: '/dashboard/global', label: 'Global' },
@@ -43,6 +44,9 @@ const AGENCY_NAV: Item[] = [
   { href: '/dashboard/company', label: 'Settings' },
 ];
 
+/** Agencies see Insights only when they post jobs of their own. */
+const INSIGHTS_ITEM: Item = { href: '/dashboard/insights', label: 'Insights' };
+
 /** Shown only to platform admins (decided server-side by the layout). */
 const ADMIN_ITEM: Item = { href: '/admin', label: 'Admin' };
 
@@ -55,12 +59,17 @@ export default function DashboardNav({
   companyId,
   kind,
   isAdmin = false,
+  agencyHasJobs = false,
 }: {
   companyId: string;
   kind: 'employer' | 'agency';
   isAdmin?: boolean;
+  agencyHasJobs?: boolean;
 }) {
-  const base = kind === 'agency' ? AGENCY_NAV : EMPLOYER_NAV;
+  const agency = agencyHasJobs
+    ? [...AGENCY_NAV.slice(0, -3), INSIGHTS_ITEM, ...AGENCY_NAV.slice(-3)]
+    : AGENCY_NAV;
+  const base = kind === 'agency' ? agency : EMPLOYER_NAV;
   const items = isAdmin ? [...base, ADMIN_ITEM] : base;
   const unreadMessages = useUnreadMessages(companyId);
   const path = usePathname();

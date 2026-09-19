@@ -1595,10 +1595,13 @@ export type Database = {
           person_id: string
           priority: number
           profession_id: string | null
+          status: string
           target_countries: string[]
           target_currency: string | null
+          target_date: string | null
           target_pay_amount: number | null
           target_pay_period: Database["public"]["Enums"]["pay_period"] | null
+          updated_at: string
           work_identity_id: string
         }
         Insert: {
@@ -1608,10 +1611,13 @@ export type Database = {
           person_id: string
           priority?: number
           profession_id?: string | null
+          status?: string
           target_countries?: string[]
           target_currency?: string | null
+          target_date?: string | null
           target_pay_amount?: number | null
           target_pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          updated_at?: string
           work_identity_id: string
         }
         Update: {
@@ -1621,10 +1627,13 @@ export type Database = {
           person_id?: string
           priority?: number
           profession_id?: string | null
+          status?: string
           target_countries?: string[]
           target_currency?: string | null
+          target_date?: string | null
           target_pay_amount?: number | null
           target_pay_period?: Database["public"]["Enums"]["pay_period"] | null
+          updated_at?: string
           work_identity_id?: string
         }
         Relationships: [
@@ -1647,6 +1656,90 @@ export type Database = {
             columns: ["work_identity_id"]
             isOneToOne: false
             referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_plan_items: {
+        Row: {
+          created_at: string
+          due_on: string | null
+          goal_id: string
+          id: string
+          job_id: string | null
+          kind: string
+          person_id: string
+          position: number
+          resource_id: string | null
+          skill_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_on?: string | null
+          goal_id: string
+          id?: string
+          job_id?: string | null
+          kind: string
+          person_id: string
+          position?: number
+          resource_id?: string | null
+          skill_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_on?: string | null
+          goal_id?: string
+          id?: string
+          job_id?: string | null
+          kind?: string
+          person_id?: string
+          position?: number
+          resource_id?: string | null
+          skill_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_plan_items_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "career_goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plan_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plan_items_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plan_items_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "learning_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_plan_items_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
             referencedColumns: ["id"]
           },
         ]
@@ -4960,6 +5053,65 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_resources: {
+        Row: {
+          active: boolean
+          cost: string
+          country_codes: string[]
+          description: string | null
+          duration_hours: number | null
+          id: string
+          kind: string
+          language_code: string | null
+          provider: string
+          reviewed_at: string
+          skill_id: string
+          source: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          active?: boolean
+          cost?: string
+          country_codes?: string[]
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          kind: string
+          language_code?: string | null
+          provider: string
+          reviewed_at: string
+          skill_id: string
+          source: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          active?: boolean
+          cost?: string
+          country_codes?: string[]
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          kind?: string
+          language_code?: string | null
+          provider?: string
+          reviewed_at?: string
+          skill_id?: string
+          source?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_resources_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           assignment_id: string
@@ -7954,6 +8106,155 @@ export type Database = {
           },
         ]
       }
+      skill_assessment_attempts: {
+        Row: {
+          answers: number[] | null
+          assessment_id: string
+          completed_at: string | null
+          expires_at: string
+          id: string
+          person_id: string
+          question_ids: string[]
+          score_percent: number | null
+          started_at: string
+          status: string
+          work_identity_id: string | null
+        }
+        Insert: {
+          answers?: number[] | null
+          assessment_id: string
+          completed_at?: string | null
+          expires_at: string
+          id?: string
+          person_id: string
+          question_ids: string[]
+          score_percent?: number | null
+          started_at?: string
+          status?: string
+          work_identity_id?: string | null
+        }
+        Update: {
+          answers?: number[] | null
+          assessment_id?: string
+          completed_at?: string | null
+          expires_at?: string
+          id?: string
+          person_id?: string
+          question_ids?: string[]
+          score_percent?: number | null
+          started_at?: string
+          status?: string
+          work_identity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_assessment_attempts_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "skill_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_assessment_attempts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_assessment_attempts_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_assessment_questions: {
+        Row: {
+          active: boolean
+          answer_index: number
+          assessment_id: string
+          explanation: string | null
+          id: string
+          options: Json
+          prompt: string
+        }
+        Insert: {
+          active?: boolean
+          answer_index: number
+          assessment_id: string
+          explanation?: string | null
+          id?: string
+          options: Json
+          prompt: string
+        }
+        Update: {
+          active?: boolean
+          answer_index?: number
+          assessment_id?: string
+          explanation?: string | null
+          id?: string
+          options?: Json
+          prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_assessment_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "skill_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_assessments: {
+        Row: {
+          active: boolean
+          cooldown_hours: number
+          created_at: string
+          id: string
+          pass_percent: number
+          proficiency_on_pass: Database["public"]["Enums"]["proficiency_level"]
+          questions_per_attempt: number
+          skill_id: string
+          time_limit_minutes: number
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          cooldown_hours?: number
+          created_at?: string
+          id?: string
+          pass_percent?: number
+          proficiency_on_pass?: Database["public"]["Enums"]["proficiency_level"]
+          questions_per_attempt?: number
+          skill_id: string
+          time_limit_minutes?: number
+          title: string
+        }
+        Update: {
+          active?: boolean
+          cooldown_hours?: number
+          created_at?: string
+          id?: string
+          pass_percent?: number
+          proficiency_on_pass?: Database["public"]["Enums"]["proficiency_level"]
+          questions_per_attempt?: number
+          skill_id?: string
+          time_limit_minutes?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_assessments_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: true
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_relations: {
         Row: {
           from_skill_id: string
@@ -9008,6 +9309,10 @@ export type Database = {
         Args: { p_identity: string; p_job: string }
         Returns: Json
       }
+      omelo_career_path: {
+        Args: { p_goal?: string; p_identity?: string }
+        Returns: Json
+      }
       omelo_check_in: {
         Args: {
           p_code?: string
@@ -9060,6 +9365,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      omelo_company_intelligence: { Args: { p_company: string }; Returns: Json }
       omelo_company_slug: { Args: { p_name: string }; Returns: string }
       omelo_complete_interview: {
         Args: {
@@ -9171,6 +9477,7 @@ export type Database = {
         Returns: Json
       }
       omelo_job_funnel: { Args: { p_job_id: string }; Returns: Json }
+      omelo_job_intelligence: { Args: { p_job: string }; Returns: Json }
       omelo_job_invitations: { Args: { p_job_id: string }; Returns: Json }
       omelo_license_requirements: {
         Args: { p_country?: string; p_profession: string }
@@ -9191,6 +9498,10 @@ export type Database = {
       omelo_mark_invitation_viewed: {
         Args: { p_invitation: string }
         Returns: undefined
+      }
+      omelo_market_insights: {
+        Args: { p_country?: string; p_currency?: string; p_profession: string }
+        Returns: Json
       }
       omelo_meet_admit: {
         Args: { p_admit?: boolean; p_interview_id: string; p_person_id: string }
@@ -9490,6 +9801,7 @@ export type Database = {
         Returns: undefined
       }
       omelo_revoke_session: { Args: { p_session_id: string }; Returns: boolean }
+      omelo_save_career_goal: { Args: { p: Json }; Returns: Json }
       omelo_save_identity_profile: {
         Args: { p_identity: string; p_values: Json }
         Returns: Json
@@ -9613,6 +9925,10 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: string
       }
+      omelo_start_skill_assessment: {
+        Args: { p_identity?: string; p_skill: string }
+        Returns: Json
+      }
       omelo_start_timesheet_review: {
         Args: { p_timesheet: string }
         Returns: undefined
@@ -9625,9 +9941,17 @@ export type Database = {
         Args: { p_consent: string; p_note?: string }
         Returns: string
       }
+      omelo_submit_skill_assessment: {
+        Args: { p_answers: number[]; p_attempt: string }
+        Returns: Json
+      }
       omelo_submit_timesheet: {
         Args: { p_timesheet: string }
         Returns: undefined
+      }
+      omelo_suggest_career_goals: {
+        Args: { p_identity?: string }
+        Returns: Json
       }
       omelo_talent_profile: {
         Args: { p_identity: string; p_job_id?: string }

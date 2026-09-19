@@ -225,6 +225,7 @@ recommendations, audit, intelligence.
 | AgencyCreated, TeamMemberInvited/Joined, JobOrderCreated/StatusChanged, ClientLinkRequested/Confirmed/Declined/Ended, RepresentationRequested/Granted/Activated/Declined/Expired/Revoked/Withdrawn, CandidateSubmitted, SubmissionStatusChanged, PlacementMade, PlacementStatusChanged | ✓ R4 | agency, consent and submission functions + triggers |
 | WorkforceRequirementCreated, AssignmentOffered/Accepted/Declined/Started/Paused/Completed/Terminated/Cancelled/Ending, ShiftAssigned/Offered/Changed/Cancelled, WorkerCheckedIn/CheckedOut/Late/Absent, LeaveRequested/Approved/Rejected, TimesheetSubmitted/Approved/Rejected, EarningsApproved, PaymentRecorded, WorkforceBulkQueued | ✓ R5 | workforce functions + scheduler |
 | MobilityProfileUpdated, TalentSearched (with global filters), exchange_rate.added (audit) | ✓ R6 | mobility, search and admin functions |
+| CareerGoalSet, SkillAssessmentPassed, SkillAssessmentFailed | ✓ R7 | career functions |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
 and sent atomically; drafts are not events).
@@ -399,3 +400,22 @@ employers see.
 | Global employment record keeps country and original pay currency; carried into verified experience | ✓ R6-012 |
 | Documents never readable because a profile is | ✓ R6-006 |
 | Proven as real users | ✓ `tests/api/global_e2e.py` (93 checks) + all earlier suites re-run on matcher v1.2 |
+
+### Release 7 status (backend proven — migrations 64–66)
+
+Omelo now uses everything it knows — identity, skills, evidence, jobs, matches and the hiring
+pipeline — to help workers grow and employers understand where hiring is stuck.
+
+| Item | State |
+|---|---|
+| Worker: current identity → skills → experience → evidence → career goal → skill gap → development → assessments → better jobs | ✓ `omelo_career_path` |
+| Readiness weighted by how much the role needs each skill and by the evidence behind it (verified > assessed > licence > experience > project > self-declared) | ✓ |
+| Suggested next roles from the current one (typical transitions + skill overlap) | ✓ |
+| Development plan generated from the gap; worker-owned checklist | ✓ R7-001, R7-004 |
+| Omelo skill assessments: answers never leave the server; graded server-side; cooldown; a pass adds assessment evidence | ✓ R7-002, R7-003 |
+| Market insights for a role (open jobs, pay range only from 3+ jobs, skills in demand) | ✓ R7-005 |
+| Employer: job → supply → compensation → match quality → application / interview / offer funnels → hiring difficulty | ✓ `omelo_job_intelligence` |
+| The bottleneck named and explained, with plain recommendations; company view ranks jobs by difficulty | ✓ |
+| Aggregates only — no names or person ids; expectations only from 5+ workers | ✓ R7-004, R7-005 |
+| Reference data read-only for clients | ✓ R7-006 |
+| Proven as real users | ✓ `tests/api/career_e2e.py` + all earlier suites re-run |

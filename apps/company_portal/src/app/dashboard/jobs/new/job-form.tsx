@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useState, useTransition } from 'react';
 import { createJob, type ActionState } from '../../actions';
 import { previewPool, type PoolPreview } from './preview';
+import MarketHint from './market-hint';
 import { BENEFIT_LABEL, SHIFT_LABEL, WORK_TYPE_LABEL, formatPay } from '@/lib/format';
 import { readGlobalHiring, validateGlobalHiring, type CountryOption } from '@/lib/global';
 import GlobalHiringFields, { type EntityOption } from '@/components/global/global-hiring-fields';
@@ -53,6 +54,7 @@ export default function JobForm({
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createJob, {});
   const [currency, setCurrency] = useState(defaultCurrency);
+  const [country, setCountry] = useState<string | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
 
   const [categoryId, setCategoryId] = useState('');
@@ -216,11 +218,21 @@ export default function JobForm({
           entities={entities}
           workplace={workplace}
           onCurrencyHint={setCurrency}
+          onCountryChange={setCountry}
         />
       </Section>
 
       {/* 4 — Pay */}
       <Section n={4} title="Pay">
+        {professionId && (
+          <MarketHint
+            professionId={professionId}
+            professionName={selectedProfession?.name ?? null}
+            country={country}
+            currency={currency}
+          />
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <Field label="Currency">
             <select
