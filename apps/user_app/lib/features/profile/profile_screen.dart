@@ -122,6 +122,16 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => context.push('/work'),
           ),
           _Tile(
+            icon: Icons.flight_takeoff,
+            label: 'Global mobility',
+            onTap: () => context.push('/mobility'),
+          ),
+          _Tile(
+            icon: Icons.public,
+            label: 'Jobs worldwide',
+            onTap: () => context.push('/jobs/global'),
+          ),
+          _Tile(
             icon: Icons.mail_outline,
             label: 'Job invitations',
             badge: ref.watch(pendingInvitationsProvider),

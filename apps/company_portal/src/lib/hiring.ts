@@ -165,8 +165,34 @@ export type FeatureVector = {
 export const GATE_LABEL: Record<string, string> = {
   job_open: 'Job is not open',
   required_licence: 'Missing a required licence',
-  work_authorization: 'Not authorised to work in this location',
+  // v1.2: only a hard blocker fails this gate; "potentially eligible" never does.
+  work_authorization: 'Not currently eligible to work there',
 };
+
+/** Match factors (feature_vector.factors keys) as the employer reads them. */
+export const FACTOR_LABEL: Record<string, string> = {
+  profession_fit: 'Profession',
+  skills_fit: 'Skills',
+  skill_fit: 'Skills',
+  experience_fit: 'Experience',
+  distance_fit: 'Distance',
+  pay_fit: 'Pay',
+  schedule_fit: 'Schedule',
+  shift_fit: 'Shifts',
+  availability_fit: 'Availability',
+  work_type_fit: 'Type of work',
+  language_fit: 'Languages',
+  education_fit: 'Education',
+  attribute_fit: 'Profile answers',
+  benefit_fit: 'Benefits',
+  trajectory_fit: 'Career direction',
+  mobility_fit: 'Mobility',
+  eligibility_fit: 'Eligibility to work',
+};
+
+export function factorLabel(f: string) {
+  return FACTOR_LABEL[f] ?? f.replace(/_fit$/, '').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+}
 
 export function gateLabel(g: string) {
   return GATE_LABEL[g] ?? g.replace(/_/g, ' ');

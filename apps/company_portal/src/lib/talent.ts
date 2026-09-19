@@ -9,7 +9,8 @@
  */
 import type { Json } from '@/lib/supabase/database.types';
 import { parseEvidence, type AttributeDataType, type IdentityEvidence, type ProfileAnswer } from '@/lib/identity';
-import { skillName } from '@/lib/hiring';
+import { factorLabel, skillName } from '@/lib/hiring';
+import { parseCardEligibility, type CardEligibility } from '@/lib/global';
 
 /* ------------------------------------------------------------------ */
 /* Small parsing helpers                                               */
@@ -32,12 +33,16 @@ const num = (v: unknown): number => numOrNull(v) ?? 0;
  * match engine, but older rows (and some surfaces) hold plain strings. Either
  * way the employer sees one readable sentence.
  */
+const R6_FACTORS = new Set(['mobility_fit', 'eligibility_fit']);
+
 export function reasonText(r: unknown): string {
   if (typeof r === 'string') return r;
   if (isObj(r)) {
     const t = r.text ?? r.label ?? r.reason ?? r.message ?? r.name;
-    if (typeof t === 'string' && t.trim()) return t;
-    if (typeof r.factor === 'string') return r.factor.replace(/_/g, ' ');
+    // R6 factors say what they are about ("Mobility: Open to relocating…").
+    const label = typeof r.factor === 'string' && R6_FACTORS.has(r.factor) ? factorLabel(r.factor) : null;
+    if (typeof t === 'string' && t.trim()) return label ? `${label}: ${t}` : t;
+    if (typeof r.factor === 'string') return factorLabel(r.factor);
   }
   return '';
 }
@@ -71,6 +76,10 @@ export type TalentCard = {
   invitation: { id: string; sentAt: string | null; status: InvitationStatus } | null;
   pools: string[];
   allowInvitations: boolean;
+  /** R6: eligibility for the searched job (never authorization details). */
+  eligibility: CardEligibility | null;
+  openToRelocation: boolean;
+  currentCountry: string | null;
 };
 
 export function parseCard(raw: unknown): TalentCard | null {
@@ -104,6 +113,9 @@ export function parseCard(raw: unknown): TalentCard | null {
     pools: arr(raw.pools).map(String),
     // Absent means the worker did not turn invitations off.
     allowInvitations: raw.allow_invitations !== false,
+    eligibility: parseCardEligibility(raw.eligibility),
+    openToRelocation: raw.open_to_relocation === true,
+    currentCountry: str(raw.current_country)?.trim() ?? null,
   };
 }
 

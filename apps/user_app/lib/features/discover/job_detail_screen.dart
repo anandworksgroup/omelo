@@ -14,6 +14,7 @@ import '../../data/job.dart';
 import '../../data/job_events.dart';
 import '../../data/jobs_repository.dart';
 import '../../data/saved_jobs_repository.dart';
+import '../global/eligibility_panel.dart';
 import 'tracked_job_card.dart' show toggleSavedJob;
 
 final jobDetailProvider =
@@ -233,6 +234,8 @@ class _Content extends StatelessWidget {
         ]),
 
         _MatchSection(jobId: j.id),
+        // Release 6: a guide, never a gate. The apply button stays.
+        EligibilityPanel(jobId: j.id),
 
         if (j.benefits.isNotEmpty) ...[
           const SizedBox(height: 24),
@@ -523,9 +526,10 @@ class _MatchSection extends ConsumerWidget {
               line(Icons.error_outline, OmeloTheme.warning,
                   HiringCopy.gateFailure(g)),
             for (final s in strengths)
-              line(Icons.check, OmeloTheme.verified, s.text),
+              line(Icons.check, OmeloTheme.verified, HiringCopy.factorLine(s)),
             for (final g in gaps)
-              line(Icons.remove_circle_outline, scheme.onSurfaceVariant, g.text),
+              line(Icons.remove_circle_outline, scheme.onSurfaceVariant,
+                  HiringCopy.factorLine(g)),
             if (tips.isNotEmpty) ...[
               const SizedBox(height: 4),
               for (final t in tips)

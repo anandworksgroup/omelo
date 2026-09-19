@@ -4,8 +4,16 @@ import Link from 'next/link';
 import { useId, useState, useTransition } from 'react';
 import { RADII, quotaText, type Pool, type SearchQuota, type TalentCard } from '@/lib/talent';
 import { searchTalent } from './actions';
+import GlobalFilterFields, {
+  EMPTY_GLOBAL_FILTERS,
+  activeGlobalFilters,
+  globalFilterKeys,
+  type GlobalFilterValues,
+} from '@/components/global/global-filters';
+
+type Option = { id: string; label: string };
 import TalentActions, { type JobOption } from './talent-actions';
-import { CardHeader, Notice, ReasonList, SkillChips } from './ui';
+import { CardHeader, GlobalChips, Notice, ReasonList, SkillChips } from './ui';
 
 type Failure = { message: string; code?: string };
 
@@ -62,6 +70,7 @@ function ResultCard({
   return (
     <li className="card p-4 space-y-3 min-w-0">
       <CardHeader card={card} href={href} />
+      <GlobalChips card={card} />
       <SkillChips card={card} />
       {(strengths.length > 0 || gap) && (
         <div className="space-y-1">
@@ -90,21 +99,32 @@ export default function TalentSearch({
   initialJobId,
   companyName,
   pools: initialPools,
+  countries,
+  languages,
 }: {
   jobs: JobOption[];
   initialJobId: string;
   companyName: string;
   pools: Pool[];
+  countries: Option[];
+  languages: Option[];
 }) {
   const uid = useId();
   const [jobId, setJobId] = useState(initialJobId);
   const [query, setQuery] = useState('');
   const [radius, setRadius] = useState(50);
   const [pools, setPools] = useState(initialPools);
+  const [global, setGlobal] = useState<GlobalFilterValues>(EMPTY_GLOBAL_FILTERS);
+  const [more, setMore] = useState(false);
 
   // What is on screen was produced by this search (job + terms), so "Show
   // more" pages through the same one even if the form has been edited.
-  const [shown, setShown] = useState<{ jobId: string; query: string; radius: number } | null>(null);
+  const [shown, setShown] = useState<{
+    jobId: string;
+    query: string;
+    radius: number;
+    global: GlobalFilterValues;
+  } | null>(null);
   const [results, setResults] = useState<TalentCard[]>([]);
   const [total, setTotal] = useState(0);
   const [quota, setQuota] = useState<SearchQuota | null>(null);
@@ -115,12 +135,18 @@ export default function TalentSearch({
   const job = jobs.find((j) => j.id === (shown?.jobId ?? jobId)) ?? jobs[0];
 
   function run(more: boolean) {
-    const params = more && shown ? shown : { jobId, query: query.trim(), radius };
+    const params = more && shown ? shown : { jobId, query: query.trim(), radius, global };
     const offset = more ? results.length : 0;
     setFailure(null);
     setLoadingMore(more);
     start(async () => {
-      const res = await searchTalent({ jobId: params.jobId, query: params.query, radiusKm: params.radius, offset });
+      const res = await searchTalent({
+        jobId: params.jobId,
+        query: params.query,
+        radiusKm: params.radius,
+        offset,
+        filters: globalFilterKeys(params.global),
+      });
       setLoadingMore(false);
       if (!res.ok) {
         setFailure({ message: res.error, code: res.code });
@@ -203,6 +229,23 @@ export default function TalentSearch({
         <button className="btn btn-primary w-full sm:w-auto" disabled={pending}>
           {pending && !loadingMore ? 'Searching…' : 'Search'}
         </button>
+        <div className="sm:col-span-4">
+          <button type="button" className="text-sm underline muted" aria-expanded={more} onClick={() => setMore((m) => !m)}>
+            {more
+              ? 'Hide global filters'
+              : `Eligibility, relocation and language filters${activeGlobalFilters(global) ? ` (${activeGlobalFilters(global)} on)` : ''}`}
+          </button>
+        </div>
+        {more && (
+          <div className="sm:col-span-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 border-t hairline pt-3">
+            <GlobalFilterFields value={global} onChange={setGlobal} countries={countries} languages={languages} />
+            <div className="self-end">
+              <button type="button" className="btn btn-ghost !h-9 !px-3 text-sm" onClick={() => setGlobal(EMPTY_GLOBAL_FILTERS)}>
+                Clear these filters
+              </button>
+            </div>
+          </div>
+        )}
         <p className="hint sm:col-span-4 !mt-0">
           Each search counts toward your company&apos;s monthly talent searches. Results are ranked by how well
           they match the job you pick.

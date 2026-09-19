@@ -35,7 +35,7 @@ export default async function AgencyTalentPage({
     );
 
   const supabase = await createClient();
-  const [ordersRes, poolsRes, profRes, skillsRes, countriesRes, me] = await Promise.all([
+  const [ordersRes, poolsRes, profRes, skillsRes, countriesRes, languagesRes, me] = await Promise.all([
     supabase
       .from('job_orders')
       .select(`${ORDER_SUMMARY_SELECT}, profession_id`)
@@ -45,7 +45,8 @@ export default async function AgencyTalentPage({
     supabase.from('talent_pools').select('id, name').eq('company_id', ctx.companyId).order('name'),
     supabase.from('professions').select('id, name').eq('status', 'active').order('name'),
     supabase.from('skills').select('id, name').eq('status', 'active').order('name'),
-    supabase.from('country_policies').select('country_code, name').eq('supported', true).order('name'),
+    supabase.from('country_policies').select('country_code, name').order('name'),
+    supabase.from('languages').select('code, name').order('name'),
     myDisplayName(supabase),
   ]);
 
@@ -82,7 +83,8 @@ export default async function AgencyTalentPage({
         pools={poolsRes.data ?? []}
         professions={(profRes.data ?? []).map((p) => ({ id: p.id, label: p.name }))}
         skills={(skillsRes.data ?? []).map((s) => ({ id: s.id, label: s.name }))}
-        countries={(countriesRes.data ?? []).map((c) => ({ id: c.country_code, label: c.name }))}
+        countries={(countriesRes.data ?? []).map((c) => ({ id: c.country_code.trim(), label: c.name }))}
+        languages={(languagesRes.data ?? []).map((l) => ({ id: l.code.trim(), label: l.name }))}
         agency={agencySummary(ctx)}
         recruiterName={me}
         canRequest={agencyCan(ctx, 'request_consent')}

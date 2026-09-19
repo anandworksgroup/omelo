@@ -29,7 +29,7 @@ export default async function TalentPage({
     );
   }
 
-  const [jobsRes, poolsRes, entRes] = await Promise.all([
+  const [jobsRes, poolsRes, entRes, countriesRes, languagesRes] = await Promise.all([
     supabase
       .from('jobs')
       .select('id, title, location_text, published_at')
@@ -43,6 +43,8 @@ export default async function TalentPage({
       .select('talent_search_enabled')
       .eq('company_id', ctx.companyId)
       .maybeSingle(),
+    supabase.from('country_policies').select('country_code, name').order('name'),
+    supabase.from('languages').select('code, name').order('name'),
   ]);
 
   const jobs = (jobsRes.data ?? []).map((j) => ({ id: j.id, title: j.title, location: j.location_text }));
@@ -80,6 +82,8 @@ export default async function TalentPage({
         initialJobId={initial}
         companyName={ctx.companyName}
         pools={poolsRes.data ?? []}
+        countries={(countriesRes.data ?? []).map((c) => ({ id: c.country_code.trim(), label: c.name }))}
+        languages={(languagesRes.data ?? []).map((l) => ({ id: l.code.trim(), label: l.name }))}
       />
     );
   }

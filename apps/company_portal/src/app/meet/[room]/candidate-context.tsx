@@ -9,6 +9,7 @@ import {
   monthYear,
   monthsLabel,
   skillName,
+  factorLabel,
   type FeatureVector,
   type MatchReason,
 } from '@/lib/hiring';
@@ -504,7 +505,10 @@ function Reasons({ items, color, mark }: { items: MatchReason[]; color: string; 
           <span aria-hidden className="font-bold shrink-0 w-4 text-center" style={{ color }}>
             {mark}
           </span>
-          <span className="break-words min-w-0">{r.text}</span>
+          <span className="break-words min-w-0">
+            {r.factor && <span className="muted">{factorLabel(r.factor)}: </span>}
+            {r.text}
+          </span>
         </li>
       ))}
     </ul>

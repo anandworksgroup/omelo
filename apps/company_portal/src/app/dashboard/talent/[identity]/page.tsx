@@ -7,7 +7,9 @@ import { reportError } from '@/lib/observability';
 import { TALENT_ROLES, UUID_RE, parseProfile } from '@/lib/talent';
 import { CompletenessMeter, EvidencePanel, ProfileAnswers } from '@/components/identity/evidence';
 import TalentActions from '../talent-actions';
-import { CardHeader, Notice, ReasonList, ScoreBadge, SkillChips } from '../ui';
+import { CardHeader, GlobalChips, Notice, ReasonList, ScoreBadge, SkillChips } from '../ui';
+import { parseCandidateEligibility } from '@/lib/global';
+import { EligibilityPanel } from '@/components/global/eligibility';
 
 export const metadata: Metadata = { title: 'Candidate profile · Omelo' };
 
@@ -38,7 +40,7 @@ export default async function TalentProfilePage({
   const ctx = (await getCompanyContext())!;
   const supabase = await createClient();
 
-  const [profileRes, jobsRes, poolsRes] = await Promise.all([
+  const [profileRes, jobsRes, poolsRes, eligibilityRes] = await Promise.all([
     // Records a profile view: the worker sees that this company looked.
     supabase.rpc('omelo_talent_profile', { p_identity: identity, p_job_id: jobParam ?? undefined }),
     supabase
@@ -48,6 +50,9 @@ export default async function TalentProfilePage({
       .eq('status', 'published')
       .order('published_at', { ascending: false, nullsFirst: false }),
     supabase.from('talent_pools').select('id, name').eq('company_id', ctx.companyId).order('name'),
+    jobParam
+      ? supabase.rpc('omelo_candidate_eligibility', { p_job: jobParam, p_identity: identity })
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   const jobs = (jobsRes.data ?? []).map((j) => ({ id: j.id, title: j.title, location: j.location_text }));
@@ -104,6 +109,7 @@ export default async function TalentProfilePage({
             <CompletenessMeter score={card.completeness} />
           </div>
         )}
+        <GlobalChips card={card} />
         <SkillChips card={card} max={6} />
         <div className="border-t hairline pt-4">
           <TalentActions
@@ -215,6 +221,13 @@ export default async function TalentProfilePage({
         </div>
 
         <div className="space-y-6 min-w-0">
+          {job && (
+            <EligibilityPanel
+              eligibility={parseCandidateEligibility(eligibilityRes.data ?? null)}
+              error={eligibilityRes.error?.message ?? null}
+              jobTitle={job.title}
+            />
+          )}
           {profile.about && (
             <Section title="About">
               <p className="text-sm whitespace-pre-line break-words">{profile.about}</p>

@@ -517,6 +517,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignment_billing_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "assignment_billing_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
@@ -697,6 +704,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "assignments_employment_id_fkey"
@@ -1118,6 +1132,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "agency_clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "billing_records_timesheet_id_fkey"
@@ -1735,6 +1756,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "companies_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "companies_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1855,6 +1883,67 @@ export type Database = {
           },
         ]
       }
+      company_legal_entities: {
+        Row: {
+          company_id: string
+          country_code: string
+          created_at: string
+          currency: string
+          hiring_notes: string | null
+          id: string
+          is_default: boolean
+          legal_name: string
+          registration_number: string | null
+          timezone: string
+        }
+        Insert: {
+          company_id: string
+          country_code: string
+          created_at?: string
+          currency: string
+          hiring_notes?: string | null
+          id?: string
+          is_default?: boolean
+          legal_name: string
+          registration_number?: string | null
+          timezone: string
+        }
+        Update: {
+          company_id?: string
+          country_code?: string
+          created_at?: string
+          currency?: string
+          hiring_notes?: string | null
+          id?: string
+          is_default?: boolean
+          legal_name?: string
+          registration_number?: string | null
+          timezone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_legal_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_legal_entities_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "company_legal_entities_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       company_locations: {
         Row: {
           address: string | null
@@ -1863,6 +1952,7 @@ export type Database = {
           geo: unknown
           id: string
           is_hq: boolean
+          legal_entity_id: string | null
           location_id: string | null
           name: string | null
         }
@@ -1873,6 +1963,7 @@ export type Database = {
           geo?: unknown
           id?: string
           is_hq?: boolean
+          legal_entity_id?: string | null
           location_id?: string | null
           name?: string | null
         }
@@ -1883,6 +1974,7 @@ export type Database = {
           geo?: unknown
           id?: string
           is_hq?: boolean
+          legal_entity_id?: string | null
           location_id?: string | null
           name?: string | null
         }
@@ -1892,6 +1984,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_locations_legal_entity_id_fkey"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "company_legal_entities"
             referencedColumns: ["id"]
           },
           {
@@ -2039,13 +2138,57 @@ export type Database = {
           },
         ]
       }
+      country_employment_info: {
+        Row: {
+          country_code: string
+          id: string
+          official_url: string
+          reviewed_at: string
+          source_name: string
+          summary: string
+          title: string
+          topic: string
+        }
+        Insert: {
+          country_code: string
+          id?: string
+          official_url: string
+          reviewed_at: string
+          source_name: string
+          summary: string
+          title: string
+          topic: string
+        }
+        Update: {
+          country_code?: string
+          id?: string
+          official_url?: string
+          reviewed_at?: string
+          source_name?: string
+          summary?: string
+          title?: string
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_employment_info_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
       country_policies: {
         Row: {
           age_criteria_permitted: boolean
+          calling_code: string | null
           country_code: string
           created_at: string
           default_currency: string
+          default_language: string | null
           default_pay_period: Database["public"]["Enums"]["pay_period"]
+          default_timezone: string | null
           gender_criteria_permitted: boolean
           legal_basis_note: string | null
           name: string
@@ -2053,13 +2196,17 @@ export type Database = {
           required_documents: Database["public"]["Enums"]["document_type"][]
           salary_disclosure_required: boolean
           supported: boolean
+          world_region: string | null
         }
         Insert: {
           age_criteria_permitted?: boolean
+          calling_code?: string | null
           country_code: string
           created_at?: string
           default_currency: string
+          default_language?: string | null
           default_pay_period?: Database["public"]["Enums"]["pay_period"]
+          default_timezone?: string | null
           gender_criteria_permitted?: boolean
           legal_basis_note?: string | null
           name: string
@@ -2067,13 +2214,17 @@ export type Database = {
           required_documents?: Database["public"]["Enums"]["document_type"][]
           salary_disclosure_required?: boolean
           supported?: boolean
+          world_region?: string | null
         }
         Update: {
           age_criteria_permitted?: boolean
+          calling_code?: string | null
           country_code?: string
           created_at?: string
           default_currency?: string
+          default_language?: string | null
           default_pay_period?: Database["public"]["Enums"]["pay_period"]
+          default_timezone?: string | null
           gender_criteria_permitted?: boolean
           legal_basis_note?: string | null
           name?: string
@@ -2081,8 +2232,17 @@ export type Database = {
           required_documents?: Database["public"]["Enums"]["document_type"][]
           salary_disclosure_required?: boolean
           supported?: boolean
+          world_region?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "country_policies_default_currency_currency_fk"
+            columns: ["default_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       credential_types: {
         Row: {
@@ -2118,6 +2278,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      currencies: {
+        Row: {
+          active: boolean
+          code: string
+          minor_units: number
+          name: string
+          symbol: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          minor_units?: number
+          name: string
+          symbol: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          minor_units?: number
+          name?: string
+          symbol?: string
+        }
+        Relationships: []
       }
       departments: {
         Row: {
@@ -2470,6 +2654,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "earnings_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "earnings_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -2552,8 +2743,10 @@ export type Database = {
         Row: {
           application_id: string | null
           company_id: string
+          country_code: string | null
           created_at: string
           department_id: string | null
+          employment_type: string | null
           end_reason: string | null
           ended_on: string | null
           id: string
@@ -2561,6 +2754,9 @@ export type Database = {
           job_id: string | null
           location_id: string | null
           offer_id: string | null
+          pay_amount: number | null
+          pay_currency: string | null
+          pay_period: Database["public"]["Enums"]["pay_period"] | null
           person_id: string
           profession_id: string | null
           started_on: string
@@ -2573,8 +2769,10 @@ export type Database = {
         Insert: {
           application_id?: string | null
           company_id: string
+          country_code?: string | null
           created_at?: string
           department_id?: string | null
+          employment_type?: string | null
           end_reason?: string | null
           ended_on?: string | null
           id?: string
@@ -2582,6 +2780,9 @@ export type Database = {
           job_id?: string | null
           location_id?: string | null
           offer_id?: string | null
+          pay_amount?: number | null
+          pay_currency?: string | null
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
           person_id: string
           profession_id?: string | null
           started_on: string
@@ -2594,8 +2795,10 @@ export type Database = {
         Update: {
           application_id?: string | null
           company_id?: string
+          country_code?: string | null
           created_at?: string
           department_id?: string | null
+          employment_type?: string | null
           end_reason?: string | null
           ended_on?: string | null
           id?: string
@@ -2603,6 +2806,9 @@ export type Database = {
           job_id?: string | null
           location_id?: string | null
           offer_id?: string | null
+          pay_amount?: number | null
+          pay_currency?: string | null
+          pay_period?: Database["public"]["Enums"]["pay_period"] | null
           person_id?: string
           profession_id?: string | null
           started_on?: string
@@ -2626,6 +2832,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employments_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
           },
           {
             foreignKeyName: "employments_department_id_fkey"
@@ -2656,6 +2869,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "employments_pay_currency_fkey"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "employments_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -2671,9 +2891,65 @@ export type Database = {
           },
         ]
       }
+      exchange_rates: {
+        Row: {
+          base: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          id: number
+          quote: string
+          rate: number
+          source: string
+        }
+        Insert: {
+          base: string
+          created_at?: string
+          created_by?: string | null
+          effective_at: string
+          id?: never
+          quote: string
+          rate: number
+          source: string
+        }
+        Update: {
+          base?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: never
+          quote?: string
+          rate?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_base_fkey"
+            columns: ["base"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "exchange_rates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exchange_rates_quote_fkey"
+            columns: ["quote"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       experiences: {
         Row: {
           company_id: string | null
+          country_code: string | null
           created_at: string
           description: string | null
           employer_name: string
@@ -2703,6 +2979,7 @@ export type Database = {
         }
         Insert: {
           company_id?: string | null
+          country_code?: string | null
           created_at?: string
           description?: string | null
           employer_name: string
@@ -2732,6 +3009,7 @@ export type Database = {
         }
         Update: {
           company_id?: string | null
+          country_code?: string | null
           created_at?: string
           description?: string | null
           employer_name?: string
@@ -2768,6 +3046,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "experiences_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "experiences_employment_fk"
             columns: ["verified_employment_id"]
             isOneToOne: false
@@ -2780,6 +3065,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "experiences_pay_currency_currency_fk"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "experiences_person_id_fkey"
@@ -4157,6 +4449,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "job_orders_pay_currency_currency_fk"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "job_orders_profession_id_fkey"
             columns: ["profession_id"]
             isOneToOne: false
@@ -4323,6 +4622,7 @@ export type Database = {
         Row: {
           accepts_no_experience: boolean
           accepts_non_residents: boolean | null
+          accommodation_assistance: boolean
           applicant_count: number
           application_method: string
           category_id: string | null
@@ -4345,8 +4645,11 @@ export type Database = {
           geo: unknown
           hours_per_week: number | null
           id: string
+          immigration_support: boolean
           is_immediate_start: boolean
           job_embedding: string | null
+          legal_entity_id: string | null
+          legal_support: boolean
           location_id: string | null
           location_text: string | null
           max_experience_months: number | null
@@ -4369,18 +4672,26 @@ export type Database = {
           published_at: string | null
           quick_apply_enabled: boolean
           relocation_support: boolean
+          remote_countries: string[]
+          remote_scope: string | null
+          remote_tz_max_offset: number | null
+          remote_tz_min_offset: number | null
           requirements_text: Json
           requires_resume: boolean
           responsibilities: Json
           schedule_note: string | null
           shift_types: Database["public"]["Enums"]["shift_type"][]
           source: Database["public"]["Enums"]["source_type"]
+          sponsorship: string
+          sponsorship_type: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["job_status"]
           title: string
+          travel_assistance: boolean
           uniform_required: boolean | null
           updated_at: string
           view_count: number
+          visa_fees_covered: boolean
           visa_sponsorship: boolean | null
           walk_in_details: string | null
           work_environment: string | null
@@ -4391,6 +4702,7 @@ export type Database = {
         Insert: {
           accepts_no_experience?: boolean
           accepts_non_residents?: boolean | null
+          accommodation_assistance?: boolean
           applicant_count?: number
           application_method?: string
           category_id?: string | null
@@ -4413,8 +4725,11 @@ export type Database = {
           geo?: unknown
           hours_per_week?: number | null
           id?: string
+          immigration_support?: boolean
           is_immediate_start?: boolean
           job_embedding?: string | null
+          legal_entity_id?: string | null
+          legal_support?: boolean
           location_id?: string | null
           location_text?: string | null
           max_experience_months?: number | null
@@ -4437,18 +4752,26 @@ export type Database = {
           published_at?: string | null
           quick_apply_enabled?: boolean
           relocation_support?: boolean
+          remote_countries?: string[]
+          remote_scope?: string | null
+          remote_tz_max_offset?: number | null
+          remote_tz_min_offset?: number | null
           requirements_text?: Json
           requires_resume?: boolean
           responsibilities?: Json
           schedule_note?: string | null
           shift_types?: Database["public"]["Enums"]["shift_type"][]
           source?: Database["public"]["Enums"]["source_type"]
+          sponsorship?: string
+          sponsorship_type?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           title: string
+          travel_assistance?: boolean
           uniform_required?: boolean | null
           updated_at?: string
           view_count?: number
+          visa_fees_covered?: boolean
           visa_sponsorship?: boolean | null
           walk_in_details?: string | null
           work_environment?: string | null
@@ -4459,6 +4782,7 @@ export type Database = {
         Update: {
           accepts_no_experience?: boolean
           accepts_non_residents?: boolean | null
+          accommodation_assistance?: boolean
           applicant_count?: number
           application_method?: string
           category_id?: string | null
@@ -4481,8 +4805,11 @@ export type Database = {
           geo?: unknown
           hours_per_week?: number | null
           id?: string
+          immigration_support?: boolean
           is_immediate_start?: boolean
           job_embedding?: string | null
+          legal_entity_id?: string | null
+          legal_support?: boolean
           location_id?: string | null
           location_text?: string | null
           max_experience_months?: number | null
@@ -4505,18 +4832,26 @@ export type Database = {
           published_at?: string | null
           quick_apply_enabled?: boolean
           relocation_support?: boolean
+          remote_countries?: string[]
+          remote_scope?: string | null
+          remote_tz_max_offset?: number | null
+          remote_tz_min_offset?: number | null
           requirements_text?: Json
           requires_resume?: boolean
           responsibilities?: Json
           schedule_note?: string | null
           shift_types?: Database["public"]["Enums"]["shift_type"][]
           source?: Database["public"]["Enums"]["source_type"]
+          sponsorship?: string
+          sponsorship_type?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["job_status"]
           title?: string
+          travel_assistance?: boolean
           uniform_required?: boolean | null
           updated_at?: string
           view_count?: number
+          visa_fees_covered?: boolean
           visa_sponsorship?: boolean | null
           walk_in_details?: string | null
           work_environment?: string | null
@@ -4547,6 +4882,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "jobs_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "jobs_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -4568,11 +4910,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "jobs_legal_entity_fk"
+            columns: ["legal_entity_id"]
+            isOneToOne: false
+            referencedRelation: "company_legal_entities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jobs_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_pay_currency_currency_fk"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "jobs_profession_id_fkey"
@@ -4687,6 +5043,80 @@ export type Database = {
           },
         ]
       }
+      license_requirements: {
+        Row: {
+          country_code: string
+          credential_type_id: string | null
+          description: string | null
+          id: string
+          license_type_id: string | null
+          name: string
+          official_url: string | null
+          profession_id: string
+          region_code: string | null
+          requirement_level: string
+          reviewed_at: string | null
+          source: string
+        }
+        Insert: {
+          country_code: string
+          credential_type_id?: string | null
+          description?: string | null
+          id?: string
+          license_type_id?: string | null
+          name: string
+          official_url?: string | null
+          profession_id: string
+          region_code?: string | null
+          requirement_level?: string
+          reviewed_at?: string | null
+          source: string
+        }
+        Update: {
+          country_code?: string
+          credential_type_id?: string | null
+          description?: string | null
+          id?: string
+          license_type_id?: string | null
+          name?: string
+          official_url?: string | null
+          profession_id?: string
+          region_code?: string | null
+          requirement_level?: string
+          reviewed_at?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_requirements_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "license_requirements_credential_type_id_fkey"
+            columns: ["credential_type_id"]
+            isOneToOne: false
+            referencedRelation: "credential_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_requirements_license_type_id_fkey"
+            columns: ["license_type_id"]
+            isOneToOne: false
+            referencedRelation: "license_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_requirements_profession_id_fkey"
+            columns: ["profession_id"]
+            isOneToOne: false
+            referencedRelation: "professions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_types: {
         Row: {
           category_id: string | null
@@ -4735,6 +5165,13 @@ export type Database = {
             referencedRelation: "job_categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "license_types_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
         ]
       }
       locations: {
@@ -4742,9 +5179,11 @@ export type Database = {
           admin_code: string | null
           country_code: string | null
           created_at: string
+          currency_code: string | null
           geo: unknown
           id: string
           kind: string
+          language_code: string | null
           latitude: number | null
           longitude: number | null
           name: string
@@ -4757,9 +5196,11 @@ export type Database = {
           admin_code?: string | null
           country_code?: string | null
           created_at?: string
+          currency_code?: string | null
           geo?: unknown
           id?: string
           kind: string
+          language_code?: string | null
           latitude?: number | null
           longitude?: number | null
           name: string
@@ -4772,9 +5213,11 @@ export type Database = {
           admin_code?: string | null
           country_code?: string | null
           created_at?: string
+          currency_code?: string | null
           geo?: unknown
           id?: string
           kind?: string
+          language_code?: string | null
           latitude?: number | null
           longitude?: number | null
           name?: string
@@ -4784,6 +5227,20 @@ export type Database = {
           timezone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "locations_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "locations_currency_code_fkey"
+            columns: ["currency_code"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "locations_parent_id_fkey"
             columns: ["parent_id"]
@@ -5134,6 +5591,72 @@ export type Database = {
           },
         ]
       }
+      mobility_profiles: {
+        Row: {
+          authorization_visibility: string
+          citizenships: string[]
+          countries_willing_to_work: string[]
+          current_country: string | null
+          earliest_relocation_date: string | null
+          open_to_relocation: boolean
+          person_id: string
+          preferred_city_ids: string[]
+          preferred_countries: string[]
+          relocation_assistance_required: boolean
+          remote_preference: string
+          requires_sponsorship: boolean | null
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          authorization_visibility?: string
+          citizenships?: string[]
+          countries_willing_to_work?: string[]
+          current_country?: string | null
+          earliest_relocation_date?: string | null
+          open_to_relocation?: boolean
+          person_id: string
+          preferred_city_ids?: string[]
+          preferred_countries?: string[]
+          relocation_assistance_required?: boolean
+          remote_preference?: string
+          requires_sponsorship?: boolean | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authorization_visibility?: string
+          citizenships?: string[]
+          countries_willing_to_work?: string[]
+          current_country?: string | null
+          earliest_relocation_date?: string | null
+          open_to_relocation?: boolean
+          person_id?: string
+          preferred_city_ids?: string[]
+          preferred_countries?: string[]
+          relocation_assistance_required?: boolean
+          remote_preference?: string
+          requires_sponsorship?: boolean | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobility_profiles_current_country_fkey"
+            columns: ["current_country"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "mobility_profiles_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moderation_actions: {
         Row: {
           action: Database["public"]["Enums"]["moderation_action"]
@@ -5407,6 +5930,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "offers_pay_currency_currency_fk"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "offers_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -5527,6 +6057,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_policies_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
           },
         ]
       }
@@ -5657,6 +6194,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "payment_records_earning_id_fkey"
@@ -5895,6 +6439,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "person_licenses_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "person_licenses_document_fk"
             columns: ["document_id"]
             isOneToOne: false
@@ -5952,6 +6503,13 @@ export type Database = {
           work_identity_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "person_location_preferences_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
           {
             foreignKeyName: "person_location_preferences_location_id_fkey"
             columns: ["location_id"]
@@ -6243,6 +6801,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "person_work_preferences_pay_currency_currency_fk"
+            columns: ["pay_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "person_work_preferences_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -6345,6 +6910,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "persons_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "persons_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
@@ -6439,6 +7011,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_fee_currency_currency_fk"
+            columns: ["fee_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "placements_job_order_id_fkey"
@@ -7868,6 +8447,9 @@ export type Database = {
           person_id: string
           requires_sponsorship: boolean | null
           status: Database["public"]["Enums"]["work_auth_status"]
+          updated_at: string
+          valid_from: string | null
+          work_restrictions: string | null
         }
         Insert: {
           country_code: string
@@ -7879,6 +8461,9 @@ export type Database = {
           person_id: string
           requires_sponsorship?: boolean | null
           status: Database["public"]["Enums"]["work_auth_status"]
+          updated_at?: string
+          valid_from?: string | null
+          work_restrictions?: string | null
         }
         Update: {
           country_code?: string
@@ -7890,8 +8475,18 @@ export type Database = {
           person_id?: string
           requires_sponsorship?: boolean | null
           status?: Database["public"]["Enums"]["work_auth_status"]
+          updated_at?: string
+          valid_from?: string | null
+          work_restrictions?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "work_authorizations_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
           {
             foreignKeyName: "work_authorizations_document_fk"
             columns: ["document_id"]
@@ -8242,11 +8837,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workforce_requirements_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+          {
             foreignKeyName: "workforce_requirements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_requirements_currency_currency_fk"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "workforce_requirements_job_id_fkey"
@@ -8313,6 +8922,16 @@ export type Database = {
           p_work_date: string
         }
         Returns: string
+      }
+      omelo_admin_add_exchange_rate: {
+        Args: {
+          p_base: string
+          p_effective_at: string
+          p_quote: string
+          p_rate: number
+          p_source: string
+        }
+        Returns: number
       }
       omelo_admin_kpis: { Args: { p_days?: number }; Returns: Json }
       omelo_admin_matching_metrics: { Args: { p_days?: number }; Returns: Json }
@@ -8384,6 +9003,10 @@ export type Database = {
       omelo_cancel_workforce_job: {
         Args: { p_job: string }
         Returns: undefined
+      }
+      omelo_candidate_eligibility: {
+        Args: { p_identity: string; p_job: string }
+        Returns: Json
       }
       omelo_check_in: {
         Args: {
@@ -8459,6 +9082,10 @@ export type Database = {
         Returns: Json
       }
       omelo_consent_candidate: { Args: { p_consent: string }; Returns: Json }
+      omelo_convert_currency: {
+        Args: { p_amount: number; p_from: string; p_to: string }
+        Returns: Json
+      }
       omelo_correct_attendance: {
         Args: {
           p_attendance: string
@@ -8467,6 +9094,10 @@ export type Database = {
           p_reason: string
         }
         Returns: undefined
+      }
+      omelo_country_guide: {
+        Args: { p_country: string; p_profession?: string }
+        Returns: Json
       }
       omelo_create_agency: {
         Args: { p_country?: string; p_independent?: boolean; p_name: string }
@@ -8506,6 +9137,15 @@ export type Database = {
         Args: { p_from: string; p_template: string; p_to: string }
         Returns: number
       }
+      omelo_global_jobs: {
+        Args: {
+          p_filters?: Json
+          p_limit?: number
+          p_offset?: number
+          p_tab?: string
+        }
+        Returns: Json
+      }
       omelo_identity_evidence: { Args: { p_identity: string }; Returns: Json }
       omelo_identity_profile: { Args: { p_identity?: string }; Returns: Json }
       omelo_interview_question_suggestions: {
@@ -8526,8 +9166,16 @@ export type Database = {
         Args: { p_identity: string; p_job_id: string; p_message?: string }
         Returns: string
       }
+      omelo_job_eligibility: {
+        Args: { p_identity?: string; p_job: string }
+        Returns: Json
+      }
       omelo_job_funnel: { Args: { p_job_id: string }; Returns: Json }
       omelo_job_invitations: { Args: { p_job_id: string }; Returns: Json }
+      omelo_license_requirements: {
+        Args: { p_country?: string; p_profession: string }
+        Returns: Json
+      }
       omelo_link_job_order: {
         Args: { p_job: string; p_job_order: string }
         Returns: undefined
@@ -8570,6 +9218,7 @@ export type Database = {
         Args: { p_job_id: string; p_work_identity_id?: string }
         Returns: Json
       }
+      omelo_my_mobility: { Args: never; Returns: Json }
       omelo_my_profile_views: { Args: { p_days?: number }; Returns: Json }
       omelo_my_representations: { Args: never; Returns: Json }
       omelo_my_sessions: {
@@ -8629,6 +9278,15 @@ export type Database = {
           shift_types: Database["public"]["Enums"]["shift_type"][]
           title: string
         }[]
+      }
+      omelo_normalized_pay: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_period: Database["public"]["Enums"]["pay_period"]
+          p_target?: string
+        }
+        Returns: Json
       }
       omelo_offer_assignment: {
         Args: { p_fields?: Json; p_identity: string; p_requirement: string }
@@ -8851,6 +9509,7 @@ export type Database = {
         }
         Returns: string
       }
+      omelo_save_mobility: { Args: { p: Json }; Returns: Json }
       omelo_save_pay_component: {
         Args: {
           p_amount: number
@@ -8891,6 +9550,7 @@ export type Database = {
       }
       omelo_search_talent: {
         Args: {
+          p_filters?: Json
           p_job_id: string
           p_limit?: number
           p_offset?: number
@@ -9354,6 +10014,9 @@ export type Database = {
         | "student_visa_limited"
         | "requires_sponsorship"
         | "no_right_to_work"
+        | "employer_sponsored"
+        | "other_authorization"
+        | "unknown"
       work_identity_status: "active" | "paused" | "archived"
       work_type:
         | "full_time"
@@ -9846,6 +10509,9 @@ export const Constants = {
         "student_visa_limited",
         "requires_sponsorship",
         "no_right_to_work",
+        "employer_sponsored",
+        "other_authorization",
+        "unknown",
       ],
       work_identity_status: ["active", "paused", "archived"],
       work_type: [

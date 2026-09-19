@@ -10,6 +10,9 @@ import '../features/auth/sign_in_screen.dart';
 import '../features/company/company_screen.dart';
 import '../features/discover/discover_screen.dart';
 import '../features/discover/job_detail_screen.dart';
+import '../features/global/country_guide_screen.dart';
+import '../features/global/global_jobs_screen.dart';
+import '../features/global/mobility_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/identities/identities_screen.dart';
 import '../features/identities/identity_editor_screen.dart';
@@ -37,6 +40,7 @@ import '../features/work/shift_detail_screen.dart';
 import '../features/work/timesheet_detail_screen.dart';
 import '../features/work/timesheets_screen.dart';
 import '../features/work/work_screen.dart';
+import '../data/global.dart' show GlobalTab;
 import '../data/job_events.dart' show JobSurface;
 import 'app_state.dart';
 import 'auth_links.dart';
@@ -166,6 +170,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Release 5: my work — shifts and check-in, assignments, timesheets,
       // earnings and time off. Full screen, outside the tab shell.
       ...workRoutes(redirect: _requireSignIn),
+      // Release 6: global mobility, jobs worldwide and country guides.
+      ...globalRoutes(redirect: _requireSignIn),
       GoRoute(
         path: '/saved',
         redirect: _requireSignIn,
@@ -265,6 +271,31 @@ List<RouteBase> workRoutes({GoRouterRedirect? redirect}) => [
         redirect: redirect,
         builder: (_, state) => LeaveScreen(
             assignmentId: state.uri.queryParameters['assignment']),
+      ),
+    ];
+
+/// Release 6 screens. `/countries/<code>` is public (information only);
+/// the rest need a signed-in worker. Public so tests can open them.
+List<RouteBase> globalRoutes({GoRouterRedirect? redirect}) => [
+      GoRoute(
+        path: '/mobility',
+        redirect: redirect,
+        builder: (_, __) => const MobilityScreen(),
+      ),
+      GoRoute(
+        path: '/jobs/global',
+        redirect: redirect,
+        builder: (_, state) => GlobalJobsScreen(
+          initialTab: state.uri.queryParameters['tab'] == null
+              ? null
+              : GlobalTab.fromWire(state.uri.queryParameters['tab']),
+          initialCountry: state.uri.queryParameters['country'],
+        ),
+      ),
+      GoRoute(
+        path: '/countries/:code',
+        builder: (_, state) =>
+            CountryGuideScreen(code: state.pathParameters['code']!),
       ),
     ];
 

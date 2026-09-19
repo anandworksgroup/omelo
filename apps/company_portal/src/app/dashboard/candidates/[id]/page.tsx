@@ -12,6 +12,7 @@ import {
   TONE_COLOR,
   calendarDate,
   describeTimeline,
+  factorLabel,
   gateLabel,
   monthYear,
   monthsLabel,
@@ -48,6 +49,8 @@ import {
   ProfileAnswers,
 } from '@/components/identity/evidence';
 import { parseClientSubmissions, parseScopedProfile } from '@/lib/agency';
+import { countryName, parseCandidateEligibility } from '@/lib/global';
+import { EligibilityPanel } from '@/components/global/eligibility';
 import {
   NotShared,
   SnapshotAnswers,
@@ -113,7 +116,10 @@ function Reasons({
           <span aria-hidden className="font-bold shrink-0 w-4 text-center" style={{ color }}>
             {mark}
           </span>
-          <span className="break-words min-w-0">{r.text}</span>
+          <span className="break-words min-w-0">
+            {r.factor && <span className="muted">{factorLabel(r.factor)}: </span>}
+            {r.text}
+          </span>
         </li>
       ))}
     </ul>
@@ -201,6 +207,7 @@ export default async function CandidateReviewPage({
     roundsRes,
     teamRes,
     feedbackRes,
+    eligibilityRes,
   ] = await Promise.all([
     supabase
       .from('matches')
@@ -258,7 +265,7 @@ export default async function CandidateReviewPage({
       .order('created_at', { ascending: false }),
     supabase
       .from('employments')
-      .select('id, title, started_on, status')
+      .select('id, title, started_on, status, country_code, pay_amount, pay_period, pay_currency, employment_type')
       .eq('application_id', app.id)
       .maybeSingle(),
     supabase
@@ -279,6 +286,8 @@ export default async function CandidateReviewPage({
       )
       .eq('application_id', app.id)
       .order('updated_at', { ascending: true }),
+    // R6: eligibility for this job; authorization details only if the worker shares them.
+    supabase.rpc('omelo_candidate_eligibility', { p_job: app.job_id, p_identity: app.work_identity_id }),
   ]);
 
   const job = app.jobs as unknown as {
@@ -600,7 +609,11 @@ export default async function CandidateReviewPage({
               </p>
               <p className="text-sm muted mt-1">
                 {employment
-                  ? `Start date ${calendarDate(employment.started_on)}. This job is now verified work history on their Omelo profile.`
+                  ? `Start date ${calendarDate(employment.started_on)}.${
+                      employment.pay_amount != null
+                        ? ` Pay ${formatPay({ min: employment.pay_amount, currency: employment.pay_currency, period: employment.pay_period })}.`
+                        : ''
+                    }${employment.country_code ? ` Works in ${countryName(employment.country_code)}.` : ''} This job is now verified work history on their Omelo profile.`
                   : employmentRes.error
                     ? `Employment record could not be loaded: ${employmentRes.error.message}`
                     : 'Employment record not found.'}
@@ -916,6 +929,11 @@ export default async function CandidateReviewPage({
 
         {/* ============================================== Side column */}
         <div className="space-y-6 min-w-0">
+          <EligibilityPanel
+            eligibility={parseCandidateEligibility(eligibilityRes.data ?? null)}
+            error={eligibilityRes.error?.message ?? null}
+            jobTitle={job?.title ?? null}
+          />
           {/* ------------------------------------------------------ Offer */}
           {(offerRes.error || offers.length > 0) && (
             <section className="card p-5">

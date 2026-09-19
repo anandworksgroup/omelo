@@ -100,6 +100,20 @@ export default async function CompanyPage() {
       <section className="card p-5 space-y-3">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
+            <h2 className="font-bold">Legal entities</h2>
+            <p className="text-sm muted mt-1 leading-relaxed">
+              The registered companies you hire through in each country, with their currency and time zone.
+            </p>
+          </div>
+          <Link href="/dashboard/company/entities" className="btn btn-ghost w-full sm:w-auto">
+            {canEdit ? 'Manage entities' : 'View entities'}
+          </Link>
+        </div>
+      </section>
+
+      <section className="card p-5 space-y-3">
+        <div className="flex items-start gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
             <h2 className="font-bold">Team</h2>
             <p className="text-sm muted mt-1">
               {membersError

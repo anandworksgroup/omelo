@@ -55,7 +55,7 @@ export function offerLabel(status: string | null): string | null {
 /** Money is never a bare number: amount and currency travel together. */
 export function money(amount: number | null, currency: string | null): string {
   if (amount == null) return 'No fee set';
-  return formatPay({ min: amount, currency: currency || 'INR' });
+  return formatPay({ min: amount, currency });
 }
 
 export function candidateLine(r: SubmissionRow) {

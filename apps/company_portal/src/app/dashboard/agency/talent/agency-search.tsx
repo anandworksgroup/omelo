@@ -13,8 +13,14 @@ import {
 import { WORK_TYPE_LABEL, formatPay } from '@/lib/format';
 import { RADII, quotaText, type Pool, type SearchQuota } from '@/lib/talent';
 import { PoolDialog } from '../../talent/talent-actions';
-import { CardHeader, Notice, ReasonList, SkillChips } from '../../talent/ui';
+import { CardHeader, GlobalChips, Notice, ReasonList, SkillChips } from '../../talent/ui';
 import { searchForOrder } from '../actions';
+import GlobalFilterFields, {
+  EMPTY_GLOBAL_FILTERS,
+  activeGlobalFilters,
+  globalFilterKeys,
+  type GlobalFilterValues,
+} from '@/components/global/global-filters';
 import { AskConsent, type AgencySummary, type OrderSummary } from '../consent-ui';
 
 export type OrderOption = OrderSummary & { status: string; professionId: string | null };
@@ -77,6 +83,7 @@ function ResultCard({
   return (
     <li className="card p-4 space-y-3 min-w-0">
       <CardHeader card={card} />
+      <GlobalChips card={card} />
       <SkillChips card={card} />
       <CardExtras card={card} />
       {(card.strengths.length > 0 || card.gaps.length > 0) && (
@@ -138,7 +145,7 @@ type Form = {
   workTypes: string[];
   maxPay: string;
   verifiedOnly: boolean;
-  workAuth: string;
+  global: GlobalFilterValues;
   consent: string;
   previous: '' | 'yes' | 'no';
   poolId: string;
@@ -155,7 +162,7 @@ const EMPTY_FORM: Form = {
   workTypes: [],
   maxPay: '',
   verifiedOnly: false,
-  workAuth: '',
+  global: EMPTY_GLOBAL_FILTERS,
   consent: 'any',
   previous: '',
   poolId: '',
@@ -174,7 +181,7 @@ function toFilters(f: Form): SearchFilters {
     work_types: f.workTypes.length ? f.workTypes : undefined,
     max_expected_pay_monthly: n(f.maxPay),
     verified_only: f.verifiedOnly || undefined,
-    work_auth_country: f.workAuth || undefined,
+    ...globalFilterKeys(f.global),
     consent_status: f.consent !== 'any' ? f.consent : undefined,
     previous_relationship: f.previous === '' ? undefined : f.previous === 'yes',
     pool_id: f.poolId || undefined,
@@ -193,6 +200,7 @@ export default function AgencyTalentSearch({
   professions,
   skills,
   countries,
+  languages,
   agency,
   recruiterName,
   canRequest,
@@ -204,6 +212,7 @@ export default function AgencyTalentSearch({
   professions: Option[];
   skills: Option[];
   countries: Option[];
+  languages: Option[];
   agency: AgencySummary;
   recruiterName: string | null;
   canRequest: boolean;
@@ -258,11 +267,12 @@ export default function AgencyTalentSearch({
     (s) => form.skillIds.includes(s.id) || !skillFilter.trim() || s.label.toLowerCase().includes(skillFilter.trim().toLowerCase())
   );
   const activeCount =
-    [form.professionId, form.minExp, form.maxExp, form.maxPay, form.workAuth, form.poolId, form.previous].filter(Boolean).length +
+    [form.professionId, form.minExp, form.maxExp, form.maxPay, form.poolId, form.previous].filter(Boolean).length +
     (form.skillIds.length ? 1 : 0) +
     (form.availability.length ? 1 : 0) +
     (form.workTypes.length ? 1 : 0) +
     (form.verifiedOnly ? 1 : 0) +
+    activeGlobalFilters(form.global) +
     (form.consent !== 'any' ? 1 : 0);
 
   return (
@@ -388,19 +398,12 @@ export default function AgencyTalentSearch({
                 onChange={(e) => set('maxPay', e.target.value)}
               />
             </div>
-            <div className="min-w-0">
-              <label className="label" htmlFor={`${uid}auth`}>
-                Allowed to work in
-              </label>
-              <select id={`${uid}auth`} className="input" value={form.workAuth} onChange={(e) => set('workAuth', e.target.value)}>
-                <option value="">Any country</option>
-                {countries.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <GlobalFilterFields
+              value={form.global}
+              onChange={(g) => set('global', g)}
+              countries={countries}
+              languages={languages}
+            />
             <div className="min-w-0">
               <label className="label" htmlFor={`${uid}consent`}>
                 Consent for this order

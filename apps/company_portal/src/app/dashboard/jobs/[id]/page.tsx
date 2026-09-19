@@ -16,6 +16,21 @@ import { TALENT_ROLES, parseFunnel, parseInvitations } from '@/lib/talent';
 import RoundsEditor from './rounds-editor';
 import FunnelPanel from './funnel';
 import InvitationsPanel from './invitations';
+import GlobalHiringEditor from './global-editor';
+import { loadGlobalOptions } from '@/lib/global-data';
+import {
+  REMOTE_SCOPE_LABEL,
+  SPONSORSHIP_LABEL,
+  SUPPORT_FLAGS,
+  SUPPORT_LABEL,
+  countryName,
+  parseNormalizedPay,
+  utcOffsetLabel,
+  type GlobalHiring,
+  type RemoteScope,
+  type Sponsorship,
+} from '@/lib/global';
+import { formatMoney } from '@/lib/format';
 
 export default async function JobDetailPage({
   params,
@@ -34,6 +49,10 @@ export default async function JobDetailPage({
        pay_min, pay_max, pay_period, pay_currency, pay_negotiable,
        min_experience_months, accepts_no_experience, requires_resume,
        quick_apply_enabled, applicant_count, view_count, published_at, created_at,
+       country_code, legal_entity_id, sponsorship, sponsorship_type, immigration_support, legal_support,
+       visa_fees_covered, travel_assistance, accommodation_assistance, relocation_support,
+       accepts_non_residents, remote_scope, remote_countries, remote_tz_min_offset, remote_tz_max_offset,
+       company_legal_entities ( legal_name ),
        professions ( name ),
        job_benefits ( benefit_type ),
        job_skills ( requirement_level, skills ( name ) ),
@@ -59,10 +78,41 @@ export default async function JobDetailPage({
     .order('position');
   const canEditRounds = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(ctx.role);
 
-  const [funnelRes, invitationsRes] = await Promise.all([
+  const payAmount = job.pay_max ?? job.pay_min;
+  const [funnelRes, invitationsRes, global, normRes] = await Promise.all([
     supabase.rpc('omelo_job_funnel', { p_job_id: id }),
     supabase.rpc('omelo_job_invitations', { p_job_id: id }),
+    loadGlobalOptions(supabase, ctx.companyId),
+    payAmount != null && job.pay_period && job.pay_currency
+      ? supabase.rpc('omelo_normalized_pay', {
+          p_amount: payAmount,
+          p_period: job.pay_period,
+          p_currency: job.pay_currency,
+        })
+      : Promise.resolve({ data: null, error: null }),
   ]);
+  const normalized = parseNormalizedPay(normRes.data ?? null);
+  const globalValues: GlobalHiring = {
+    country_code: job.country_code?.trim() ?? null,
+    legal_entity_id: job.legal_entity_id,
+    sponsorship: (job.sponsorship ?? 'no') as Sponsorship,
+    sponsorship_type: job.sponsorship_type,
+    immigration_support: job.immigration_support,
+    legal_support: job.legal_support,
+    visa_fees_covered: job.visa_fees_covered,
+    travel_assistance: job.travel_assistance,
+    accommodation_assistance: job.accommodation_assistance,
+    relocation_support: job.relocation_support ?? false,
+    accepts_non_residents: job.accepts_non_residents ?? false,
+    remote_scope: (job.remote_scope ?? null) as RemoteScope | null,
+    remote_countries: (job.remote_countries ?? []).map((c) => c.trim()),
+    remote_tz_min_offset: job.remote_tz_min_offset,
+    remote_tz_max_offset: job.remote_tz_max_offset,
+  };
+  const supports = SUPPORT_FLAGS.filter((f) => globalValues[f]);
+  const entityName =
+    (job.company_legal_entities as unknown as { legal_name: string } | null)?.legal_name ?? null;
+  const canEditJob = ['owner', 'admin', 'recruiter'].includes(ctx.role);
   const funnel = funnelRes.error ? null : parseFunnel(funnelRes.data);
   const invitations = parseInvitations(invitationsRes.data).map((inv) => ({
     ...inv,
@@ -151,6 +201,16 @@ export default async function JobDetailPage({
             negotiable: job.pay_negotiable,
           })}
         </div>
+        {normalized && normalized.monthly != null && job.pay_period !== 'month' && (
+          <p className="text-xs muted -mt-2">
+            About {formatMoney(normalized.monthly, normalized.currency)} a month
+            {normalized.yearly != null ? ` · ${formatMoney(normalized.yearly, normalized.currency)} a year` : ''}
+            {normalized.hourly != null && job.pay_period !== 'hour'
+              ? ` · ${formatMoney(normalized.hourly, normalized.currency)} an hour`
+              : ''}{' '}
+            (8-hour days, 26 days a month)
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <span className="pill">{WORK_TYPE_LABEL[job.work_type] ?? job.work_type}</span>
@@ -216,6 +276,67 @@ export default async function JobDetailPage({
             <p className="label">Screening question</p>
             <p className="text-sm">{job.job_questions[0].prompt}</p>
           </div>
+        )}
+      </section>
+
+      {/* Global hiring */}
+      <section className="card p-5 space-y-4">
+        <h2 className="font-bold">Global hiring</h2>
+        <dl className="text-sm grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+          <dt className="muted">Country</dt>
+          <dd>{countryName(globalValues.country_code) ?? 'Not set'}</dd>
+          <dt className="muted">Legal entity</dt>
+          <dd className="break-words">{entityName ?? 'None'}</dd>
+          <dt className="muted">Sponsorship</dt>
+          <dd>
+            {SPONSORSHIP_LABEL[globalValues.sponsorship] ?? globalValues.sponsorship}
+            {globalValues.sponsorship !== 'no' && globalValues.sponsorship_type
+              ? ` · ${globalValues.sponsorship_type}`
+              : ''}
+          </dd>
+          <dt className="muted">Applicants abroad</dt>
+          <dd>{globalValues.accepts_non_residents ? 'Welcome to apply' : 'Not accepted'}</dd>
+          {job.workplace_type === 'remote' && (
+            <>
+              <dt className="muted">Remote from</dt>
+              <dd className="break-words">
+                {globalValues.remote_scope === 'countries'
+                  ? globalValues.remote_countries.map((c) => countryName(c)).join(', ')
+                  : globalValues.remote_scope === 'timezone' &&
+                      globalValues.remote_tz_min_offset != null &&
+                      globalValues.remote_tz_max_offset != null
+                    ? `${utcOffsetLabel(globalValues.remote_tz_min_offset)} to ${utcOffsetLabel(globalValues.remote_tz_max_offset)}`
+                    : globalValues.remote_scope
+                      ? REMOTE_SCOPE_LABEL[globalValues.remote_scope]
+                      : 'Not specified'}
+              </dd>
+            </>
+          )}
+        </dl>
+        {supports.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {supports.map((f) => (
+              <span key={f} className="pill" style={{ color: 'var(--color-verified)' }}>
+                {SUPPORT_LABEL[f]}
+              </span>
+            ))}
+          </div>
+        )}
+        {globalValues.country_code && (
+          <p className="text-sm">
+            <Link href={`/dashboard/global/countries/${globalValues.country_code}`} className="underline">
+              Hiring in {countryName(globalValues.country_code)}: country guide
+            </Link>
+          </p>
+        )}
+        {canEditJob && (
+          <GlobalHiringEditor
+            jobId={job.id}
+            workplace={job.workplace_type}
+            initial={globalValues}
+            countries={global.countries}
+            entities={global.entities}
+          />
         )}
       </section>
 

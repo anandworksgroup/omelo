@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../notifications/notifications_screen.dart' show NotificationBell;
+import '../../core/app_state.dart';
 import '../../core/location.dart';
 import '../../core/responsive.dart';
 import '../../data/job_events.dart' show JobSurface;
@@ -309,6 +311,18 @@ class _QuickChips extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
+          // Release 6: remote, relocation and visa-sponsored work.
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              avatar: const Icon(Icons.public, size: 18),
+              label: const Text('Jobs worldwide'),
+              onPressed: () => context.push(
+                  ref.read(isSignedInProvider)
+                      ? '/jobs/global'
+                      : '/sign-in?next=${Uri.encodeComponent('/jobs/global')}'),
+            ),
+          ),
           chip('No experience needed', f.noExperienceOnly,
               () => notifier.state = f.copyWith(noExperienceOnly: !f.noExperienceOnly)),
           chip(

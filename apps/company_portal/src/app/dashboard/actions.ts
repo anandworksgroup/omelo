@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import { reportError } from '@/lib/observability';
+import { CURRENCY_RE, friendlyDbError, globalColumns, readGlobalHiring, validateGlobalHiring } from '@/lib/global';
 
 export type ActionState = { error?: string; ok?: boolean; message?: string };
 
@@ -152,6 +153,17 @@ export async function createJob(
   if (payMin && payMax && payMax < payMin)
     return { error: 'Maximum pay cannot be less than minimum pay.' };
 
+  const payCurrency = String(formData.get('pay_currency') ?? '').trim().toUpperCase();
+  if (!CURRENCY_RE.test(payCurrency)) return { error: 'Choose the currency the job pays in.' };
+
+  const global = readGlobalHiring(formData);
+  const { data: entities } = await supabase
+    .from('company_legal_entities')
+    .select('id, country_code')
+    .eq('company_id', ctx.companyId);
+  const globalError = validateGlobalHiring(global, workplace, entities ?? []);
+  if (globalError) return { error: globalError };
+
   const shifts = formData.getAll('shift_types').map(String);
 
   // company_location lets the job inherit an exact site geo when present.
@@ -184,7 +196,7 @@ export async function createJob(
       pay_max: payMax,
       pay_period: (String(formData.get('pay_period') ?? 'month') ||
         null) as never,
-      pay_currency: String(formData.get('pay_currency') ?? 'INR'),
+      pay_currency: payCurrency,
       pay_negotiable: formData.get('pay_negotiable') === 'on',
       min_experience_months: Number(formData.get('min_experience_months')) || null,
       accepts_no_experience: formData.get('accepts_no_experience') === 'on',
@@ -193,11 +205,12 @@ export async function createJob(
       quick_apply_enabled: formData.get('requires_resume') !== 'on',
       application_method: 'omelo',
       status: 'draft',
+      ...globalColumns(global, workplace),
     })
     .select('id')
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyDbError(error) };
 
   const { error: stagesError } = await supabase.from('job_stages').insert(
     DEFAULT_STAGES.map((s) => ({ ...s, job_id: job.id })) as never
@@ -247,6 +260,43 @@ export async function createJob(
 
   revalidatePath('/dashboard/jobs');
   redirect(`/dashboard/jobs/${job.id}`);
+}
+
+/** Edits only the "Global hiring" fields of an existing job. */
+export async function updateJobGlobal(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const ctx = await getCompanyContext();
+  if (!ctx) return { error: 'No company found.' };
+  if (!['owner', 'admin', 'recruiter'].includes(ctx.role))
+    return { error: 'Your role cannot edit jobs.' };
+  const jobId = String(formData.get('job_id') ?? '');
+  if (!/^[0-9a-f-]{36}$/i.test(jobId)) return { error: 'Job not found.' };
+
+  const supabase = await createClient();
+  const [{ data: job }, { data: entities }] = await Promise.all([
+    supabase.from('jobs').select('id, workplace_type').eq('id', jobId).eq('company_id', ctx.companyId).maybeSingle(),
+    supabase.from('company_legal_entities').select('id, country_code').eq('company_id', ctx.companyId),
+  ]);
+  if (!job) return { error: 'Job not found.' };
+
+  const global = readGlobalHiring(formData);
+  const problem = validateGlobalHiring(global, job.workplace_type, entities ?? []);
+  if (problem) return { error: problem };
+
+  const { error } = await supabase
+    .from('jobs')
+    .update(globalColumns(global, job.workplace_type))
+    .eq('id', jobId)
+    .eq('company_id', ctx.companyId);
+  if (error) {
+    if (!['42501', '22023', '23503', '23514'].includes(error.code ?? ''))
+      reportError(error, { action: 'updateJobGlobal', jobId });
+    return { error: friendlyDbError(error) };
+  }
+  revalidatePath(`/dashboard/jobs/${jobId}`);
+  return { ok: true, message: 'Global hiring saved.' };
 }
 
 export async function setJobStatus(jobId: string, status: string) {

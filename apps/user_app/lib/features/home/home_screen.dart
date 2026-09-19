@@ -79,6 +79,18 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
+              if (signedIn) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/jobs/global'),
+                    icon: const Icon(Icons.public),
+                    label: const Text('Jobs worldwide: remote, relocation, visas'),
+                  ),
+                ),
+              ],
+
               // Release 5: today's shift, work offers — first, because it
               // is the worker's day.
               if (signedIn)

@@ -224,6 +224,7 @@ recommendations, audit, intelligence.
 | TalentSearched, CandidateInvited, InvitationAccepted, InvitationDeclined, InvitationWithdrawn | ✓ R3 | talent search + invitation functions |
 | AgencyCreated, TeamMemberInvited/Joined, JobOrderCreated/StatusChanged, ClientLinkRequested/Confirmed/Declined/Ended, RepresentationRequested/Granted/Activated/Declined/Expired/Revoked/Withdrawn, CandidateSubmitted, SubmissionStatusChanged, PlacementMade, PlacementStatusChanged | ✓ R4 | agency, consent and submission functions + triggers |
 | WorkforceRequirementCreated, AssignmentOffered/Accepted/Declined/Started/Paused/Completed/Terminated/Cancelled/Ending, ShiftAssigned/Offered/Changed/Cancelled, WorkerCheckedIn/CheckedOut/Late/Absent, LeaveRequested/Approved/Rejected, TimesheetSubmitted/Approved/Rejected, EarningsApproved, PaymentRecorded, WorkforceBulkQueued | ✓ R5 | workforce functions + scheduler |
+| MobilityProfileUpdated, TalentSearched (with global filters), exchange_rate.added (audit) | ✓ R6 | mobility, search and admin functions |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
 and sent atomically; drafts are not events).
@@ -372,3 +373,29 @@ seasonal and bulk work, for employers directly and for agencies on behalf of the
 | Completed work → employment → verified experience → stronger identity → better matching (matcher v1.1: schedule fit + conflict gate) | ✓ R5-013 |
 | Dashboards (employer, agency with staffing counts, client view) | ✓ |
 | Proven as real users | ✓ `tests/api/staffing_e2e.py` + all earlier suites re-run on matcher v1.1 |
+
+### Release 6 status (backend proven — migrations 57–63)
+
+Omelo now works across countries: currencies, work authorization, sponsorship, relocation, remote
+time zones, licensing and official country information — with the worker in control of what
+employers see.
+
+| Item | State |
+|---|---|
+| Location hierarchy country → region → city; 48 countries with currency, language, time zone, calling code; world cities | ✓ |
+| Currency engine: ISO currencies, append-only exchange rates with effective time and source; conversions report their provenance | ✓ R6-001, R6-002, R6-011 |
+| Normalised pay (hourly / monthly / yearly) in the original and the viewer's currency | ✓ |
+| Work authorization: more states, validity dates, restrictions; worker-controlled visibility (private / eligibility only (default) / with applications / with visible employers) | ✓ R6-005, R6-007 |
+| Job sponsorship yes / no / case by case, type, immigration / legal / visa-fee / travel / accommodation / relocation support | ✓ R6-010 |
+| Eligibility: eligible / potentially eligible — missing: … / not currently eligible; only hard blockers reject | ✓ R6-004 |
+| Pre-application check with official sources, licensing and converted pay | ✓ |
+| Relocation preferences (countries, cities, assistance, earliest date); global discovery tabs: near me, remote, relocation, visa sponsorship, international, work abroad | ✓ |
+| Country employment information from official sources, clearly not legal advice | ✓ R6-008 |
+| Professional licensing by profession × country | ✓ |
+| Remote work first-class: country, worldwide, listed countries, time-zone range | ✓ |
+| Multi-country employers (legal entities per country) | ✓ |
+| Global recruiter search (eligibility, relocation, language, current country); relocators beyond the radius | ✓ |
+| Matcher v1.2: eligibility gate, currency-correct pay fit, mobility and eligibility factors | ✓ |
+| Global employment record keeps country and original pay currency; carried into verified experience | ✓ R6-012 |
+| Documents never readable because a profile is | ✓ R6-006 |
+| Proven as real users | ✓ `tests/api/global_e2e.py` (93 checks) + all earlier suites re-run on matcher v1.2 |

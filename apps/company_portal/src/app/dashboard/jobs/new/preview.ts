@@ -10,7 +10,7 @@ export type PoolPreview = {
   payLow: number | null;
   payHigh: number | null;
   payPeriod: string | null;
-  currency: string;
+  currency: string | null;
   note: string | null;
 };
 
@@ -30,6 +30,7 @@ export async function previewPool(input: {
   locationId?: string;
   minExperienceMonths?: number | null;
   acceptsNoExperience?: boolean;
+  currency?: string;
 }): Promise<PoolPreview> {
   const supabase = await createClient();
   const empty: PoolPreview = {
@@ -39,7 +40,7 @@ export async function previewPool(input: {
     payLow: null,
     payHigh: null,
     payPeriod: null,
-    currency: 'INR',
+    currency: null,
     note: null,
   };
 
@@ -74,7 +75,20 @@ export async function previewPool(input: {
     .eq('status', 'published')
     .not('pay_min', 'is', null);
 
-  const monthly = (similar ?? [])
+  // Never mix currencies: compare only jobs paying in the form's currency,
+  // or (when none is chosen) in the most common currency among comparable jobs.
+  const counts = new Map<string, number>();
+  for (const j of similar ?? []) {
+    const c = j.pay_currency?.trim();
+    if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+  }
+  const currency =
+    input.currency?.trim().toUpperCase() ||
+    [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ||
+    null;
+  const sameCurrency = (similar ?? []).filter((j) => j.pay_currency?.trim() === currency);
+
+  const monthly = sameCurrency
     .map((j) => payMonthly(Number(j.pay_min), j.pay_period))
     .filter((n): n is number => n != null)
     .sort((a, b) => a - b);
@@ -94,11 +108,11 @@ export async function previewPool(input: {
   return {
     workers,
     discoverableWorkers: discoverable,
-    similarJobs: similar?.length ?? 0,
+    similarJobs: sameCurrency.length,
     payLow,
     payHigh,
     payPeriod: 'month',
-    currency: similar?.[0]?.pay_currency?.trim() ?? 'INR',
+    currency,
     note,
   };
 }

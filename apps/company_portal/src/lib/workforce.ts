@@ -291,7 +291,9 @@ export const nice = (s: string | null | undefined) => (s ? s.charAt(0).toUpperCa
 export function money(amount: number | string | null | undefined, currency: string | null | undefined): string {
   const n = numOrNull(amount);
   if (n == null) return '—';
-  const cur = (currency ?? '').trim().toUpperCase() || 'INR';
+  const cur = (currency ?? '').trim().toUpperCase();
+  // No currency on the record: show the number, never assume one.
+  if (!cur) return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(n);
   try {
     return new Intl.NumberFormat(cur === 'INR' ? 'en-IN' : 'en-US', {
       style: 'currency',

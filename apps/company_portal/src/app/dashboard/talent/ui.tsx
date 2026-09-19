@@ -4,6 +4,8 @@
  */
 import Link from 'next/link';
 import { monthsLabel } from '@/lib/hiring';
+import { countryName } from '@/lib/global';
+import { EligibilityBadge } from '@/components/global/eligibility';
 import {
   ACTIVE_LABEL,
   INVITATION_COLOR,
@@ -83,6 +85,22 @@ export function CardFacts({ card }: { card: TalentCard }) {
     card.active ? ACTIVE_LABEL[card.active] : null,
   ].filter(Boolean);
   return <p className="text-xs muted break-words">{facts.join(' · ')}</p>;
+}
+
+/** R6: eligibility for the searched job, relocation and where they live. */
+export function GlobalChips({ card }: { card: TalentCard }) {
+  if (!card.eligibility && !card.openToRelocation && !card.currentCountry) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 items-start">
+      {card.eligibility && <EligibilityBadge e={card.eligibility} />}
+      {card.openToRelocation && (
+        <span className="pill" style={{ color: 'var(--color-brand-600)' }}>
+          Open to relocation
+        </span>
+      )}
+      {card.currentCountry && <span className="pill">Lives in {countryName(card.currentCountry)}</span>}
+    </div>
+  );
 }
 
 export function SkillChips({ card, max = 5 }: { card: TalentCard; max?: number }) {

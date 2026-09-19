@@ -33,7 +33,7 @@ tests/api/             end-to-end tests against a live project, as real users
       set value = 'https://<ref>.supabase.co/functions/v1', updated_at = now()
     where key = 'functions_base_url';
    ```
-4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 56 rows must read OK.**
+4. Verify: run `sql/verify-invariants.sql` in the SQL editor. **All 68 rows must read OK.**
 5. Dashboard settings (not expressible as migrations):
    - **Auth → Passwords:** enable *Leaked password protection*; minimum length 8+.
    - **Auth → URL configuration:** set Site URL to the portal URL; add the
@@ -56,7 +56,12 @@ tests/api/             end-to-end tests against a live project, as real users
    <invitations per day, 0 = unlimited>)`. Employers cannot grant it to themselves. The same applies to
    agencies: an agency (created in the portal) can search talent and ask workers for consent only after
    Omelo verifies it and enables talent search.
-8. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
+8. Exchange rates: the migrations seed *indicative* rates (their `source` says so) so conversions work in
+   development. Before launch, load real rates through `omelo_admin_add_exchange_rate(base, quote, rate,
+   effective_at, source)` (platform admins; rates are append-only history) or a scheduled job calling it.
+   Country guidance (`country_employment_info`) and licensing (`license_requirements`) cite official sources
+   with review dates; review them periodically — they are information, not legal advice.
+9. Feature flags (`omelo_private.app_settings`): `phone_otp_enabled` (set `true` once an SMS
    provider is wired), `require_verified_email_to_accept_offer` (progressive trust; default `false`),
    `require_verified_email_to_join_team` (turn ON in production: otherwise whoever signs up first with an
    invited address could accept a team or agency invitation, because email confirmation is off).
@@ -139,6 +144,8 @@ python tests/api/recruitment_e2e.py setup   # then apply the SQL it prints
 python tests/api/recruitment_e2e.py run
 python tests/api/staffing_e2e.py setup      # then apply the SQL it prints
 python tests/api/staffing_e2e.py run        # ~2 min: waits for the scheduler to run a bulk job
+python tests/api/global_e2e.py setup        # then apply the SQL it prints
+python tests/api/global_e2e.py run
 ```
 
 Point `tests/api/omelo_api.py` (`BASE`, `KEY`) at the new project first. Each
@@ -150,7 +157,7 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 
 ## 6. Launch checklist
 
-- [ ] `verify-invariants.sql` — 56/56 OK
+- [ ] `verify-invariants.sql` — 68/68 OK
 - [ ] Leaked password protection on; Site URL and redirect URLs set
 - [ ] `functions_base_url` updated; `select * from cron.job` shows the 6 `omelo-*` jobs
 - [ ] First platform admin granted; `/admin` shows healthy cron runs and 0 function failures
@@ -163,6 +170,7 @@ With LiveKit keys set, `meet_e2e.py` also verifies the issued video token.
 - [ ] Demo accounts and `sql/seed/dev-seed.sql` data NOT loaded in production
 - [ ] Email confirmation policy decided (currently accounts are created pre-confirmed)
 - [ ] Backups / PITR enabled
+- [ ] Live exchange rates loaded (not only the indicative seed)
 
 ## Known limitations at launch
 

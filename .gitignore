@@ -63,3 +63,4 @@ __pycache__/
 tests/api/.talent_state.json
 tests/api/.recruitment_state.json
 tests/api/.staffing_state.json
+tests/api/.global_state.json

@@ -16,22 +16,34 @@ const PERIOD_LABEL: Record<string, string> = {
   per_task: 'per task',
 };
 
-const SYMBOL: Record<string, string> = {
-  INR: '₹',
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  AED: 'AED ',
-  SGD: 'S$',
-  AUD: 'A$',
-  CAD: 'C$',
-};
-
-function amount(value: number, currency: string) {
-  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
-    Math.round(value)
-  );
+/**
+ * One amount in its own currency, formatted by Intl with that currency's
+ * symbol. There is no default currency: a record without one shows the bare
+ * number rather than pretending it is rupees (R6-001).
+ */
+export function formatMoney(
+  value: number,
+  currency: string | null | undefined,
+  opts: { fractionDigits?: number } = {}
+): string {
+  const cur = (currency ?? '').trim().toUpperCase();
+  const whole = Number.isInteger(value) || Math.abs(value) >= 1000;
+  const digits = opts.fractionDigits ?? (whole ? 0 : 2);
+  const locale = cur === 'INR' ? 'en-IN' : 'en-US';
+  if (cur) {
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: cur,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: digits,
+      }).format(value);
+    } catch {
+      /* unknown code: fall through to "CODE 1,234" */
+    }
+  }
+  const n = new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value);
+  return cur ? `${cur} ${n}` : n;
 }
 
 export function formatPay(opts: {
@@ -43,14 +55,12 @@ export function formatPay(opts: {
 }): string {
   const { min, max, currency, period, negotiable } = opts;
   if (min == null && max == null) return 'Pay not shown';
-  const cur = currency ?? 'INR';
-  const sym = SYMBOL[cur] ?? `${cur} `;
   const suffix = period ? (PERIOD_LABEL[period] ?? '') : '';
 
   const body =
     min != null && max != null && max !== min
-      ? `${sym}${amount(min, cur)} – ${sym}${amount(max, cur)}`
-      : `${sym}${amount((min ?? max)!, cur)}`;
+      ? `${formatMoney(Number(min), currency)} – ${formatMoney(Number(max), currency)}`
+      : formatMoney(Number(min ?? max), currency);
 
   const sep = suffix.startsWith('/') ? '' : ' ';
   return `${body}${sep}${suffix}${negotiable ? ' · negotiable' : ''}`;

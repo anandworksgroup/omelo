@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 
+import 'global.dart' show JobEligibility;
 import 'job.dart';
 import 'meet.dart';
 
@@ -653,6 +654,7 @@ class MatchResult {
     this.gaps = const [],
     this.unknowns = const [],
     this.missingSkills = const [],
+    this.eligibility,
   });
 
   final int score;
@@ -662,6 +664,9 @@ class MatchResult {
   final List<MatchFactor> gaps;
   final List<MatchFactor> unknowns;
   final List<String> missingSkills;
+
+  /// Engine v1.2: can I work in the job's country (a guide, not a gate).
+  final JobEligibility? eligibility;
 
   factory MatchResult.fromJson(dynamic v) {
     final m = _map(v) ?? const {};
@@ -673,6 +678,7 @@ class MatchResult {
       gaps: MatchFactor.listFrom(m['gaps']),
       unknowns: MatchFactor.listFrom(m['unknowns']),
       missingSkills: Job.parseStrList(m['missing_skills']),
+      eligibility: JobEligibility.fromJson(m['eligibility']),
     );
   }
 }
@@ -1014,9 +1020,45 @@ class HiringCopy {
         'work_type_fit' => 'Add the type of work you want',
         'language_fit' => 'Add the languages you speak',
         'attribute_fit' => 'Fill in your profile details',
+        'mobility_fit' => f.text.toLowerCase().contains('time zone not set')
+            ? 'Add your time zone in Global mobility'
+            : 'Say where you would move in Global mobility',
+        'eligibility_fit' =>
+          'Add your right to work for this country in Global mobility',
         'trajectory_fit' || 'company_preference' => null,
         _ => f.text.isEmpty ? null : f.text,
       };
+
+  /// Short names for match factors, as shown in a breakdown.
+  static String? factorLabel(String factor) => switch (factor) {
+        'profession_fit' => 'Kind of work',
+        'skill_coverage_required' => 'Required skills',
+        'skill_coverage_preferred' => 'Helpful skills',
+        'skill_depth' => 'Skill level',
+        'experience_fit' => 'Experience',
+        'distance_fit' => 'Distance',
+        'pay_fit' => 'Pay',
+        'shift_fit' => 'Shifts',
+        'availability_fit' => 'Start date',
+        'work_type_fit' => 'Type of work',
+        'language_fit' => 'Languages',
+        'licence_coverage' => 'Licences',
+        'attribute_fit' => 'Profile details',
+        'mobility_fit' => 'Moving and time zones',
+        'eligibility_fit' => 'Right to work',
+        _ => null,
+      };
+
+  /// A factor line for the match breakdown. The Release 6 factors say what
+  /// they are about ("Right to work: Potentially eligible — missing: …"),
+  /// since their text alone ("Can move from 01 Nov 2026") lacks context.
+  static String factorLine(MatchFactor f) {
+    if (f.factor != 'mobility_fit' && f.factor != 'eligibility_fit') {
+      return f.text;
+    }
+    final label = factorLabel(f.factor)!;
+    return f.text.isEmpty ? label : '$label: ${f.text}';
+  }
 
   static String gateFailure(String code) => switch (code) {
         'job_open' => 'This job is no longer taking applications',

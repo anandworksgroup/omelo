@@ -42,6 +42,8 @@ export async function searchTalent(input: {
   query: string;
   radiusKm: number;
   offset: number;
+  /** R6 filters: eligibility, open_to_relocation, language, current_country, work_auth_country. */
+  filters?: Record<string, string | boolean | undefined>;
 }): Promise<Ok<{ data: SearchResult }> | Fail> {
   const c = await client();
   if ('error' in c) return { ok: false, error: SIGNED_OUT };
@@ -49,6 +51,13 @@ export async function searchTalent(input: {
   const query = input.query.trim();
   if (query.length > 80) return { ok: false, error: 'Keep the search under 80 characters.' };
   const radius = (RADII as readonly number[]).includes(input.radiusKm) ? input.radiusKm : 50;
+  // Only the keys this search understands, empty values dropped.
+  const ALLOWED = ['eligibility', 'open_to_relocation', 'language', 'current_country', 'work_auth_country'];
+  const filters: Record<string, string | boolean> = {};
+  for (const [k, v] of Object.entries(input.filters ?? {})) {
+    if (!ALLOWED.includes(k) || v === undefined || v === '') continue;
+    filters[k] = v;
+  }
 
   const { data, error } = await c.supabase.rpc('omelo_search_talent', {
     p_job_id: input.jobId,
@@ -56,6 +65,7 @@ export async function searchTalent(input: {
     p_radius_km: radius,
     p_limit: PAGE_SIZE,
     p_offset: Math.max(0, Math.floor(input.offset) || 0),
+    p_filters: filters,
   });
   if (error) {
     if (error.code !== '42501' && error.code !== '22023') reportError(error, { action: 'searchTalent' });

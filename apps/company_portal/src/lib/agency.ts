@@ -377,6 +377,11 @@ export type SearchFilters = {
   max_expected_pay_monthly?: number;
   verified_only?: boolean;
   work_auth_country?: string;
+  /** R6 */
+  eligibility?: string;
+  open_to_relocation?: boolean;
+  language?: string;
+  current_country?: string;
   consent_status?: string;
   previous_relationship?: boolean;
   pool_id?: string;

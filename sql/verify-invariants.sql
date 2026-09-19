@@ -136,7 +136,11 @@ with checks as (
                           'omelo_approve_earnings','omelo_record_payment','omelo_update_payment',
                           'omelo_update_billing_status','omelo_my_work','omelo_my_assignments','omelo_my_earnings',
                           'omelo_shift_roster','omelo_workforce_approvals','omelo_workforce_dashboard',
-                          'omelo_client_workforce','omelo_start_workforce_job','omelo_cancel_workforce_job')
+                          'omelo_client_workforce','omelo_start_workforce_job','omelo_cancel_workforce_job',
+                          -- Release 6 (59): global employment & mobility
+                          'omelo_convert_currency','omelo_normalized_pay','omelo_admin_add_exchange_rate',
+                          'omelo_job_eligibility','omelo_candidate_eligibility','omelo_global_jobs',
+                          'omelo_country_guide','omelo_license_requirements','omelo_save_mobility','omelo_my_mobility')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -653,6 +657,103 @@ with checks as (
                                 and tablename in ('earnings','earning_lines','payment_records')
                                 and coalesce(qual, '') like '%client_company_id%')
               then 'OK' else 'FAIL: pay or margin readable across the line' end
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 6 (migrations 57-60): global employment & mobility.
+  -- Attacked as real users in tests/api/global_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 57, 'R6-001 every money column names a known currency',
+         case when count(*) = 0 then 'OK' else 'FAIL: no currency FK on ' || string_agg(t || '.' || c, ', ') end
+  from (values ('jobs','pay_currency'), ('job_orders','pay_currency'), ('workforce_requirements','currency'),
+               ('assignments','currency'), ('assignment_billing','currency'), ('earnings','currency'),
+               ('payment_records','currency'), ('billing_records','currency'), ('person_work_preferences','pay_currency'),
+               ('offers','pay_currency'), ('experiences','pay_currency'), ('employments','pay_currency'),
+               ('placements','fee_currency'), ('company_legal_entities','currency')) v(t, c)
+  where not exists (select 1 from pg_constraint k
+                     join pg_attribute a on a.attrelid = k.conrelid and a.attnum = any (k.conkey)
+                    where k.contype = 'f' and k.conrelid = ('public.' || v.t)::regclass
+                      and k.confrelid = 'public.currencies'::regclass and a.attname = v.c)
+
+  union all
+  select 58, 'R6-002 conversions report rate, effective time and source; rates come with a source',
+         case when (public.omelo_convert_currency(100, 'EUR', 'INR')) ?& array['rate','effective_at','source','converted']
+               and not exists (select 1 from exchange_rates where length(trim(source)) < 3)
+              then 'OK' else 'FAIL: a conversion without its rate provenance' end
+
+  union all
+  select 59, 'R6-003 country-specific records point at a known country',
+         case when count(*) = 0 then 'OK' else 'FAIL: no country FK on ' || string_agg(t, ', ') end
+  from (values ('jobs'), ('license_types'), ('work_authorizations'), ('persons'), ('companies'), ('locations'),
+               ('workforce_requirements'), ('person_licenses'), ('employments'), ('experiences'),
+               ('license_requirements'), ('country_employment_info'), ('company_legal_entities'), ('mobility_profiles')) v(t)
+  where not exists (select 1 from pg_constraint k where k.contype = 'f' and k.conrelid = ('public.' || v.t)::regclass
+                       and k.confrelid = 'public.country_policies'::regclass)
+
+  union all
+  select 60, 'R6-004 only hard blockers make someone not eligible (matcher v1.2 gate uses eligibility)',
+         case when pg_get_functiondef('omelo_private.omelo_score_match(uuid,uuid)'::regprocedure) like '%v_elig->>''status'' = ''not_eligible''%'
+               and pg_get_functiondef('omelo_private.omelo_score_match(uuid,uuid)'::regprocedure) like '%''v1.2''%'
+              then 'OK' else 'FAIL: the matcher rejects on something other than eligibility' end
+
+  union all
+  select 61, 'R6-005 employers read work authorizations only when the worker shares them',
+         case when (select count(*) from pg_policies where schemaname = 'public' and tablename = 'work_authorizations'
+                     and cmd = 'SELECT' and policyname <> 'work_authorizations_self'
+                     and coalesce(qual, '') not like '%omelo_can_read_authorizations%') = 0
+               and pg_get_functiondef('omelo_private.omelo_can_read_authorizations(uuid)'::regprocedure)
+                   like '%authorization_visibility%'
+               and (select count(*) from pg_policies where schemaname = 'public' and tablename = 'work_authorizations') = 2
+              then 'OK' else 'FAIL: a work-authorization read path ignores the worker''s visibility' end
+
+  union all
+  select 62, 'R6-006 documents are readable only by their owner or an explicit share (never by profile visibility)',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || string_agg(policyname, ', ') end
+  from pg_policies where schemaname = 'public' and tablename = 'documents'
+    and policyname not in ('documents_self', 'documents_shared_read')
+
+  union all
+  select 63, 'R6-007 mobility profiles are private to the worker; default is eligibility only',
+         case when (select count(*) from pg_policies where tablename = 'mobility_profiles') = 1
+               and exists (select 1 from pg_policies where tablename = 'mobility_profiles' and policyname = 'mobility_profiles_self')
+               and (select column_default from information_schema.columns where table_name = 'mobility_profiles'
+                     and column_name = 'authorization_visibility') like '%eligibility_only%'
+              then 'OK' else 'FAIL: mobility profile readable by others or default not eligibility-only' end
+
+  union all
+  select 64, 'R6-008 country guidance cites an official https source and a review date',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' guidance rows without a source' end
+  from country_employment_info where official_url !~ '^https://' or length(trim(source_name)) = 0 or reviewed_at is null
+
+  union all
+  select 65, 'R6-009 reference data (currencies, rates, countries, guidance, licensing) is read-only for clients',
+         case when count(*) = 0 then 'OK' else 'FAIL: client write path — ' || string_agg(t || '.' || priv, ', ') end
+  from (select t, priv from unnest(array['currencies','exchange_rates','country_policies','country_employment_info',
+                                          'license_requirements']) t,
+                            unnest(array['insert','update','delete']) priv
+         where has_table_privilege('authenticated', 'public.' || t, priv)
+            or has_table_privilege('anon', 'public.' || t, priv)) x
+
+  union all
+  select 66, 'R6-010 sponsorship is consistent; remote jobs state a valid scope',
+         case when count(*) = 0 and exists (select 1 from pg_trigger where tgname = 'jobs_validate_global' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' jobs with inconsistent sponsorship or remote scope' end
+  from jobs
+  where visa_sponsorship is distinct from (sponsorship in ('yes','case_by_case'))
+     or (remote_scope = 'timezone' and (remote_tz_min_offset is null or remote_tz_max_offset < remote_tz_min_offset))
+     or (workplace_type <> 'remote' and remote_scope is not null)
+
+  union all
+  select 67, 'R6-011 exchange rates are history (never edited or deleted)',
+         case when exists (select 1 from pg_trigger where tgname = 'exchange_rates_append_only' and not tgisinternal
+                            and tgrelid = 'public.exchange_rates'::regclass)
+              then 'OK' else 'FAIL: exchange rates can be rewritten' end
+
+  union all
+  select 68, 'R6-012 employments keep their country and original pay currency',
+         case when exists (select 1 from pg_trigger where tgname = 'employments_validate_global' and not tgisinternal)
+               and not exists (select 1 from employments where pay_amount is not null and pay_currency is null)
+              then 'OK' else 'FAIL: an employment''s pay without currency, or the guard is missing' end
 )
 select n as "#", invariant, result from checks order by n;
 

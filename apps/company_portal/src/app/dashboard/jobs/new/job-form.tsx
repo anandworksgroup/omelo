@@ -4,6 +4,8 @@ import { useActionState, useEffect, useMemo, useState, useTransition } from 'rea
 import { createJob, type ActionState } from '../../actions';
 import { previewPool, type PoolPreview } from './preview';
 import { BENEFIT_LABEL, SHIFT_LABEL, WORK_TYPE_LABEL, formatPay } from '@/lib/format';
+import { readGlobalHiring, validateGlobalHiring, type CountryOption } from '@/lib/global';
+import GlobalHiringFields, { type EntityOption } from '@/components/global/global-hiring-fields';
 
 type Profession = {
   id: string;
@@ -34,13 +36,24 @@ export default function JobForm({
   professions,
   areas,
   companyName,
+  countries,
+  entities,
+  currencies,
+  defaultCurrency,
 }: {
   categories: { id: string; slug: string; name: string }[];
   professions: Profession[];
   areas: { id: string; label: string }[];
   companyName: string;
+  countries: CountryOption[];
+  entities: EntityOption[];
+  currencies: { code: string; name: string }[];
+  /** The company's country currency; the employer can change it. */
+  defaultCurrency: string;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createJob, {});
+  const [currency, setCurrency] = useState(defaultCurrency);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   const [categoryId, setCategoryId] = useState('');
   const [professionId, setProfessionId] = useState('');
@@ -74,6 +87,7 @@ export default function JobForm({
         locationId: locationId || undefined,
         minExperienceMonths: noExp ? null : Number(minExpMonths) || null,
         acceptsNoExperience: noExp,
+        currency: currency || undefined,
       });
       // Ignore a response that finished after the inputs changed again.
       if (current) setPoolPreview({ professionId, data: p });
@@ -81,12 +95,21 @@ export default function JobForm({
     return () => {
       current = false;
     };
-  }, [professionId, locationId, noExp, minExpMonths]);
+  }, [professionId, locationId, noExp, minExpMonths, currency]);
 
   const preview = poolPreview && poolPreview.professionId === professionId ? poolPreview.data : null;
 
   return (
-    <form action={action} className="space-y-8 pb-16">
+    <form
+      action={action}
+      className="space-y-8 pb-16"
+      onSubmit={(e) => {
+        // Same rules as the database trigger, checked before the round trip.
+        const err = validateGlobalHiring(readGlobalHiring(new FormData(e.currentTarget)), workplace, entities);
+        setClientError(err);
+        if (err) e.preventDefault();
+      }}
+    >
       {/* 1 — Basics */}
       <Section n={1} title="The basics">
         <Field label="Job title" hint="Write it the way a worker would say it. “Delivery Executive”, not “Logistics Associate II”.">
@@ -186,9 +209,33 @@ export default function JobForm({
         </Field>
       </Section>
 
-      {/* 3 — Pay */}
-      <Section n={3} title="Pay">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* 3 — Global hiring */}
+      <Section n={3} title="Global hiring">
+        <GlobalHiringFields
+          countries={countries}
+          entities={entities}
+          workplace={workplace}
+          onCurrencyHint={setCurrency}
+        />
+      </Section>
+
+      {/* 4 — Pay */}
+      <Section n={4} title="Pay">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <Field label="Currency">
+            <select
+              name="pay_currency"
+              className="input"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              {currencies.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} · {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="From">
             <input
               name="pay_min"
@@ -226,7 +273,6 @@ export default function JobForm({
             </select>
           </Field>
         </div>
-        <input type="hidden" name="pay_currency" value="INR" />
 
         {payMin && (
           <p className="text-sm">
@@ -235,7 +281,7 @@ export default function JobForm({
               {formatPay({
                 min: Number(payMin),
                 max: Number(payMax) || null,
-                currency: 'INR',
+                currency,
                 period: payPeriod,
               })}
             </strong>
@@ -268,8 +314,8 @@ export default function JobForm({
         )}
       </Section>
 
-      {/* 4 — Schedule */}
-      <Section n={4} title="Hours and schedule">
+      {/* 5 — Schedule */}
+      <Section n={5} title="Hours and schedule">
         <Field label="Type of work">
           <select name="work_type" className="input" defaultValue="full_time">
             {WORK_TYPES.map((w) => (
@@ -303,8 +349,8 @@ export default function JobForm({
         <Check name="is_immediate_start" label="Can start immediately" defaultChecked />
       </Section>
 
-      {/* 5 — Requirements */}
-      <Section n={5} title="Who can do this job">
+      {/* 6 — Requirements */}
+      <Section n={6} title="Who can do this job">
         <Check
           name="accepts_no_experience"
           label="Accept people with no experience"
@@ -361,8 +407,8 @@ export default function JobForm({
         )}
       </Section>
 
-      {/* 6 — Benefits */}
-      <Section n={6} title="What you offer">
+      {/* 7 — Benefits */}
+      <Section n={7} title="What you offer">
         <Field label="Benefits" hint="Transport, meals and accommodation matter more than perks for most jobs.">
           <div className="flex flex-wrap gap-2">
             {COMMON_BENEFITS.map((b) => (
@@ -383,6 +429,12 @@ export default function JobForm({
           />
         </Field>
       </Section>
+
+      {clientError && (
+        <p className="text-sm" role="alert" style={{ color: 'var(--color-danger)' }}>
+          {clientError}
+        </p>
+      )}
 
       {state.error && (
         <p className="text-sm" style={{ color: 'var(--color-danger)' }}>

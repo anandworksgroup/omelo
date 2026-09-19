@@ -1,11 +1,12 @@
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
+import { loadGlobalOptions } from '@/lib/global-data';
 import JobForm from './job-form';
 
 export default async function NewJobPage() {
   const ctx = (await getCompanyContext())!;
   const supabase = await createClient();
 
-  const [{ data: categories }, { data: professions }, { data: areas }, { data: cities }] =
+  const [{ data: categories }, { data: professions }, { data: areas }, { data: cities }, global] =
     await Promise.all([
       supabase
         .from('job_categories')
@@ -19,6 +20,7 @@ export default async function NewJobPage() {
         .order('name'),
       supabase.from('locations').select('id, name, parent_id').eq('kind', 'area').order('name'),
       supabase.from('locations').select('id, name').eq('kind', 'city'),
+      loadGlobalOptions(supabase, ctx.companyId),
     ]);
 
   const cityById = new Map((cities ?? []).map((c) => [c.id, c.name]));
@@ -34,11 +36,21 @@ export default async function NewJobPage() {
         Saved as a draft first. Nothing is visible to workers until you publish.
       </p>
 
+      {global.error && (
+        <p className="text-sm mb-4" style={{ color: 'var(--color-warn)' }}>
+          Some global-hiring options could not be loaded: {global.error}
+        </p>
+      )}
+
       <JobForm
         categories={categories ?? []}
         professions={professions ?? []}
         areas={areaOptions}
         companyName={ctx.companyName}
+        countries={global.countries}
+        entities={global.entities}
+        currencies={global.currencies}
+        defaultCurrency={global.defaultCurrency}
       />
     </div>
   );

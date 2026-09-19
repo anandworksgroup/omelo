@@ -12,7 +12,7 @@ function totals(items: PlacementItem[]) {
   const m = new Map<string, number>();
   for (const p of items) {
     if (p.feeAmount == null) continue;
-    const c = p.feeCurrency || 'INR';
+    const c = p.feeCurrency || '';
     m.set(c, (m.get(c) ?? 0) + p.feeAmount);
   }
   return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));

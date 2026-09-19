@@ -410,7 +410,7 @@ export function SendOfferForm({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label" htmlFor={`${uid}of_pay`}>
-              Pay ({defaults.currency ?? 'INR'})
+              Pay{defaults.currency ? ` (${defaults.currency})` : ''}
             </label>
             <input
               id={`${uid}of_pay`}

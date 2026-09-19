@@ -10,6 +10,8 @@ import { SubmitCandidate, WithdrawRequest } from '../../consent-ui';
 import ScopedProfileView from '../../scoped-profile';
 import { ConsentPill, ErrorNote, Notice, PageHeader, ScopeChips, Section, SubmissionPill } from '../../ui';
 import { whyCannotSubmit } from '../consent-row';
+import { parseCandidateEligibility } from '@/lib/global';
+import { EligibilityPanel } from '@/components/global/eligibility';
 
 export const metadata: Metadata = { title: 'Consented profile · Omelo' };
 
@@ -41,7 +43,7 @@ export default async function ConsentedCandidatePage({ params }: { params: Promi
 
   const [profileRes, orderRes, mineRes] = await Promise.all([
     inForce ? supabase.rpc('omelo_consent_candidate', { p_consent: consent }) : Promise.resolve({ data: null, error: null }),
-    supabase.from('job_orders').select('id, status, client_job_id').eq('id', row.jobOrderId).maybeSingle(),
+    supabase.from('job_orders').select('id, status, client_job_id, job_id').eq('id', row.jobOrderId).maybeSingle(),
     user
       ? supabase.from('job_order_recruiters').select('person_id').eq('job_order_id', row.jobOrderId).eq('person_id', user.id)
       : Promise.resolve({ data: [] as { person_id: string }[] }),
@@ -58,6 +60,11 @@ export default async function ConsentedCandidatePage({ params }: { params: Promi
         order,
         nowMs,
       });
+  const identityId = row.card?.workIdentityId ?? profile?.identity.workIdentityId ?? null;
+  const eligibilityRes =
+    inForce && orderRes.data?.job_id && identityId
+      ? await supabase.rpc('omelo_candidate_eligibility', { p_job: orderRes.data.job_id, p_identity: identityId })
+      : null;
   const left = inForce ? daysLeft(row.expiresAt, nowMs) : null;
   const limited = !agencyCan(ctx, 'view_candidate_details');
 
@@ -128,6 +135,14 @@ export default async function ConsentedCandidatePage({ params }: { params: Promi
           {row.status === 'requested' && agencyCan(ctx, 'request_consent') && <WithdrawRequest consentId={row.consentId} />}
         </div>
       </Section>
+
+      {eligibilityRes && (
+        <EligibilityPanel
+          eligibility={parseCandidateEligibility(eligibilityRes.data ?? null)}
+          error={eligibilityRes.error?.message ?? null}
+          jobTitle={row.position}
+        />
+      )}
 
       {!inForce ? (
         <Notice title="The profile is not available">

@@ -17,6 +17,7 @@ const EMPLOYER_NAV: Item[] = [
   { href: '/dashboard/offers', label: 'Offers' },
   { href: '/dashboard/workforce', label: 'Workforce' },
   { href: '/dashboard/agencies', label: 'Agencies' },
+  { href: '/dashboard/global', label: 'Global' },
   { href: '/dashboard/team', label: 'Team' },
   { href: '/dashboard/company', label: 'Company' },
   { href: '/dashboard/settings', label: 'Settings' },
@@ -37,6 +38,7 @@ const AGENCY_NAV: Item[] = [
   { href: '/dashboard/workforce', label: 'Workforce' },
   { href: `${A}/analytics`, label: 'Analytics' },
   { href: `${A}/billing`, label: 'Billing' },
+  { href: '/dashboard/global', label: 'Global' },
   { href: '/dashboard/team', label: 'Team' },
   { href: '/dashboard/company', label: 'Settings' },
 ];
