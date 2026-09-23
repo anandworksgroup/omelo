@@ -18,6 +18,8 @@ import FunnelPanel from './funnel';
 import InvitationsPanel from './invitations';
 import GlobalHiringEditor from './global-editor';
 import JobTabs from './job-tabs';
+import ApprovalPanel from './approval-panel';
+import { parseApprovalStatus, publishBlockedReason } from '@/lib/enterprise';
 import { loadGlobalOptions } from '@/lib/global-data';
 import {
   REMOTE_SCOPE_LABEL,
@@ -80,7 +82,7 @@ export default async function JobDetailPage({
   const canEditRounds = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(ctx.role);
 
   const payAmount = job.pay_max ?? job.pay_min;
-  const [funnelRes, invitationsRes, global, normRes] = await Promise.all([
+  const [funnelRes, invitationsRes, global, normRes, approvalRes] = await Promise.all([
     supabase.rpc('omelo_job_funnel', { p_job_id: id }),
     supabase.rpc('omelo_job_invitations', { p_job_id: id }),
     loadGlobalOptions(supabase, ctx.companyId),
@@ -91,8 +93,12 @@ export default async function JobDetailPage({
           p_currency: job.pay_currency,
         })
       : Promise.resolve({ data: null, error: null }),
+    supabase.rpc('omelo_approval_status', { p_entity_type: 'job', p_entity_id: id }),
   ]);
   const normalized = parseNormalizedPay(normRes.data ?? null);
+  // R8: an organization may require a job to be approved before it goes live.
+  const approval = approvalRes.error ? null : parseApprovalStatus(approvalRes.data ?? null);
+  const publishBlocked = publishBlockedReason(approval);
   const globalValues: GlobalHiring = {
     country_code: job.country_code?.trim() ?? null,
     legal_entity_id: job.legal_entity_id,
@@ -157,10 +163,16 @@ export default async function JobDetailPage({
               Publishing makes this job appear in nearby search immediately for
               workers within range.
             </p>
-            <form action={publishJob}>
-              <input type="hidden" name="job_id" value={job.id} />
-              <button className="btn btn-primary">Publish job</button>
-            </form>
+            {publishBlocked ? (
+              <p className="text-sm" style={{ color: 'var(--color-warn)' }}>
+                {publishBlocked} Use the approval panel below.
+              </p>
+            ) : (
+              <form action={publishJob}>
+                <input type="hidden" name="job_id" value={job.id} />
+                <button className="btn btn-primary">Publish job</button>
+              </form>
+            )}
           </>
         ) : (
           <>
@@ -191,6 +203,26 @@ export default async function JobDetailPage({
           </>
         )}
       </div>
+
+      {/* Approval (only when this organization approves jobs) */}
+      {approvalRes.error ? (
+        <section className="card p-5">
+          <h2 className="font-bold mb-1">Approval</h2>
+          <p className="text-sm" style={{ color: 'var(--color-danger)' }}>
+            Could not check whether this job needs approval:{' '}
+            <span className="muted">{approvalRes.error.message}</span>
+          </p>
+        </section>
+      ) : (
+        <ApprovalPanel
+          jobId={job.id}
+          status={approval}
+          isPublished={isPublished}
+          canSubmit={ctx.roles.some((r) =>
+            ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(r)
+          )}
+        />
+      )}
 
       {/* What the worker sees */}
       <section className="card p-5 space-y-4">

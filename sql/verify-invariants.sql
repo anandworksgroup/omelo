@@ -144,7 +144,13 @@ with checks as (
                           -- Release 7 (65-66): career + employer intelligence
                           'omelo_suggest_career_goals','omelo_career_path','omelo_save_career_goal',
                           'omelo_start_skill_assessment','omelo_submit_skill_assessment','omelo_market_insights',
-                          'omelo_job_intelligence','omelo_company_intelligence')
+                          'omelo_job_intelligence','omelo_company_intelligence',
+                          -- Release 8 (70-71): enterprise organizations, approvals, RPO
+                          'omelo_save_approval_workflow','omelo_submit_for_approval','omelo_decide_approval',
+                          'omelo_cancel_approval','omelo_my_approvals','omelo_approval_status',
+                          'omelo_create_rpo_engagement','omelo_set_rpo_scope','omelo_assign_rpo_recruiter',
+                          'omelo_propose_rpo_engagement','omelo_respond_rpo_engagement','omelo_set_rpo_status',
+                          'omelo_rpo_engagements','omelo_rpo_my_work')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -807,6 +813,95 @@ with checks as (
                             unnest(array['insert','update','delete']) priv
          where has_table_privilege('authenticated', 'public.' || t, priv)
             or has_table_privilege('anon', 'public.' || t, priv)) x
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 8 (migrations 68-71): enterprise organizations, approvals, RPO.
+  -- Cross-organization isolation is attacked as real users in tests/api/enterprise_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 75, 'R8-001 one organization model: the type and the capability flag agree',
+         case when count(*) = 0 and exists (select 1 from pg_trigger where tgname = 'companies_sync_organization_type' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' organizations whose type and kind disagree' end
+  from companies
+  where (organization_type = 'employer') <> (company_kind = 'employer')
+
+  union all
+  select 76, 'R8-002 a scoped member reaches only the parts of the organization granted to them',
+         case when count(*) = 0
+               and pg_get_functiondef('omelo_private.omelo_scope_covers(uuid,uuid,company_role[],uuid,uuid,uuid)'::regprocedure)
+                   like '%scope_mode = ''organization''%'
+               and exists (select 1 from pg_trigger where tgname = 'company_role_grants_validate' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' grants point outside their organization' end
+  from company_role_grants g
+  where (g.scope_type = 'department' and not exists (select 1 from departments d where d.id = g.scope_id and d.company_id = g.company_id))
+     or (g.scope_type = 'business_unit' and not exists (select 1 from business_units b where b.id = g.scope_id and b.company_id = g.company_id))
+     or (g.scope_type = 'location' and not exists (select 1 from company_locations l where l.id = g.scope_id and l.company_id = g.company_id))
+     or (g.scope_type = 'legal_entity' and not exists (select 1 from company_legal_entities e where e.id = g.scope_id and e.company_id = g.company_id))
+     or not exists (select 1 from company_members m where m.company_id = g.company_id and m.person_id = g.person_id and m.is_active)
+
+  union all
+  select 77, 'R8-003 approvals are written by functions only, and nobody approves their own request',
+         case when count(*) = 0
+               and not has_table_privilege('authenticated', 'public.approval_requests', 'insert')
+               and not has_table_privilege('authenticated', 'public.approval_requests', 'update')
+               and not has_table_privilege('authenticated', 'public.approval_decisions', 'insert')
+               and not has_table_privilege('anon', 'public.approval_decisions', 'insert')
+              then 'OK' else 'FAIL: ' || count(*)::text || ' self-approvals, or a client write path' end
+  from approval_decisions d join approval_requests r on r.id = d.request_id
+  where d.decided_by = r.requested_by
+
+  union all
+  select 78, 'R8-004 where an organization requires approval, nothing goes live without it',
+         case when count(*) = 0 and exists (select 1 from pg_trigger where tgname = 'jobs_approval_gate' and not tgisinternal)
+               and exists (select 1 from pg_trigger where tgname = 'workforce_requirements_approval_gate' and not tgisinternal)
+              then 'OK' else 'FAIL: ' || count(*)::text || ' live without an approved request' end
+  from jobs j
+  where j.status = 'published'
+    and exists (select 1 from approval_workflows w where w.company_id = j.company_id and w.entity_type = 'job' and w.is_active)
+    and not exists (select 1 from approval_requests r where r.entity_type = 'job' and r.entity_id = j.id and r.status = 'approved')
+
+  union all
+  select 79, 'R8-005 an RPO engagement is confirmed by the client, scoped, and never client-written',
+         case when count(*) = 0
+               and not has_table_privilege('authenticated', 'public.rpo_engagements', 'insert')
+               and not has_table_privilege('authenticated', 'public.rpo_engagements', 'update')
+               and not has_table_privilege('authenticated', 'public.rpo_scopes', 'insert')
+               and not has_table_privilege('authenticated', 'public.rpo_assignments', 'insert')
+              then 'OK' else 'FAIL: ' || count(*)::text || ' engagements active without the client''s confirmation or a scope' end
+  from rpo_engagements e
+  where e.status = 'active'
+    and (e.responded_by is null or not exists (select 1 from rpo_scopes s where s.engagement_id = e.id))
+
+  union all
+  select 80, 'R8-006 an RPO recruiter reaches only what the engagement authorizes',
+         case when pg_get_functiondef('omelo_private.omelo_can_access_job(uuid)'::regprocedure) like '%omelo_rpo_covers_job%'
+               and pg_get_functiondef('omelo_private.omelo_rpo_covers_job(uuid,text)'::regprocedure) like '%rpo_scopes%'
+               and pg_get_functiondef('omelo_private.omelo_rpo_covers_job(uuid,text)'::regprocedure) like '%p_permission = any (e.permissions)%'
+               and count(*) = 0
+              then 'OK' else 'FAIL: ' || count(*)::text || ' RPO scopes or recruiters outside their engagement' end
+  from rpo_engagements e
+  where exists (select 1 from rpo_scopes s where s.engagement_id = e.id
+                 and ((s.scope_type = 'department' and not exists (select 1 from departments d where d.id = s.scope_id and d.company_id = e.client_company_id))
+                   or (s.scope_type = 'business_unit' and not exists (select 1 from business_units b where b.id = s.scope_id and b.company_id = e.client_company_id))
+                   or (s.scope_type = 'location' and not exists (select 1 from company_locations l where l.id = s.scope_id and l.company_id = e.client_company_id))
+                   or (s.scope_type = 'job' and not exists (select 1 from jobs j where j.id = s.scope_id and j.company_id = e.client_company_id))))
+     or exists (select 1 from rpo_assignments a where a.engagement_id = e.id
+                 and not exists (select 1 from company_members m where m.company_id = e.provider_id and m.person_id = a.person_id and m.is_active))
+
+  union all
+  select 81, 'R8-007 organizations stay separate: a provider is never its own client',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' engagements cross the line' end
+  from rpo_engagements where provider_id = client_company_id
+
+  union all
+  select 82, 'R8-008 money stays where it belongs: no RPO or scope rule opens pay or margin',
+         case when not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('earnings','earning_lines','payment_records','assignment_billing','billing_records')
+                                and coalesce(qual, '') like '%rpo_%')
+               and not exists (select 1 from pg_policies where schemaname = 'public'
+                                and tablename in ('offers','employments')
+                                and coalesce(qual, '') like '%rpo_engagements%')
+              then 'OK' else 'FAIL: an R8 rule reaches pay, margin or offers directly' end
 )
 select n as "#", invariant, result from checks order by n;
 

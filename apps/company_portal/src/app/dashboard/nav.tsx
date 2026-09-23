@@ -15,11 +15,13 @@ const EMPLOYER_NAV: Item[] = [
   { href: '/dashboard/messages', label: 'Messages', badge: true },
   { href: '/dashboard/interviews', label: 'Interviews' },
   { href: '/dashboard/offers', label: 'Offers' },
+  { href: '/dashboard/approvals', label: 'Approvals' },
   { href: '/dashboard/insights', label: 'Insights' },
   { href: '/dashboard/workforce', label: 'Workforce' },
   { href: '/dashboard/agencies', label: 'Agencies' },
   { href: '/dashboard/global', label: 'Global' },
   { href: '/dashboard/team', label: 'Team' },
+  { href: '/dashboard/organization', label: 'Organization' },
   { href: '/dashboard/company', label: 'Company' },
   { href: '/dashboard/settings', label: 'Settings' },
 ];
@@ -51,6 +53,19 @@ const INSIGHTS_ITEM: Item = { href: '/dashboard/insights', label: 'Insights' };
 const ADMIN_ITEM: Item = { href: '/admin', label: 'Admin' };
 
 /**
+ * RPO belongs to both sides: the organization running recruiting for someone
+ * else, and the one it is run for. The layout decides when to show it.
+ */
+const RPO_ITEM: Item = { href: '/dashboard/rpo', label: 'RPO' };
+
+/** Put an item just before Global, which both menus have. */
+function withRpo(items: Item[]): Item[] {
+  const at = items.findIndex((i) => i.href === '/dashboard/global');
+  if (at < 0) return [...items, RPO_ITEM];
+  return [...items.slice(0, at), RPO_ITEM, ...items.slice(at)];
+}
+
+/**
  * Dashboard navigation: one row under the header, wrapping on desktop and
  * scrolling sideways on phones. Agencies and employers get different menus;
  * the current workspace decides which.
@@ -60,16 +75,19 @@ export default function DashboardNav({
   kind,
   isAdmin = false,
   agencyHasJobs = false,
+  showRpo = false,
 }: {
   companyId: string;
   kind: 'employer' | 'agency';
   isAdmin?: boolean;
   agencyHasJobs?: boolean;
+  showRpo?: boolean;
 }) {
   const agency = agencyHasJobs
     ? [...AGENCY_NAV.slice(0, -3), INSIGHTS_ITEM, ...AGENCY_NAV.slice(-3)]
     : AGENCY_NAV;
-  const base = kind === 'agency' ? agency : EMPLOYER_NAV;
+  const menu = kind === 'agency' ? agency : EMPLOYER_NAV;
+  const base = showRpo ? withRpo(menu) : menu;
   const items = isAdmin ? [...base, ADMIN_ITEM] : base;
   const unreadMessages = useUnreadMessages(companyId);
   const path = usePathname();

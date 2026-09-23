@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import { AGENCY_ROLE_HELP, EMPLOYER_ROLE_HELP, roleLabel } from '@/lib/agency';
 import { loadTeam, memberName } from '@/lib/team';
@@ -27,12 +28,17 @@ export default async function TeamPage() {
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold">Team</h1>
-        <p className="text-sm muted mt-1">
-          People who work in {ctx.companyName}. Nobody joins without accepting an invitation sent to their own
-          email address.
-        </p>
+      <div className="flex items-start gap-3 flex-wrap">
+        <div className="flex-1 min-w-[14rem]">
+          <h1 className="text-xl sm:text-2xl font-bold">Team</h1>
+          <p className="text-sm muted mt-1">
+            People who work in {ctx.companyName}. Nobody joins without accepting an invitation sent to their own
+            email address.
+          </p>
+        </div>
+        <Link href="/dashboard/people" className="btn btn-ghost w-full sm:w-auto">
+          People &amp; access
+        </Link>
       </div>
 
       {canManage ? (

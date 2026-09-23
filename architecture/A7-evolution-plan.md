@@ -226,6 +226,7 @@ recommendations, audit, intelligence.
 | WorkforceRequirementCreated, AssignmentOffered/Accepted/Declined/Started/Paused/Completed/Terminated/Cancelled/Ending, ShiftAssigned/Offered/Changed/Cancelled, WorkerCheckedIn/CheckedOut/Late/Absent, LeaveRequested/Approved/Rejected, TimesheetSubmitted/Approved/Rejected, EarningsApproved, PaymentRecorded, WorkforceBulkQueued | ✓ R5 | workforce functions + scheduler |
 | MobilityProfileUpdated, TalentSearched (with global filters), exchange_rate.added (audit) | ✓ R6 | mobility, search and admin functions |
 | CareerGoalSet, SkillAssessmentPassed, SkillAssessmentFailed | ✓ R7 | career functions |
+| ApprovalWorkflowSaved, ApprovalRequested, ApprovalStepApproved, ApprovalRejected, ApprovalCancelled, RpoEngagementCreated/Proposed/Activated/Declined/StatusChanged, RpoScopeChanged, RpoRecruiterAssigned | ✓ R8 | approval and RPO functions |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
 and sent atomically; drafts are not events).
@@ -419,3 +420,24 @@ pipeline — to help workers grow and employers understand where hiring is stuck
 | Aggregates only — no names or person ids; expectations only from 5+ workers | ✓ R7-004, R7-005 |
 | Reference data read-only for clients | ✓ R7-006 |
 | Proven as real users | ✓ `tests/api/career_e2e.py` + all earlier suites re-run |
+
+### Release 8 status (backend proven — migrations 68–71)
+
+Large organizations and outsourced recruitment, without a second product: an agency, an RPO provider
+and an employer are all one `companies` row with a different type, and a worker never has to know
+which it is.
+
+| Item | State |
+|---|---|
+| One organization model: employer, staffing agency, recruitment agency, RPO provider, workforce provider | ✓ R8-001 |
+| Structure: legal entities, business units (nestable), departments, locations, teams, members — no duplicated organizations | ✓ |
+| Roles answer who / what / where: a scoped member reaches only their granted business units, departments, locations or legal entities | ✓ R8-002 |
+| Scope flows into everything downstream, because the existing authority helpers carry it (jobs, candidates, interviews, offers) | ✓ |
+| Configurable approval chains per organization and entity (job, workforce requirement, offer) | ✓ R8-003 |
+| Nothing goes live without its approvals; nobody approves their own request; every decision audited | ✓ R8-004 |
+| RPO engagement: proposed by the provider, confirmed by the client, with explicit scope, permissions and dates | ✓ R8-005 |
+| An RPO recruiter sees exactly the client work the engagement authorizes — and loses it the moment it is paused or ended | ✓ R8-006 |
+| Organizations stay separate: no cross-organization read, no self-engagement, recruiters only from the provider's team | ✓ R8-007 |
+| Money stays where it belongs: worker pay, agency margin and client billing are untouched by any R8 rule | ✓ R8-008 |
+| Candidate ownership unchanged: the worker still owns their identity; RPO works inside the client's pipeline | ✓ |
+| Proven as real users | ✓ `tests/api/enterprise_e2e.py` (organization → structure → scoped roles → approvals → RPO → candidates → interview → offer) |

@@ -414,6 +414,211 @@ export type Database = {
           },
         ]
       }
+      approval_decisions: {
+        Row: {
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          note: string | null
+          position: number
+          request_id: string
+          step_id: string | null
+        }
+        Insert: {
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          note?: string | null
+          position: number
+          request_id: string
+          step_id?: string | null
+        }
+        Update: {
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          note?: string | null
+          position?: number
+          request_id?: string
+          step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_decisions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_decisions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_decisions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          company_id: string
+          decided_at: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          note: string | null
+          position: number
+          requested_at: string
+          requested_by: string
+          status: string
+          workflow_id: string
+        }
+        Insert: {
+          company_id: string
+          decided_at?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          note?: string | null
+          position?: number
+          requested_at?: string
+          requested_by: string
+          status?: string
+          workflow_id: string
+        }
+        Update: {
+          company_id?: string
+          decided_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          note?: string | null
+          position?: number
+          requested_at?: string
+          requested_by?: string
+          status?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_steps: {
+        Row: {
+          approver_role: Database["public"]["Enums"]["company_role"]
+          approver_scope: string
+          id: string
+          name: string
+          position: number
+          required_approvals: number
+          workflow_id: string
+        }
+        Insert: {
+          approver_role: Database["public"]["Enums"]["company_role"]
+          approver_scope?: string
+          id?: string
+          name: string
+          position: number
+          required_approvals?: number
+          workflow_id: string
+        }
+        Update: {
+          approver_role?: Database["public"]["Enums"]["company_role"]
+          approver_scope?: string
+          id?: string
+          name?: string
+          position?: number
+          required_approvals?: number
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_steps_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflows: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          entity_type: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          entity_type: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          entity_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           application_id: string
@@ -1181,6 +1386,51 @@ export type Database = {
           },
         ]
       }
+      business_units: {
+        Row: {
+          code: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_units_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       candidate_consent_events: {
         Row: {
           actor_id: string | null
@@ -1765,6 +2015,7 @@ export type Database = {
           logo_url: string | null
           media: Json
           median_response_hours: number | null
+          organization_type: string
           registration_number: string | null
           response_rate_pct: number | null
           size_band: Database["public"]["Enums"]["company_size_band"] | null
@@ -1799,6 +2050,7 @@ export type Database = {
           logo_url?: string | null
           media?: Json
           median_response_hours?: number | null
+          organization_type?: string
           registration_number?: string | null
           response_rate_pct?: number | null
           size_band?: Database["public"]["Enums"]["company_size_band"] | null
@@ -1833,6 +2085,7 @@ export type Database = {
           logo_url?: string | null
           media?: Json
           median_response_hours?: number | null
+          organization_type?: string
           registration_number?: string | null
           response_rate_pct?: number | null
           size_band?: Database["public"]["Enums"]["company_size_band"] | null
@@ -2105,6 +2358,7 @@ export type Database = {
           joined_at: string
           person_id: string
           role: Database["public"]["Enums"]["company_role"]
+          scope_mode: string
           title: string | null
         }
         Insert: {
@@ -2116,6 +2370,7 @@ export type Database = {
           joined_at?: string
           person_id: string
           role: Database["public"]["Enums"]["company_role"]
+          scope_mode?: string
           title?: string | null
         }
         Update: {
@@ -2127,6 +2382,7 @@ export type Database = {
           joined_at?: string
           person_id?: string
           role?: Database["public"]["Enums"]["company_role"]
+          scope_mode?: string
           title?: string | null
         }
         Relationships: [
@@ -2153,6 +2409,61 @@ export type Database = {
           },
           {
             foreignKeyName: "company_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_role_grants: {
+        Row: {
+          company_id: string
+          created_at: string
+          granted_by: string | null
+          id: string
+          person_id: string
+          role: Database["public"]["Enums"]["company_role"]
+          scope_id: string | null
+          scope_type: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          person_id: string
+          role: Database["public"]["Enums"]["company_role"]
+          scope_id?: string | null
+          scope_type: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          person_id?: string
+          role?: Database["public"]["Enums"]["company_role"]
+          scope_id?: string | null
+          scope_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_role_grants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_role_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_role_grants_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
@@ -2398,6 +2709,7 @@ export type Database = {
       }
       departments: {
         Row: {
+          business_unit_id: string | null
           company_id: string
           created_at: string
           id: string
@@ -2405,6 +2717,7 @@ export type Database = {
           parent_id: string | null
         }
         Insert: {
+          business_unit_id?: string | null
           company_id: string
           created_at?: string
           id?: string
@@ -2412,6 +2725,7 @@ export type Database = {
           parent_id?: string | null
         }
         Update: {
+          business_unit_id?: string | null
           company_id?: string
           created_at?: string
           id?: string
@@ -2419,6 +2733,13 @@ export type Database = {
           parent_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "departments_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "departments_company_id_fkey"
             columns: ["company_id"]
@@ -7709,6 +8030,179 @@ export type Database = {
           },
         ]
       }
+      rpo_assignments: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          engagement_id: string
+          id: string
+          is_active: boolean
+          person_id: string
+          role: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          engagement_id: string
+          id?: string
+          is_active?: boolean
+          person_id: string
+          role?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          is_active?: boolean
+          person_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rpo_assignments_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_assignments_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "rpo_engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_assignments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rpo_engagements: {
+        Row: {
+          client_company_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          permissions: string[]
+          proposed_at: string | null
+          provider_id: string
+          reference: string | null
+          responded_at: string | null
+          responded_by: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_company_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          permissions?: string[]
+          proposed_at?: string | null
+          provider_id: string
+          reference?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_company_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          permissions?: string[]
+          proposed_at?: string | null
+          provider_id?: string
+          reference?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rpo_engagements_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_engagements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_engagements_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_engagements_responded_by_fkey"
+            columns: ["responded_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rpo_scopes: {
+        Row: {
+          created_at: string
+          engagement_id: string
+          id: string
+          scope_id: string | null
+          scope_type: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_id: string
+          id?: string
+          scope_id?: string | null
+          scope_type: string
+        }
+        Update: {
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          scope_id?: string | null
+          scope_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rpo_scopes_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "rpo_engagements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_jobs: {
         Row: {
           created_at: string
@@ -8481,6 +8975,104 @@ export type Database = {
           {
             foreignKeyName: "talent_pools_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          added_at: string
+          person_id: string
+          team_id: string
+        }
+        Insert: {
+          added_at?: string
+          person_id: string
+          team_id: string
+        }
+        Update: {
+          added_at?: string
+          person_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          business_unit_id: string | null
+          company_id: string
+          created_at: string
+          department_id: string | null
+          id: string
+          is_active: boolean
+          lead_person_id: string | null
+          name: string
+          purpose: string | null
+        }
+        Insert: {
+          business_unit_id?: string | null
+          company_id: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean
+          lead_person_id?: string | null
+          name: string
+          purpose?: string | null
+        }
+        Update: {
+          business_unit_id?: string | null
+          company_id?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_active?: boolean
+          lead_person_id?: string | null
+          name?: string
+          purpose?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_business_unit_id_fkey"
+            columns: ["business_unit_id"]
+            isOneToOne: false
+            referencedRelation: "business_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_lead_person_id_fkey"
+            columns: ["lead_person_id"]
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
@@ -9262,6 +9854,10 @@ export type Database = {
         Returns: Json
       }
       omelo_am_i_platform_admin: { Args: never; Returns: boolean }
+      omelo_approval_status: {
+        Args: { p_entity_id: string; p_entity_type: string }
+        Returns: Json
+      }
       omelo_approve_earnings: {
         Args: { p_earning: string }
         Returns: undefined
@@ -9279,6 +9875,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      omelo_assign_rpo_recruiter: {
+        Args: {
+          p_active?: boolean
+          p_engagement: string
+          p_person: string
+          p_role?: string
+        }
+        Returns: Json
+      }
       omelo_assign_shift: {
         Args: { p_assignments: string[]; p_shift: string }
         Returns: Json
@@ -9292,6 +9897,10 @@ export type Database = {
         Returns: string
       }
       omelo_cancel_account_deletion: { Args: never; Returns: boolean }
+      omelo_cancel_approval: {
+        Args: { p_note?: string; p_request: string }
+        Returns: Json
+      }
       omelo_cancel_interview: {
         Args: { p_interview_id: string; p_reason: string }
         Returns: undefined
@@ -9417,6 +10026,7 @@ export type Database = {
         Args: { p_company: string; p_fields: Json }
         Returns: string
       }
+      omelo_create_rpo_engagement: { Args: { p: Json }; Returns: Json }
       omelo_create_shift: {
         Args: { p_requirement: string; p_shift: Json }
         Returns: string
@@ -9429,6 +10039,10 @@ export type Database = {
           p_profession_id?: string
         }
         Returns: string
+      }
+      omelo_decide_approval: {
+        Args: { p_approve: boolean; p_note?: string; p_request: string }
+        Returns: Json
       }
       omelo_decline_team_invitation: {
         Args: { p_invitation: string }
@@ -9522,6 +10136,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["application_state"]
       }
       omelo_my_agency_relationships: { Args: never; Returns: Json }
+      omelo_my_approvals: { Args: { p_company?: string }; Returns: Json }
       omelo_my_assignments: { Args: never; Returns: Json }
       omelo_my_earnings: { Args: never; Returns: Json }
       omelo_my_invitations: { Args: never; Returns: Json }
@@ -9629,6 +10244,10 @@ export type Database = {
           slug: string
           sort_position: number
         }[]
+      }
+      omelo_propose_rpo_engagement: {
+        Args: { p_engagement: string }
+        Returns: Json
       }
       omelo_rank_applicants: {
         Args: { p_job_id: string }
@@ -9756,6 +10375,10 @@ export type Database = {
         Args: { p_accept: boolean; p_client: string }
         Returns: undefined
       }
+      omelo_respond_rpo_engagement: {
+        Args: { p_accept: boolean; p_engagement: string; p_note?: string }
+        Returns: Json
+      }
       omelo_respond_to_assignment: {
         Args: { p_accept: boolean; p_assignment: string; p_reason?: string }
         Returns: string
@@ -9801,6 +10424,9 @@ export type Database = {
         Returns: undefined
       }
       omelo_revoke_session: { Args: { p_session_id: string }; Returns: boolean }
+      omelo_rpo_engagements: { Args: { p_company: string }; Returns: Json }
+      omelo_rpo_my_work: { Args: { p_engagement?: string }; Returns: Json }
+      omelo_save_approval_workflow: { Args: { p: Json }; Returns: Json }
       omelo_save_career_goal: { Args: { p: Json }; Returns: Json }
       omelo_save_identity_profile: {
         Args: { p_identity: string; p_values: Json }
@@ -9919,6 +10545,19 @@ export type Database = {
         Args: { p_identity: string }
         Returns: undefined
       }
+      omelo_set_rpo_scope: {
+        Args: {
+          p_add?: boolean
+          p_engagement: string
+          p_scope_id?: string
+          p_scope_type: string
+        }
+        Returns: Json
+      }
+      omelo_set_rpo_status: {
+        Args: { p_engagement: string; p_note?: string; p_status: string }
+        Returns: Json
+      }
       omelo_shift_replacements: { Args: { p_shift: string }; Returns: Json }
       omelo_shift_roster: { Args: { p_shift: string }; Returns: Json }
       omelo_start_conversation: {
@@ -9940,6 +10579,10 @@ export type Database = {
       omelo_submit_candidate: {
         Args: { p_consent: string; p_note?: string }
         Returns: string
+      }
+      omelo_submit_for_approval: {
+        Args: { p_entity_id: string; p_entity_type: string; p_note?: string }
+        Returns: Json
       }
       omelo_submit_skill_assessment: {
         Args: { p_answers: number[]; p_attempt: string }
@@ -10224,6 +10867,9 @@ export type Database = {
         | "representation_update"
         | "shift_update"
         | "work_update"
+        | "approval_request"
+        | "approval_update"
+        | "rpo_update"
       offer_status:
         | "draft"
         | "sent"
@@ -10712,6 +11358,9 @@ export const Constants = {
         "representation_update",
         "shift_update",
         "work_update",
+        "approval_request",
+        "approval_update",
+        "rpo_update",
       ],
       offer_status: [
         "draft",

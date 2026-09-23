@@ -24,7 +24,7 @@ export default async function DashboardLayout({
   if (!ctx) redirect('/onboarding');
 
   const supabase = await createClient();
-  const [trustRes, isAdmin, memberships, invitesRes, agencyJobsRes] = await Promise.all([
+  const [trustRes, isAdmin, memberships, invitesRes, agencyJobsRes, orgRes, rpoRes] = await Promise.all([
     supabase.rpc('omelo_my_trust_status'),
     isPlatformAdmin(),
     getMemberships(),
@@ -33,6 +33,10 @@ export default async function DashboardLayout({
     ctx.kind === 'agency'
       ? supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', ctx.companyId)
       : Promise.resolve({ count: 0 }),
+    // R8: what kind of organization this is, and whether RPO applies to it.
+    supabase.from('companies').select('organization_type').eq('id', ctx.companyId).maybeSingle(),
+    // RLS shows only engagements this workspace is one side of.
+    supabase.from('rpo_engagements').select('id', { count: 'exact', head: true }),
   ]);
   if (trustRes.error) reportError(trustRes.error, { action: 'dashboardLayout.trustStatus' });
   if (invitesRes.error) reportError(invitesRes.error, { action: 'dashboardLayout.teamInvitations' });
@@ -45,6 +49,10 @@ export default async function DashboardLayout({
     isVerified: m.isVerified,
     role: m.role,
   }));
+  // RPO appears for both sides: an organization that runs it, and one it is run
+  // for. An agency or RPO provider sees the menu entry before its first client.
+  const orgType = orgRes.data?.organization_type ?? 'employer';
+  const showRpo = (rpoRes.count ?? 0) > 0 || orgType === 'rpo_provider' || ctx.kind === 'agency';
   const deletionAt = asTrustStatus(trustRes.data)?.deletion_scheduled_for ?? null;
   const deletionDays = deletionAt ? daysUntil(deletionAt) : 0;
   const initial = (user.email ?? '?').trim().charAt(0).toUpperCase();
@@ -90,6 +98,7 @@ export default async function DashboardLayout({
           kind={ctx.kind}
           isAdmin={isAdmin}
           agencyHasJobs={(agencyJobsRes.count ?? 0) > 0}
+          showRpo={showRpo}
         />
       </header>
 
