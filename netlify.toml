@@ -1,0 +1,34 @@
+# Netlify build for Omelo.
+#
+# This repository holds several things: the employer portal (Next.js), the
+# worker app (Flutter), the database migrations and the tests. Without this
+# file Netlify finds no framework at the root, publishes the repository itself
+# and every URL answers "Page not found".
+#
+# This project builds the employer portal. `base` moves the build into that
+# app, so `command` and `publish` are relative to it.
+#
+# The portal needs two environment variables at BUILD time (they are compiled
+# into the browser bundle), set in Netlify under
+# Project configuration → Environment variables:
+#
+#   NEXT_PUBLIC_SUPABASE_URL              https://<project-ref>.supabase.co
+#   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  the publishable key
+#
+# Both are public values — the service role key must never be set here.
+#
+# To deploy the worker app instead, create a second Netlify project and give it
+# base = "apps/user_app", a Flutter install step, and publish = "build/web".
+
+[build]
+  base = "apps/company_portal"
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Netlify's own Next.js integration: it turns the build into the functions and
+# static assets Netlify serves. Netlify installs the plugin itself.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

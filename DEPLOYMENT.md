@@ -105,6 +105,21 @@ cd apps/company_portal
 npm ci && npm run build && npm start
 ```
 
+### Netlify
+
+`netlify.toml` at the repository root builds this app (`base = apps/company_portal`)
+with Netlify's Next.js integration. Without it Netlify finds no framework at the
+root, publishes the repository itself and every URL answers "Page not found".
+
+Set both variables under **Project configuration → Environment variables** before
+the first build — they are compiled into the browser bundle:
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Never set
+the service role key there.
+
+To host the worker app as well, create a second Netlify project with
+`base = "apps/user_app"`, a step that installs Flutter, and `publish = "build/web"`.
+
+
 Security headers (HSTS, frame denial, camera/microphone limited to the site)
 are set in `next.config`. Serve over HTTPS only — browsers require it for
 camera and microphone access.
