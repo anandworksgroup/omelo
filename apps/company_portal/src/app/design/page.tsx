@@ -156,6 +156,67 @@ export default function DesignSystem() {
         </div>
       </Section>
 
+      <Section
+        title="Numbers and rows"
+        note="A number that can be acted on is a link and wears the brand wash. A list row lights up rather than fading out."
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              ['New', 7, true],
+              ['Interviews', 2, true],
+              ['Published jobs', 4, false],
+              ['Applications', 38, false],
+              ['Shortlisted', 6, false],
+              ['Hired', 1, false],
+            ].map(([label, value, lead]) => (
+              <a
+                key={label as string}
+                href="#"
+                className="card card-interactive p-4"
+                style={lead ? { background: 'var(--brand-wash)', borderColor: 'transparent' } : undefined}
+              >
+                <div
+                  className="text-2xl font-bold tnum"
+                  style={lead ? { color: 'var(--brand-ink)' } : undefined}
+                >
+                  {value as number}
+                </div>
+                <div className={`text-xs mt-1 ${lead ? '' : 'muted'}`}>{label as string}</div>
+              </a>
+            ))}
+          </div>
+
+          <div className="card divide-y hairline overflow-hidden">
+            {[
+              ['Line cook', 'Live', 12, 3],
+              ['Night warehouse picker', 'Draft', 0, 0],
+            ].map(([title, state, apps, unseen]) => (
+              <a key={title as string} href="#" className="flex items-center gap-4 p-4 row-link">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold truncate">{title as string}</div>
+                  <div className="text-xs muted mt-1 flex items-center gap-2 flex-wrap">
+                    {state === 'Live' ? (
+                      <span className="pill pill-success"><span className="dot" /> Live</span>
+                    ) : (
+                      <span className="pill">Draft</span>
+                    )}
+                    <span>
+                      {state === 'Live' ? 'Published 2 days ago · 140 views' : 'Not visible to workers · 0 views'}
+                    </span>
+                  </div>
+                </div>
+                {(unseen as number) > 0 && <span className="pill pill-brand">{unseen as number} new</span>}
+                <div className="text-right">
+                  <div className="font-bold tnum">{apps as number}</div>
+                  <div className="text-xs muted">applicants</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </Section>
+
       <Section title="Tabs">
         <div className="card p-5">
           <nav className="tabs">

@@ -361,6 +361,11 @@ input[type='checkbox'], input[type='radio'] {
 /* Numbers that are compared down a column must line up. */
 .tnum { font-variant-numeric: tabular-nums; }
 
+/* A row in a list of links. It lights up rather than fading out: fading the
+   whole row dims the text you are trying to read as you reach for it. */
+.row-link { transition: background var(--t-fast) var(--ease); }
+.row-link:hover { background: var(--surface); }
+
 /* ------------------------------------------------------------
    Tabs
    ------------------------------------------------------------ */
