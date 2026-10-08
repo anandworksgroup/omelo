@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/timesheets` — my timesheets, newest first, and a way to make one
 /// for this week, this month or chosen days. `?assignment=<id>` shows one
@@ -55,7 +56,7 @@ class TimesheetsScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your timesheets',
             body: workError(e),

@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../data/identity_repository.dart';
 import 'identity_widgets.dart';
 import 'search_picker.dart';
+import '../../core/ui.dart';
 
 /// "My work identities" — one profile for each kind of work a person does.
 class IdentitiesScreen extends ConsumerWidget {
@@ -36,7 +37,7 @@ class IdentitiesScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(identityHubProvider),
         child: hub.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const OmeloSkeletonList(),
           error: (e, _) => _Error(
             text: identityError(e),
             onRetry: () => ref.invalidate(identityHubProvider),

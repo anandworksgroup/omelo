@@ -5,13 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../data/network_repository.dart';
 import '../messages/inbox_providers.dart' show notificationsProvider;
+import '../../core/ui.dart';
 
 /// Shared pieces of the professional network: avatars, author rows, the
 /// Follow and Connect buttons, and the report and block dialogs.
 
 void networkSnack(BuildContext context, String text) {
-  ScaffoldMessenger.maybeOf(context)
-      ?.showSnackBar(SnackBar(content: Text(text)));
+  ScaffoldMessenger.maybeOf(
+    context,
+  )?.showSnackBar(SnackBar(content: Text(text)));
 }
 
 /// A person's photo or an organization's logo, with the first letter of the
@@ -264,7 +266,10 @@ class _ConnectButtonState extends ConsumerState<ConnectButton> {
     try {
       await ref
           .read(networkRepositoryProvider)
-          .requestConnection(widget.person.id, message: note.isEmpty ? null : note);
+          .requestConnection(
+            widget.person.id,
+            message: note.isEmpty ? null : note,
+          );
       if (!mounted) return;
       setState(() => _requested = true);
       widget.onRequested?.call();
@@ -347,8 +352,7 @@ Future<String?> askConnectionNote(BuildContext context, PostAuthor person) {
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () =>
-              Navigator.of(context).pop(controller.text.trim()),
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
           child: const Text('Send request'),
         ),
       ],
@@ -408,8 +412,9 @@ Future<({ReportReason reason, String details})?> askReport(
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context)
-                .pop((reason: reason, details: details.text.trim())),
+            onPressed: () => Navigator.of(
+              context,
+            ).pop((reason: reason, details: details.text.trim())),
             child: const Text('Report'),
           ),
         ],
@@ -428,9 +433,9 @@ Future<bool> confirmBlock(BuildContext context, PostAuthor author) async {
       content: Text(
         author.isOrganization
             ? 'You will not see this organization on Omelo, and it will not '
-                'see you. You can undo this in Settings.'
+                  'see you. You can undo this in Settings.'
             : 'You will not see each other on Omelo. Any connection between '
-                'you is removed. You can undo this in Settings.',
+                  'you is removed. You can undo this in Settings.',
         style: const TextStyle(fontSize: 14.5, height: 1.45),
       ),
       actions: [
@@ -482,7 +487,7 @@ Future<bool> confirmNetworkAction(
 }
 
 /// An empty state that does not scroll, for use inside a list that already
-/// does. [RepresentationMessage] is a ListView, which cannot be nested.
+/// does. [OmeloMessage] is a ListView, which cannot be nested.
 class NetworkEmpty extends StatelessWidget {
   const NetworkEmpty({
     super.key,
@@ -504,14 +509,17 @@ class NetworkEmpty extends StatelessWidget {
         children: [
           Icon(icon, size: 48, color: scheme.onSurfaceVariant),
           const SizedBox(height: 14),
-          Text(title,
-              textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
-          Text(body,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14.5, height: 1.45)),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14.5, height: 1.45),
+          ),
         ],
       ),
     );
@@ -522,13 +530,12 @@ class NetworkEmpty extends StatelessWidget {
 /// deeplink and there is nothing to pop.
 Widget? networkBackButton(BuildContext context, String fallback) =>
     context.canPop()
-        ? null
-        : IconButton(
-            icon: const Icon(Icons.arrow_back),
-            tooltip: 'Back',
-            onPressed: () => context.go(fallback),
-          );
-
+    ? null
+    : IconButton(
+        icon: const Icon(Icons.arrow_back),
+        tooltip: 'Back',
+        onPressed: () => context.go(fallback),
+      );
 
 /// Network notice types, as migration 72 added them.
 const kNetworkNoticeTypes = <String>{

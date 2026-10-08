@@ -7,6 +7,7 @@ import '../../core/responsive.dart';
 import '../../data/messaging_repository.dart';
 import '../notifications/notifications_screen.dart';
 import 'inbox_providers.dart';
+import '../../core/ui.dart';
 
 final conversationsProvider =
     FutureProvider.autoDispose<List<Conversation>>((ref) async {
@@ -53,7 +54,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   Widget _list(BuildContext context) {
     final async = ref.watch(conversationsProvider);
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const OmeloSkeletonList(),
       error: (_, __) => _Empty(
         icon: Icons.cloud_off_outlined,
         title: 'Could not load messages',

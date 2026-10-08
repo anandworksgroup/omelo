@@ -40,144 +40,172 @@ class HomeScreen extends ConsumerWidget {
           onRefresh: () => ref.read(discoverProvider.notifier).load(),
           child: ListView(
             padding: EdgeInsets.fromLTRB(
-                Breakpoints.of(context).gutter, 12,
-                Breakpoints.of(context).gutter, 32),
+              Breakpoints.of(context).gutter,
+              12,
+              Breakpoints.of(context).gutter,
+              32,
+            ),
             children: [
               ContentWidth(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-              if (signedIn)
-                const DeletionBanner(padding: EdgeInsets.only(bottom: 16)),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      signedIn ? 'Your work' : 'Welcome to Omelo',
-                      style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.w800),
+                    if (signedIn)
+                      const DeletionBanner(
+                        padding: EdgeInsets.only(bottom: 16),
+                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            signedIn ? 'Your work' : 'Welcome to Omelo',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const NotificationBell(),
+                      ],
                     ),
-                  ),
-                  const NotificationBell(),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                origin == null
-                    ? 'Finding jobs near you…'
-                    : origin.isPrecise
-                        ? 'Jobs near your location'
-                        : 'Jobs near ${origin.label ?? "your area"}',
-                style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => context.go('/discover'),
-                  icon: const Icon(Icons.search),
-                  label: const Text('Search jobs'),
-                ),
-              ),
-
-              if (signedIn) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push('/jobs/global'),
-                    icon: const Icon(Icons.public),
-                    label: const Text('Jobs worldwide: remote, relocation, visas'),
-                  ),
-                ),
-              ],
-
-              // Release 5: today's shift, work offers — first, because it
-              // is the worker's day.
-              if (signedIn)
-                const WorkHomeCard(padding: EdgeInsets.only(top: 20)),
-              if (signedIn)
-                const RepresentationsHomeCard(
-                    padding: EdgeInsets.only(top: 20)),
-              if (signedIn)
-                const InvitationsHomeCard(padding: EdgeInsets.only(top: 20)),
-              if (signedIn)
-                const IdentityNudgeCard(padding: EdgeInsets.only(top: 20)),
-              // Release 7: where next — the career goal and path.
-              if (signedIn)
-                const CareerHomeCard(padding: EdgeInsets.only(top: 20)),
-              // Release 9: the professional network. Last of the cards:
-              // today's work comes before what the network is talking about.
-              if (signedIn)
-                const FeedHomeCard(padding: EdgeInsets.only(top: 20)),
-
-              if (!signedIn) ...[
-                const SizedBox(height: 20),
-                _Callout(
-                  icon: Icons.person_add_alt,
-                  title: 'Build your profile to apply',
-                  body: 'Takes a few minutes. No resume, no degree needed.',
-                  actionLabel: 'Get started',
-                  onAction: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Profile building is the next build step — not wired yet.'),
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  const Text('Jobs near you',
+                    const SizedBox(height: 4),
+                    Text(
+                      origin == null
+                          ? 'Finding jobs near you…'
+                          : origin.isPrecise
+                          ? 'Jobs near your location'
+                          : 'Jobs near ${origin.label ?? "your area"}',
                       style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => context.go('/discover'),
-                    child: const Text('See all'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
+                        fontSize: 14,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-              if (state.loading && state.jobs.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (state.jobs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Column(
-                    children: [
-                      Icon(Icons.search_off,
-                          size: 40, color: scheme.onSurfaceVariant),
-                      const SizedBox(height: 12),
-                      const Text('No jobs found nearby yet',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextButton(
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
                         onPressed: () => context.go('/discover'),
-                        child: const Text('Widen the search'),
+                        icon: const Icon(Icons.search),
+                        label: const Text('Search jobs'),
+                      ),
+                    ),
+
+                    if (signedIn) ...[
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.push('/jobs/global'),
+                          icon: const Icon(Icons.public),
+                          label: const Text(
+                            'Jobs worldwide: remote, relocation, visas',
+                          ),
+                        ),
                       ),
                     ],
-                  ),
-                )
-              else
-                ResponsiveCardGrid(
-                  children: [
-                    for (var i = 0; i < state.jobs.length && i < 6; i++)
-                      TrackedJobCard(
-                        key: ValueKey('home-${state.jobs[i].id}'),
-                        job: state.jobs[i],
-                        surface: JobSurface.recommended,
-                        rank: i + 1,
+
+                    // Release 5: today's shift, work offers — first, because it
+                    // is the worker's day.
+                    if (signedIn)
+                      const WorkHomeCard(padding: EdgeInsets.only(top: 20)),
+                    if (signedIn)
+                      const RepresentationsHomeCard(
+                        padding: EdgeInsets.only(top: 20),
                       ),
-                  ],
-                ),
+                    if (signedIn)
+                      const InvitationsHomeCard(
+                        padding: EdgeInsets.only(top: 20),
+                      ),
+                    if (signedIn)
+                      const IdentityNudgeCard(
+                        padding: EdgeInsets.only(top: 20),
+                      ),
+                    // Release 7: where next — the career goal and path.
+                    if (signedIn)
+                      const CareerHomeCard(padding: EdgeInsets.only(top: 20)),
+                    // Release 9: the professional network. Last of the cards:
+                    // today's work comes before what the network is talking about.
+                    if (signedIn)
+                      const FeedHomeCard(padding: EdgeInsets.only(top: 20)),
+
+                    if (!signedIn) ...[
+                      const SizedBox(height: 20),
+                      _Callout(
+                        icon: Icons.person_add_alt,
+                        title: 'Build your profile to apply',
+                        body:
+                            'Takes a few minutes. No resume, no degree needed.',
+                        actionLabel: 'Get started',
+                        onAction: () => ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Profile building is the next build step — not wired yet.',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        const Text(
+                          'Jobs near you',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => context.go('/discover'),
+                          child: const Text('See all'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+
+                    if (state.loading && state.jobs.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.jobs.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 40,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'No jobs found nearby yet',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => context.go('/discover'),
+                              child: const Text('Widen the search'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      ResponsiveCardGrid(
+                        children: [
+                          for (var i = 0; i < state.jobs.length && i < 6; i++)
+                            TrackedJobCard(
+                              key: ValueKey('home-${state.jobs[i].id}'),
+                              job: state.jobs[i],
+                              surface: JobSurface.recommended,
+                              rank: i + 1,
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -222,9 +250,13 @@ class _Callout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 15.5, fontWeight: FontWeight.w700)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(body, style: const TextStyle(fontSize: 13.5, height: 1.4)),
                 const SizedBox(height: 8),
@@ -255,9 +287,11 @@ class InvitationsHomeCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // A new "invited you to apply" notification means a new invitation.
     ref.listen<int>(
-        notificationsProvider.select(
-            (s) => s.items.where((n) => n.type == 'job_invitation').length),
-        (_, __) => ref.invalidate(myInvitationsProvider));
+      notificationsProvider.select(
+        (s) => s.items.where((n) => n.type == 'job_invitation').length,
+      ),
+      (_, __) => ref.invalidate(myInvitationsProvider),
+    );
     final pending = ref.watch(pendingInvitationsProvider);
     if (pending <= 0) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
@@ -277,22 +311,32 @@ class InvitationsHomeCard extends ConsumerWidget {
                 children: [
                   Badge(
                     label: Text('$pending'),
-                    child: Icon(Icons.mail_outline,
-                        size: 30, color: scheme.onTertiaryContainer),
+                    child: Icon(
+                      Icons.mail_outline,
+                      size: 30,
+                      color: scheme.onTertiaryContainer,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(invitedYouTitle(pending),
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(
+                          invitedYouTitle(pending),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 3),
-                        Text('See the jobs and answer them.',
-                            style: TextStyle(
-                                fontSize: 13.5,
-                                color: scheme.onSurfaceVariant)),
+                        Text(
+                          'See the jobs and answer them.',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),

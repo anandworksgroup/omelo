@@ -8,10 +8,9 @@ import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/global_repository.dart';
 import '../../data/job_events.dart' show JobSurface, jobRoute;
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import '../work/work_widgets.dart' show workBackButton;
 import 'global_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/jobs/global?tab=&country=` — work near me, remote, with help to move,
 /// with visa sponsorship, in other countries, and abroad where I want to go.
@@ -92,7 +91,9 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
       }
     });
     try {
-      final page = await ref.read(globalRepositoryProvider).globalJobs(
+      final page = await ref
+          .read(globalRepositoryProvider)
+          .globalJobs(
             _tab,
             filters: _filters(),
             limit: _page,
@@ -120,8 +121,11 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
   }
 
   Future<void> _pickCountry(List<Country> countries) async {
-    final picked = await pickCountry(context, countries,
-        title: 'Jobs in which country?');
+    final picked = await pickCountry(
+      context,
+      countries,
+      title: 'Jobs in which country?',
+    );
     if (picked == null) return;
     setState(() => _country = picked.code);
     _load();
@@ -129,7 +133,8 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final countries = ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
+    final countries =
+        ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
     final gutter = Breakpoints.of(context).gutter;
 
     return Scaffold(
@@ -225,9 +230,9 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
   }
 
   Widget _body(BuildContext context, double gutter) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const OmeloSkeletonList();
     if (_error != null) {
-      return RepresentationMessage(
+      return OmeloMessage(
         icon: Icons.cloud_off_outlined,
         title: 'Could not load jobs',
         body: _error!,
@@ -236,11 +241,13 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
       );
     }
     if (_jobs.isEmpty) {
-      return RepresentationMessage(
+      return OmeloMessage(
         icon: Icons.travel_explore,
         title: 'No jobs here yet',
         body: _tab.emptyText,
-        actionLabel: _tab == GlobalTab.workAbroad ? 'Set where I would move' : null,
+        actionLabel: _tab == GlobalTab.workAbroad
+            ? 'Set where I would move'
+            : null,
         onAction: _tab == GlobalTab.workAbroad
             ? () => context.push('/mobility')
             : null,
@@ -257,7 +264,10 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
             children: [
               Text(
                 '$_total job${_total == 1 ? '' : 's'}',
-                style: TextStyle(fontSize: 13.5, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               ResponsiveCardGrid(
@@ -267,7 +277,8 @@ class _GlobalJobsScreenState extends ConsumerState<GlobalJobsScreen>
                       key: ValueKey('global-${_jobs[i].id}'),
                       job: _jobs[i],
                       onTap: () => context.push(
-                          jobRoute(_jobs[i].id, JobSurface.search, rank: i + 1)),
+                        jobRoute(_jobs[i].id, JobSurface.search, rank: i + 1),
+                      ),
                     ),
                 ],
               ),
@@ -310,22 +321,34 @@ class GlobalJobCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(j.title,
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w700, height: 1.25)),
+              Text(
+                j.title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
               Row(
                 children: [
                   Flexible(
-                    child: Text(j.companyName,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 14.5, color: scheme.onSurfaceVariant)),
+                    child: Text(
+                      j.companyName,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                   if (j.companyVerified) ...[
                     const SizedBox(width: 6),
-                    const Icon(Icons.verified,
-                        size: 15, color: OmeloTheme.verified,
-                        semanticLabel: 'Verified employer'),
+                    const Icon(
+                      Icons.verified,
+                      size: 15,
+                      color: OmeloTheme.verified,
+                      semanticLabel: 'Verified employer',
+                    ),
                   ],
                 ],
               ),
@@ -333,8 +356,11 @@ class GlobalJobCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.place_outlined,
-                      size: 16, color: scheme.onSurfaceVariant),
+                  Icon(
+                    Icons.place_outlined,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
@@ -360,7 +386,10 @@ class GlobalJobCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 pay == null ? 'Pay not shown' : payLineOf(pay),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               if (pay != null)
                 ApproxPayLine(
@@ -374,10 +403,14 @@ class GlobalJobCard extends StatelessWidget {
                 children: [
                   if (j.eligibility != null) EligibilityChip(j.eligibility!),
                   if (sponsor != null)
-                    OmeloPill(sponsor,
-                        icon: Icons.badge_outlined,
-                        color: scheme.primary,
-                        background: scheme.primaryContainer.withValues(alpha: 0.5)),
+                    OmeloPill(
+                      sponsor,
+                      icon: Icons.badge_outlined,
+                      color: scheme.primary,
+                      background: scheme.primaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
                   for (final s in supportLabels(j))
                     OmeloPill(s, icon: Icons.check),
                 ],

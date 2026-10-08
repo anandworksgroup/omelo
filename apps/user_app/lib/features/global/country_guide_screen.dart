@@ -4,10 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/responsive.dart';
 import '../../data/global_repository.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import '../work/work_widgets.dart' show workBackButton;
 import 'global_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/countries/:code` — plain facts about working in a country, with links to
 /// the official sources. Information only, never advice.
@@ -26,7 +25,7 @@ class CountryGuideScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => RepresentationMessage(
+        error: (e, _) => OmeloMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Could not load this country',
           body: globalError(e),
@@ -34,7 +33,7 @@ class CountryGuideScreen extends ConsumerWidget {
           onAction: () => ref.invalidate(countryGuideProvider(upper)),
         ),
         data: (g) => g == null
-            ? const RepresentationMessage(
+            ? const OmeloMessage(
                 icon: Icons.public_off,
                 title: 'Country not found',
                 body: 'Omelo has no guide for this country yet.',
@@ -59,7 +58,9 @@ class CountryGuideView extends StatelessWidget {
         (
           Icons.payments_outlined,
           'Currency',
-          g.currencyName == null ? g.currency! : '${g.currencyName} (${g.currency})',
+          g.currencyName == null
+              ? g.currency!
+              : '${g.currencyName} (${g.currency})',
         ),
       if (g.language != null)
         (Icons.translate, 'Main language', languageName(g.language)),
@@ -80,17 +81,24 @@ class CountryGuideView extends StatelessWidget {
             children: [
               const LegalNotice(
                 informationOnlyBanner,
-                body: 'Rules change. Check the official source, or a licensed '
+                body:
+                    'Rules change. Check the official source, or a licensed '
                     'adviser, before you act.',
               ),
               const SizedBox(height: 16),
-              Text(g.name,
-                  style: const TextStyle(
-                      fontSize: 26, fontWeight: FontWeight.w800)),
+              Text(
+                g.name,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, c) {
-                  final cols = c.maxWidth >= 640 ? 3 : (c.maxWidth >= 400 ? 2 : 1);
+                  final cols = c.maxWidth >= 640
+                      ? 3
+                      : (c.maxWidth >= 400 ? 2 : 1);
                   final w = (c.maxWidth - (cols - 1) * 10) / cols;
                   return Wrap(
                     spacing: 10,
@@ -114,14 +122,20 @@ class CountryGuideView extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(f.$2,
-                                          style: TextStyle(
-                                              fontSize: 12.5,
-                                              color: scheme.onSurfaceVariant)),
-                                      Text(f.$3,
-                                          style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700)),
+                                      Text(
+                                        f.$2,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      Text(
+                                        f.$3,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -138,7 +152,8 @@ class CountryGuideView extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: FilledButton.tonalIcon(
                   onPressed: () => context.push(
-                      '/jobs/global?tab=international&country=${g.code}'),
+                    '/jobs/global?tab=international&country=${g.code}',
+                  ),
                   icon: const Icon(Icons.work_outline),
                   label: Text('Jobs in ${g.name}'),
                 ),
@@ -152,9 +167,13 @@ class CountryGuideView extends StatelessWidget {
               ],
               for (final topic in g.byTopic.entries) ...[
                 const SizedBox(height: 22),
-                Text(topic.key,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(
+                  topic.key,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 ResponsiveCardGrid(
                   minCardWidth: 380,
@@ -170,8 +189,10 @@ class CountryGuideView extends StatelessWidget {
               ],
               if (g.licences.isNotEmpty) ...[
                 const SizedBox(height: 22),
-                const Text('Licences for some jobs',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const Text(
+                  'Licences for some jobs',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 10),
                 for (final l in g.licences) LicenceTile(l),
               ],
@@ -179,7 +200,10 @@ class CountryGuideView extends StatelessWidget {
               Text(
                 g.disclaimer ?? informationOnlyBanner,
                 style: TextStyle(
-                    fontSize: 12.5, height: 1.4, color: scheme.onSurfaceVariant),
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

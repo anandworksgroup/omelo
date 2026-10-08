@@ -10,8 +10,6 @@ import '../../data/work_repository.dart';
 import '../messages/inbox_providers.dart' show notificationsProvider;
 
 export '../../core/theme.dart' show OmeloPill;
-export '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 
 void showWorkSnack(BuildContext context, String text) {
   ScaffoldMessenger.maybeOf(context)
@@ -49,7 +47,12 @@ void listenForWorkNotices(WidgetRef ref) {
 enum WorkTone { good, waiting, neutral, warning }
 
 class WorkPill extends StatelessWidget {
-  const WorkPill(this.label, {super.key, this.tone = WorkTone.neutral, this.icon});
+  const WorkPill(
+    this.label, {
+    super.key,
+    this.tone = WorkTone.neutral,
+    this.icon,
+  });
   final String label;
   final WorkTone tone;
   final IconData? icon;
@@ -183,7 +186,12 @@ class WorkInfoRow extends StatelessWidget {
 
 /// A soft coloured note box ("Late arrival recorded — …").
 class WorkNote extends StatelessWidget {
-  const WorkNote(this.text, {super.key, this.tone = WorkTone.neutral, this.icon});
+  const WorkNote(
+    this.text, {
+    super.key,
+    this.tone = WorkTone.neutral,
+    this.icon,
+  });
   final String text;
   final WorkTone tone;
   final IconData? icon;
@@ -338,17 +346,14 @@ class _CheckInPanelState extends ConsumerState<CheckInPanel> {
         ),
         child: Row(
           children: [
-            Icon(
-              switch (st.phase) {
-                CheckInPhase.done => Icons.check_circle,
-                CheckInPhase.notOpenYet => Icons.schedule,
-                CheckInPhase.supervisor => Icons.badge_outlined,
-                CheckInPhase.cancelled => Icons.event_busy_outlined,
-                CheckInPhase.onLeave => Icons.beach_access_outlined,
-                _ => Icons.info_outline,
-              },
-              color: done ? OmeloTheme.verified : scheme.onSurfaceVariant,
-            ),
+            Icon(switch (st.phase) {
+              CheckInPhase.done => Icons.check_circle,
+              CheckInPhase.notOpenYet => Icons.schedule,
+              CheckInPhase.supervisor => Icons.badge_outlined,
+              CheckInPhase.cancelled => Icons.event_busy_outlined,
+              CheckInPhase.onLeave => Icons.beach_access_outlined,
+              _ => Icons.info_outline,
+            }, color: done ? OmeloTheme.verified : scheme.onSurfaceVariant),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -899,10 +904,7 @@ class _ShiftOfferCardState extends ConsumerState<ShiftOfferCard> {
                     ),
                   ),
                   Text(
-                    [
-                      shiftEmployerLine(s),
-                      ?s.location,
-                    ].join(' · '),
+                    [shiftEmployerLine(s), ?s.location].join(' · '),
                     style: TextStyle(
                       fontSize: 14,
                       color: scheme.onSurfaceVariant,
@@ -949,7 +951,11 @@ class _ShiftOfferCardState extends ConsumerState<ShiftOfferCard> {
 // ---------------------------------------------------------------------------
 
 class AssignmentCard extends StatelessWidget {
-  const AssignmentCard({super.key, required this.assignment, required this.now});
+  const AssignmentCard({
+    super.key,
+    required this.assignment,
+    required this.now,
+  });
   final Assignment assignment;
   final DateTime now;
 
@@ -1066,8 +1072,7 @@ class WorkHomeCard extends ConsumerWidget {
     if (today.isNotEmpty) {
       final s = today.first;
       final st = checkInState(s, now);
-      title =
-          'Today: ${shiftTimeRange(s.startsAt, s.endsAt, s.timezone)}';
+      title = 'Today: ${shiftTimeRange(s.startsAt, s.endsAt, s.timezone)}';
       body = [
         '${s.title} · ${shiftEmployerLine(s)}',
         if (st.canCheckIn) 'Check-in is open',
@@ -1088,8 +1093,7 @@ class WorkHomeCard extends ConsumerWidget {
     } else if (overview.upcoming.isNotEmpty) {
       final s = overview.upcoming.first;
       title = 'Next shift: ${shiftDayLabel(s.startsAt, s.timezone, now)}';
-      body =
-          '${shiftTimeRange(s.startsAt, s.endsAt, s.timezone)} · ${s.title}';
+      body = '${shiftTimeRange(s.startsAt, s.endsAt, s.timezone)} · ${s.title}';
     } else {
       title = 'My work';
       body = 'Your shifts, timesheets, pay and time off.';

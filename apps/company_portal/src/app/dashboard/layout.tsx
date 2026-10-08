@@ -93,13 +93,6 @@ export default async function DashboardLayout({
           </div>
         </div>
 
-        <DashboardNav
-          companyId={ctx.companyId}
-          kind={ctx.kind}
-          isAdmin={isAdmin}
-          agencyHasJobs={(agencyJobsRes.count ?? 0) > 0}
-          showRpo={showRpo}
-        />
       </header>
 
       {invitations.length > 0 && (
@@ -135,9 +128,21 @@ export default async function DashboardLayout({
         </div>
       )}
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {children}
-      </main>
+      <div className="flex-1 w-full max-w-[84rem] mx-auto lg:flex lg:gap-8 lg:px-6">
+        <DashboardNav
+          companyId={ctx.companyId}
+          kind={ctx.kind}
+          isAdmin={isAdmin}
+          agencyHasJobs={(agencyJobsRes.count ?? 0) > 0}
+          showRpo={showRpo}
+        />
+
+        {/* min-w-0 so a wide table or a long job title scrolls inside the
+            column instead of stretching the whole page sideways. */}
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-0 py-6 sm:py-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

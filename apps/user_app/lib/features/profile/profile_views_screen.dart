@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/invitations_repository.dart';
 import '../invitations/invitation_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/profile-views` — employers who opened one of my work identities in the
 /// last 30 days.
@@ -56,7 +57,7 @@ class ProfileViewsScreen extends ConsumerWidget {
           } catch (_) {}
         },
         child: views.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const OmeloSkeletonList(),
           error: (_, __) => message(Icons.cloud_off_outlined,
               'Could not load this', 'Check your internet and try again.',
               action: 'Try again',

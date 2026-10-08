@@ -16,15 +16,14 @@ import '../../data/messaging_repository.dart'
     show messagingRepositoryProvider, messagingError;
 import 'applications_screen.dart';
 import '../settings/account_widgets.dart' show showEmailVerificationSheet;
-import '../representations/representation_widgets.dart'
-    show SubmittedByLine;
+import '../representations/representation_widgets.dart' show SubmittedByLine;
 import 'hiring_widgets.dart';
 
 final applicationDetailProvider = FutureProvider.autoDispose
     .family<ApplicationDetail?, String>((ref, id) async {
-  ref.watch(authStateProvider);
-  return ref.watch(applicationsRepositoryProvider).detail(id);
-});
+      ref.watch(authStateProvider);
+      return ref.watch(applicationsRepositoryProvider).detail(id);
+    });
 
 /// `/applications/:id` — one application, end to end.
 ///
@@ -69,7 +68,8 @@ class _ApplicationDetailScreenState
               text: 'Sign in to see this application.',
               button: 'Sign in',
               onPressed: () => context.push(
-                  '/sign-in?next=/applications/${widget.applicationId}'),
+                '/sign-in?next=/applications/${widget.applicationId}',
+              ),
             )
           : async.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -88,8 +88,10 @@ class _ApplicationDetailScreenState
                       absorbing: _busy,
                       child: RefreshIndicator(
                         onRefresh: () => ref.refresh(
-                            applicationDetailProvider(widget.applicationId)
-                                .future),
+                          applicationDetailProvider(
+                            widget.applicationId,
+                          ).future,
+                        ),
                         child: _body(context, d),
                       ),
                     ),
@@ -104,27 +106,35 @@ class _ApplicationDetailScreenState
     final offer = a.latestOffer(now);
     if (offer != null) _markOfferViewed(offer, now);
 
-    final interviews = [...a.interviews]..sort((x, y) {
+    final interviews = [...a.interviews]
+      ..sort((x, y) {
         final ux = x.isUpcoming(now), uy = y.isUpcoming(now);
         if (ux != uy) return ux ? -1 : 1;
-        final dx = x.scheduledAt ?? DateTime(0), dy = y.scheduledAt ?? DateTime(0);
+        final dx = x.scheduledAt ?? DateTime(0),
+            dy = y.scheduledAt ?? DateTime(0);
         return ux ? dx.compareTo(dy) : dy.compareTo(dx);
       });
 
-    final process = HiringProcess.steps(a,
-        events: d.events, plannedRounds: d.plannedRounds, now: now);
+    final process = HiringProcess.steps(
+      a,
+      events: d.events,
+      plannedRounds: d.plannedRounds,
+      now: now,
+    );
 
     // The most recent completed round says "Final review" while the employer
     // decides.
     Interview? lastCompleted;
     for (final i in a.interviews.where((i) => i.isCompleted)) {
       if (lastCompleted == null ||
-          (i.scheduledAt ?? DateTime(0))
-              .isAfter(lastCompleted.scheduledAt ?? DateTime(0))) {
+          (i.scheduledAt ?? DateTime(0)).isAfter(
+            lastCompleted.scheduledAt ?? DateTime(0),
+          )) {
         lastCompleted = i;
       }
     }
-    final inFinalReview = a.state == 'interview' &&
+    final inFinalReview =
+        a.state == 'interview' &&
         lastCompleted != null &&
         a.nextInterview(now) == null;
 
@@ -146,9 +156,13 @@ class _ApplicationDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(a.jobTitle,
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      a.jobTitle,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Padding(
@@ -158,21 +172,25 @@ class _ApplicationDetailScreenState
                 ],
               ),
               const SizedBox(height: 4),
-              Text(a.companyName.isEmpty ? 'Employer' : a.companyName,
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurfaceVariant)),
+              Text(
+                a.companyName.isEmpty ? 'Employer' : a.companyName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
               SubmittedByLine(applicationId: a.id),
               const SizedBox(height: 6),
               Text(
                 [
                   if (a.payMin != null || a.payMax != null)
                     Fmt.pay(
-                        min: a.payMin,
-                        max: a.payMax,
-                        currency: a.payCurrency,
-                        period: a.payPeriod),
+                      min: a.payMin,
+                      max: a.payMax,
+                      currency: a.payCurrency,
+                      period: a.payPeriod,
+                    ),
                   if (a.locationText != null) a.locationText!,
                   if (a.matchScore != null) '${a.matchScore}% match',
                 ].join(' · '),
@@ -185,7 +203,9 @@ class _ApplicationDetailScreenState
                   icon: const Icon(Icons.open_in_new, size: 18),
                   label: const Text('View job'),
                   style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero, minimumSize: const Size(0, 44)),
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 44),
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -195,7 +215,8 @@ class _ApplicationDetailScreenState
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.5))
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
                     : const Icon(Icons.chat_bubble_outline),
                 label: const Text('Message employer'),
               ),
@@ -208,9 +229,13 @@ class _ApplicationDetailScreenState
 
               if (a.state == 'rejected') ...[
                 const SizedBox(height: 10),
-                Text('This is one job, not a verdict.',
-                    style: TextStyle(
-                        fontSize: 13.5, color: scheme.onSurfaceVariant)),
+                Text(
+                  'This is one job, not a verdict.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   onPressed: () => context.go('/discover'),
@@ -231,7 +256,8 @@ class _ApplicationDetailScreenState
                   offer: offer,
                   now: now,
                   companyName: a.companyOrEmployer,
-                  mustVerifyEmail: ref
+                  mustVerifyEmail:
+                      ref
                           .watch(trustStatusProvider)
                           .value
                           ?.mustVerifyEmailToAcceptOffer ??
@@ -244,7 +270,8 @@ class _ApplicationDetailScreenState
               if (interviews.isNotEmpty) ...[
                 const SizedBox(height: 28),
                 SectionHeading(
-                    interviews.length == 1 ? 'Interview' : 'Interviews'),
+                  interviews.length == 1 ? 'Interview' : 'Interviews',
+                ),
                 const SizedBox(height: 10),
                 for (final i in interviews) ...[
                   _InterviewCard(
@@ -278,7 +305,8 @@ class _ApplicationDetailScreenState
                 OutlinedButton(
                   onPressed: () => _withdraw(a),
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: scheme.onSurfaceVariant),
+                    foregroundColor: scheme.onSurfaceVariant,
+                  ),
                   child: const Text('Withdraw application'),
                 ),
               ],
@@ -308,13 +336,13 @@ class _ApplicationDetailScreenState
     try {
       await action();
       if (!mounted) return true;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(done)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(done)));
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(HiringActionError.message(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(HiringActionError.message(e))));
       return false;
     } finally {
       if (mounted) {
@@ -333,8 +361,9 @@ class _ApplicationDetailScreenState
       await context.push('/messages/$id');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(messagingError(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(messagingError(e))));
     } finally {
       if (mounted) setState(() => _openingChat = false);
     }
@@ -346,8 +375,10 @@ class _ApplicationDetailScreenState
   }
 
   Future<void> _confirm(Interview i) async {
-    await _run(() => _repo.confirmInterview(i.id),
-        'Thanks. The employer knows you will come.');
+    await _run(
+      () => _repo.confirmInterview(i.id),
+      'Thanks. The employer knows you will come.',
+    );
   }
 
   Future<void> _cantAttend(Interview i) async {
@@ -369,15 +400,19 @@ class _ApplicationDetailScreenState
       ),
     );
     if (reason == null) return;
-    await _run(() => _repo.cancelInterview(i.id, reason),
-        'The employer has been told you cannot attend.');
+    await _run(
+      () => _repo.cancelInterview(i.id, reason),
+      'The employer has been told you cannot attend.',
+    );
   }
 
   /// Opens the email check. True once the email is verified.
   Future<bool> _verifyEmail() async {
     final trust = ref.read(trustStatusProvider).value;
     final ok = await showEmailVerificationSheet(
-        context, trust?.email ?? ref.read(currentUserProvider)?.email);
+      context,
+      trust?.email ?? ref.read(currentUserProvider)?.email,
+    );
     ref.invalidate(trustStatusProvider);
     return ok;
   }
@@ -446,8 +481,8 @@ class _ApplicationDetailScreenState
     }
   }
 
-  void _snack(String text) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(content: Text(text)));
+  void _snack(String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _decline(Offer offer) async {
     final reason = await showModalBottomSheet<String>(
@@ -470,8 +505,9 @@ class _ApplicationDetailScreenState
     );
     if (reason == null) return;
     await _run(
-        () => _repo.respondToOffer(offer.id, accept: false, reason: reason),
-        'You declined the offer.');
+      () => _repo.respondToOffer(offer.id, accept: false, reason: reason),
+      'You declined the offer.',
+    );
   }
 
   Future<void> _withdraw(ApplicationSummary a) async {
@@ -520,8 +556,11 @@ class _HiredBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(celebrate ? Icons.celebration : Icons.verified,
-              color: OmeloTheme.verified, size: 30),
+          Icon(
+            celebrate ? Icons.celebration : Icons.verified,
+            color: OmeloTheme.verified,
+            size: 30,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -530,8 +569,9 @@ class _HiredBanner extends StatelessWidget {
                 Text(
                   "You're hired!",
                   style: TextStyle(
-                      fontSize: celebrate ? 20 : 17,
-                      fontWeight: FontWeight.w800),
+                    fontSize: celebrate ? 20 : 17,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -539,10 +579,12 @@ class _HiredBanner extends StatelessWidget {
                   style: TextStyle(fontSize: 14.5, height: 1.4),
                 ),
                 const SizedBox(height: 6),
-                const OmeloPill('Verified by Omelo',
-                    icon: Icons.verified,
-                    color: OmeloTheme.verified,
-                    background: Color(0x1412805C)),
+                const OmeloPill(
+                  'Verified by Omelo',
+                  icon: Icons.verified,
+                  color: OmeloTheme.verified,
+                  background: Color(0x1412805C),
+                ),
               ],
             ),
           ),
@@ -650,12 +692,16 @@ class _InterviewCardState extends State<_InterviewCard> {
                         '${HiringCopy.interviewType(i.type)}'
                             '${(i.round ?? 1) > 1 ? ' · Round ${i.round}' : ''}',
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                OmeloPill(statusText,
-                    color: statusColor,
-                    background: statusColor.withValues(alpha: 0.10)),
+                OmeloPill(
+                  statusText,
+                  color: statusColor,
+                  background: statusColor.withValues(alpha: 0.10),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -680,8 +726,12 @@ class _InterviewCardState extends State<_InterviewCard> {
                 i.locationText != null)
               _Line(Icons.place_outlined, i.locationText!, copyable: true),
             if (i.meetingUrl != null && !i.isOmeloMeet)
-              _Line(Icons.videocam_outlined, i.meetingUrl!,
-                  copyable: true, sub: 'Copy this link and open it at the time'),
+              _Line(
+                Icons.videocam_outlined,
+                i.meetingUrl!,
+                copyable: true,
+                sub: 'Copy this link and open it at the time',
+              ),
             if (i.instructions != null)
               _Line(Icons.info_outline, i.instructions!),
             if (i.status == 'cancelled' && i.cancelReason != null)
@@ -747,8 +797,10 @@ class _MeetJoin extends StatelessWidget {
     if (state == MeetWindowState.closed) {
       return Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Text('This interview room is closed.',
-            style: TextStyle(fontSize: 14.5, color: scheme.onSurfaceVariant)),
+        child: Text(
+          'This interview room is closed.',
+          style: TextStyle(fontSize: 14.5, color: scheme.onSurfaceVariant),
+        ),
       );
     }
 
@@ -785,8 +837,11 @@ class _MeetJoin extends StatelessWidget {
           ),
           if (open && onJoin == null) ...[
             const SizedBox(height: 6),
-            const Text('Pull down to refresh if the button stays grey.',
-                textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+            const Text(
+              'Pull down to refresh if the button stays grey.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13),
+            ),
           ],
           const SizedBox(height: 8),
           Text(
@@ -869,8 +924,9 @@ class _OfferCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-            color: open ? OmeloTheme.verified : scheme.outlineVariant,
-            width: open ? 1.5 : 1),
+          color: open ? OmeloTheme.verified : scheme.outlineVariant,
+          width: open ? 1.5 : 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -880,31 +936,42 @@ class _OfferCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(o.title ?? 'Job offer',
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    o.title ?? 'Job offer',
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
                 if (statusText != null)
-                  OmeloPill(statusText,
-                      color: statusColor,
-                      background: statusColor.withValues(alpha: 0.10)),
+                  OmeloPill(
+                    statusText,
+                    color: statusColor,
+                    background: statusColor.withValues(alpha: 0.10),
+                  ),
               ],
             ),
             const SizedBox(height: 6),
             Text(
               Fmt.pay(
-                  min: o.payAmount,
-                  currency: o.payCurrency,
-                  period: o.payPeriod),
+                min: o.payAmount,
+                currency: o.payCurrency,
+                period: o.payPeriod,
+              ),
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
             if (o.startDate != null)
-              _Line(Icons.play_circle_outline,
-                  'Starts ${HiringCopy.date(o.startDate!)}'),
+              _Line(
+                Icons.play_circle_outline,
+                'Starts ${HiringCopy.date(o.startDate!)}',
+              ),
             if (o.expiresAt != null && open)
-              _Line(Icons.hourglass_bottom,
-                  'Answer by ${HiringCopy.dayTime(o.expiresAt!)}'),
+              _Line(
+                Icons.hourglass_bottom,
+                'Answer by ${HiringCopy.dayTime(o.expiresAt!)}',
+              ),
             if (o.conditions != null)
               _Line(Icons.rule, o.conditions!, sub: 'Conditions'),
             if (o.benefits.isNotEmpty) ...[
@@ -914,10 +981,12 @@ class _OfferCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   for (final b in o.benefits)
-                    OmeloPill(Fmt.benefit(b),
-                        icon: Icons.check,
-                        color: OmeloTheme.verified,
-                        background: const Color(0x1412805C)),
+                    OmeloPill(
+                      Fmt.benefit(b),
+                      icon: Icons.check,
+                      color: OmeloTheme.verified,
+                      background: const Color(0x1412805C),
+                    ),
                 ],
               ),
             ],
@@ -946,8 +1015,10 @@ class _OfferCard extends StatelessWidget {
               Text(
                 'Never pay money to accept a job. $companyName should not ask '
                 'for fees or your original documents.',
-                style:
-                    TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ],
@@ -958,8 +1029,13 @@ class _OfferCard extends StatelessWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line(this.icon, this.text,
-      {this.sub, this.copyable = false, this.copyText});
+  const _Line(
+    this.icon,
+    this.text, {
+    this.sub,
+    this.copyable = false,
+    this.copyText,
+  });
   final IconData icon;
   final String text;
   final String? sub;
@@ -983,12 +1059,18 @@ class _Line extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(text,
-                    style: const TextStyle(fontSize: 15, height: 1.4)),
+                SelectableText(
+                  text,
+                  style: const TextStyle(fontSize: 15, height: 1.4),
+                ),
                 if (sub != null)
-                  Text(sub!,
-                      style: TextStyle(
-                          fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                  Text(
+                    sub!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -998,8 +1080,9 @@ class _Line extends StatelessWidget {
               icon: const Icon(Icons.copy, size: 18),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: copyText ?? text));
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Copied')));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Copied')));
               },
             ),
         ],
@@ -1029,8 +1112,10 @@ class _TimelineTile extends StatelessWidget {
                 Container(
                   width: 12,
                   height: 12,
-                  decoration:
-                      BoxDecoration(color: color, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 if (!last)
                   Expanded(
@@ -1046,16 +1131,26 @@ class _TimelineTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(entry.title,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  Text(
+                    entry.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   if (entry.detail != null)
-                    Text(entry.detail!,
-                        style: const TextStyle(fontSize: 14, height: 1.35)),
+                    Text(
+                      entry.detail!,
+                      style: const TextStyle(fontSize: 14, height: 1.35),
+                    ),
                   if (entry.at != null)
-                    Text(HiringCopy.dayTime(entry.at!),
-                        style: TextStyle(
-                            fontSize: 12.5, color: scheme.onSurfaceVariant)),
+                    Text(
+                      HiringCopy.dayTime(entry.at!),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1101,8 +1196,7 @@ class _ReasonSheetState extends State<_ReasonSheet> {
   Widget build(BuildContext context) {
     final valid = _controller.text.trim().length >= widget.minLength;
     return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
         child: ContentWidth.reading(
           child: SingleChildScrollView(
@@ -1111,9 +1205,13 @@ class _ReasonSheetState extends State<_ReasonSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(widget.title,
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w700)),
+                Text(
+                  widget.title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 Text(widget.body, style: const TextStyle(fontSize: 14.5)),
                 const SizedBox(height: 14),
@@ -1146,7 +1244,8 @@ class _ReasonSheetState extends State<_ReasonSheet> {
                 FilledButton(
                   style: widget.destructive
                       ? FilledButton.styleFrom(
-                          backgroundColor: OmeloTheme.danger)
+                          backgroundColor: OmeloTheme.danger,
+                        )
                       : null,
                   onPressed: valid
                       ? () => Navigator.pop(context, _controller.text.trim())
@@ -1179,18 +1278,20 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 16),
-              FilledButton(onPressed: onPressed, child: Text(button)),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onPressed, child: Text(button)),
+        ],
+      ),
+    ),
+  );
 }

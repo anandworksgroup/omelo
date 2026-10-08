@@ -6,6 +6,7 @@ import '../../core/responsive.dart';
 import '../../data/invitations.dart' show viewedWhen;
 import '../../data/representations_repository.dart';
 import 'representation_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/recruiters` — the recruiters and agencies I have dealt with, grouped
 /// from their requests. Tap one to see its requests.
@@ -39,7 +40,7 @@ class RecruitersScreen extends ConsumerWidget {
         },
         child: list.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => RepresentationMessage(
+          error: (_, __) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load recruiters',
             body: 'Check your internet and try again.',

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work` — My work. Today's shifts with the big Check in / Check out
 /// button, extra shifts offered to me, what is coming in the next two
@@ -16,7 +17,8 @@ class WorkScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     listenForWorkNotices(ref);
     final shiftsAsync = ref.watch(myWorkProvider);
-    final assignments = ref.watch(myAssignmentsProvider).valueOrNull ?? const [];
+    final assignments =
+        ref.watch(myAssignmentsProvider).valueOrNull ?? const [];
     final now = workNow(ref);
 
     Future<void> refresh() async {
@@ -37,7 +39,7 @@ class WorkScreen extends ConsumerWidget {
         onRefresh: refresh,
         child: shiftsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your work',
             body: workError(e),
@@ -50,7 +52,7 @@ class WorkScreen extends ConsumerWidget {
                 .where((a) => a.isOfferOpenAt(now))
                 .toList();
             if (o.isEmpty && assignments.isEmpty) {
-              return RepresentationMessage(
+              return OmeloMessage(
                 icon: Icons.work_outline,
                 title: 'No work here yet',
                 body:

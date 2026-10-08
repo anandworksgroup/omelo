@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/assignments` — work I was offered or am doing. Offers waiting for
 /// an answer first.
@@ -30,7 +31,7 @@ class AssignmentsScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your assignments',
             body: workError(e),
@@ -39,7 +40,7 @@ class AssignmentsScreen extends ConsumerWidget {
           ),
           data: (list) {
             if (list.isEmpty) {
-              return RepresentationMessage(
+              return OmeloMessage(
                 icon: Icons.assignment_ind_outlined,
                 title: 'No assignments yet',
                 body:

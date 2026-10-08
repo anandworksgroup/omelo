@@ -1,86 +1,432 @@
 @import "tailwindcss";
 
-/* Design tokens mirror the Flutter app (apps/user_app/lib/core/theme.dart)
-   so employers and workers see one product, not two. */
+/* ============================================================
+   Omelo design system — employer portal.
+
+   Design tokens mirror the Flutter app (apps/user_app/lib/core/theme.dart)
+   so employers and workers see one product, not two.
+
+   Every screen in the portal is built from the component classes below.
+   Change them here and the whole product moves together; that is the point.
+   ============================================================ */
+
 @theme {
-  --color-brand-50:  #eaf3f0;
-  --color-brand-100: #cfe3dc;
-  --color-brand-200: #a3c9be;
+  /* Brand — deep green: work, growth, something that lasts. */
+  --color-brand-50:  #eef5f2;
+  --color-brand-100: #d5e7e0;
+  --color-brand-200: #a9cdc0;
+  --color-brand-300: #7bb09e;
   --color-brand-400: #4a8a75;
+  --color-brand-500: #2a6e58;
   --color-brand-600: #1b5e4a;
   --color-brand-700: #164c3c;
+  --color-brand-800: #10392d;
   --color-brand-900: #0c2b22;
 
+  --color-accent-300: #f8cf90;
   --color-accent-500: #f2a63b;
+  --color-accent-700: #b87714;
+
   --color-verified:   #12805c;
   --color-warn:       #b25e02;
   --color-danger:     #b3261e;
+  --color-info:       #1c5f8f;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* ------------------------------------------------------------
+   Tokens. Light is the default; dark is a reskin of the same
+   semantics, never a separate set of rules.
+   ------------------------------------------------------------ */
 :root {
   --bg: #ffffff;
-  --fg: #12211d;
-  --muted: #5c6b66;
-  --line: #dfe6e3;
-  --surface: #f6f9f8;
+  --fg: #11201c;
+  --muted: #566b64;
+  --faint: #7b8d86;
+  --line: #dde7e3;
+  --line-strong: #c3d3cd;
+  --surface: #f5f9f7;
+  --surface-2: #eef4f1;
+  --brand-ink: var(--color-brand-700);
+  --brand-wash: var(--color-brand-50);
+
+  /* Depth. Cards sit on the page rather than float off it: one soft
+     ambient shadow, one hairline. Anything heavier reads as a dialog. */
+  --shadow-sm: 0 1px 2px rgb(16 36 30 / .05);
+  --shadow-md: 0 1px 2px rgb(16 36 30 / .05), 0 6px 16px -6px rgb(16 36 30 / .12);
+  --shadow-lg: 0 2px 4px rgb(16 36 30 / .06), 0 18px 40px -12px rgb(16 36 30 / .20);
+
+  /* Shape */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-full: 999px;
+
+  /* Motion. Short and linear-out: the UI should feel answered, not animated. */
+  --ease: cubic-bezier(.2, .8, .3, 1);
+  --t-fast: 110ms;
+  --t-med: 180ms;
+
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--color-brand-400);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1512;
-    --fg: #e8efec;
-    --muted: #9bb0a8;
-    --line: #24322d;
-    --surface: #141d19;
+    --bg: #0d1411;
+    --fg: #e7efeb;
+    --muted: #9db2aa;
+    --faint: #7c938b;
+    --line: #22302b;
+    --line-strong: #32443d;
+    --surface: #131d19;
+    --surface-2: #192621;
+    --brand-ink: var(--color-brand-200);
+    --brand-wash: #122a22;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / .4);
+    --shadow-md: 0 1px 2px rgb(0 0 0 / .4), 0 6px 16px -6px rgb(0 0 0 / .5);
+    --shadow-lg: 0 2px 4px rgb(0 0 0 / .4), 0 18px 40px -12px rgb(0 0 0 / .6);
   }
 }
+
+/* ------------------------------------------------------------
+   Base
+   ------------------------------------------------------------ */
+* { min-width: 0; }
 
 body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
+  font-size: .95rem;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Utilities used across the portal */
+/* Headings carry the hierarchy, so they are tightened and weighted here
+   once rather than per screen. */
+h1, h2, h3, h4 {
+  color: var(--fg);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+h1 { font-size: clamp(1.5rem, 1.2rem + 1.1vw, 2rem); letter-spacing: -0.025em; }
+h2 { font-size: clamp(1.15rem, 1.05rem + .45vw, 1.35rem); }
+h3 { font-size: 1.02rem; }
+h4 { font-size: .92rem; }
+
+p { text-wrap: pretty; }
+
+a { color: inherit; }
+a:hover { text-decoration-color: var(--color-brand-400); }
+
+/* One focus ring for the whole product, and it is always visible. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--r-sm);
+}
+
+::selection { background: var(--color-brand-200); color: var(--color-brand-900); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   Surfaces
+   ------------------------------------------------------------ */
 .card {
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-lg);
   background: var(--bg);
+  box-shadow: var(--shadow-sm);
 }
+/* A card that is also a link or a button. */
+.card-interactive {
+  transition: box-shadow var(--t-med) var(--ease),
+              border-color var(--t-med) var(--ease),
+              transform var(--t-fast) var(--ease);
+}
+.card-interactive:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
+.card-interactive:active { transform: translateY(1px); }
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
 .muted { color: var(--muted); }
+.faint { color: var(--faint); }
 .surface { background: var(--surface); }
+.surface-2 { background: var(--surface-2); }
 .hairline { border-color: var(--line); }
 
+/* Section heading above a group of cards or a table. */
+.section-title {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ------------------------------------------------------------
+   Buttons
+   ------------------------------------------------------------ */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  height: 44px; padding: 0 1.1rem; border-radius: 10px;
-  font-weight: 600; font-size: .95rem; cursor: pointer;
-  transition: background .12s ease, opacity .12s ease;
+  height: 44px; padding: 0 1.1rem;
+  border-radius: var(--r-md);
+  font-weight: 600; font-size: .95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease),
+              border-color var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease),
+              opacity var(--t-fast) var(--ease);
 }
-.btn-primary { background: var(--color-brand-600); color: #fff; }
-.btn-primary:hover { background: var(--color-brand-700); }
-.btn-primary:disabled { opacity: .55; cursor: not-allowed; }
-.btn-ghost { border: 1px solid var(--line); color: var(--fg); background: transparent; }
-.btn-ghost:hover { background: var(--surface); }
+.btn:disabled, .btn[aria-disabled='true'] { opacity: .5; cursor: not-allowed; }
 
+.btn-sm { height: 36px; padding: 0 .8rem; font-size: .875rem; border-radius: var(--r-sm); }
+.btn-lg { height: 52px; padding: 0 1.5rem; font-size: 1rem; }
+.btn-block { width: 100%; }
+.btn-icon { width: 40px; height: 40px; padding: 0; border-radius: var(--r-md); }
+
+.btn-primary {
+  background: var(--color-brand-600); color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover:not(:disabled) { background: var(--color-brand-700); }
+.btn-primary:active:not(:disabled) { background: var(--color-brand-800); }
+
+.btn-ghost {
+  border: 1px solid var(--line); color: var(--fg); background: transparent;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface); border-color: var(--line-strong); }
+
+.btn-subtle { background: var(--surface); color: var(--fg); border: 1px solid transparent; }
+.btn-subtle:hover:not(:disabled) { background: var(--surface-2); }
+
+.btn-danger { background: var(--color-danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { filter: brightness(.92); }
+
+.btn-quiet { background: transparent; color: var(--muted); }
+.btn-quiet:hover:not(:disabled) { background: var(--surface); color: var(--fg); }
+
+/* A text link that behaves like an action. */
+.link {
+  color: var(--brand-ink); font-weight: 600;
+  text-underline-offset: 3px; text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--brand-ink) 35%, transparent);
+}
+.link:hover { text-decoration-color: currentColor; }
+
+/* ------------------------------------------------------------
+   Forms
+   ------------------------------------------------------------ */
 .input {
   width: 100%; height: 44px; padding: 0 .8rem;
-  border: 1px solid var(--line); border-radius: 10px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
   background: var(--bg); color: var(--fg); font-size: .95rem;
+  font-family: inherit;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
 }
-.input:focus { outline: 2px solid var(--color-brand-400); outline-offset: -1px; }
-textarea.input { height: auto; padding: .65rem .8rem; line-height: 1.5; }
-select.input { appearance: none; }
+.input::placeholder { color: var(--faint); }
+.input:hover:not(:disabled):not(:focus) { border-color: var(--line-strong); }
+.input:focus { outline: 2px solid var(--color-brand-400); outline-offset: -1px; border-color: var(--color-brand-400); }
+.input:disabled { background: var(--surface); color: var(--muted); cursor: not-allowed; }
+.input[aria-invalid='true'] { border-color: var(--color-danger); }
+textarea.input { height: auto; min-height: 96px; padding: .65rem .8rem; line-height: 1.55; resize: vertical; }
+select.input {
+  appearance: none; padding-right: 2.2rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 17px) 19px, calc(100% - 12px) 19px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
 
 .label { display: block; font-size: .82rem; font-weight: 600; margin-bottom: .35rem; }
 .hint { font-size: .78rem; color: var(--muted); margin-top: .3rem; line-height: 1.45; }
+.error-text { font-size: .8rem; color: var(--color-danger); margin-top: .3rem; font-weight: 500; }
 
+/* Checkbox and radio get the brand colour and a real target. */
+input[type='checkbox'], input[type='radio'] {
+  accent-color: var(--color-brand-600);
+  width: 18px; height: 18px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------
+   Pills, badges and status
+   ------------------------------------------------------------ */
 .pill {
   display: inline-flex; align-items: center; gap: .3rem;
-  padding: .22rem .55rem; border-radius: 7px;
+  padding: .22rem .55rem; border-radius: var(--r-sm);
   background: var(--surface); border: 1px solid var(--line);
   font-size: .76rem; font-weight: 600; color: var(--muted);
+  white-space: nowrap;
+}
+.pill-brand   { background: var(--brand-wash); border-color: transparent; color: var(--brand-ink); }
+.pill-success { background: color-mix(in srgb, var(--color-verified) 12%, var(--bg)); border-color: transparent; color: var(--color-verified); }
+.pill-warn    { background: color-mix(in srgb, var(--color-warn) 12%, var(--bg)); border-color: transparent; color: var(--color-warn); }
+.pill-danger  { background: color-mix(in srgb, var(--color-danger) 12%, var(--bg)); border-color: transparent; color: var(--color-danger); }
+.pill-info    { background: color-mix(in srgb, var(--color-info) 12%, var(--bg)); border-color: transparent; color: var(--color-info); }
+.pill-accent  { background: color-mix(in srgb, var(--color-accent-500) 18%, var(--bg)); border-color: transparent; color: var(--color-accent-700); }
+
+/* A small dot that states a status without words. */
+.dot { width: 7px; height: 7px; border-radius: var(--r-full); background: currentColor; flex: none; }
+
+/* ------------------------------------------------------------
+   Banners — one row that tells the user something about their account.
+   ------------------------------------------------------------ */
+.banner {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  font-size: .88rem;
+}
+.banner-brand  { background: var(--brand-wash); border-color: transparent; color: var(--brand-ink); }
+.banner-warn   { background: color-mix(in srgb, var(--color-warn) 11%, var(--bg)); border-color: transparent; }
+.banner-danger { background: color-mix(in srgb, var(--color-danger) 10%, var(--bg)); border-color: transparent; }
+
+/* ------------------------------------------------------------
+   Empty states — a screen with nothing in it still has to say what
+   to do next. Used wherever a list can be empty.
+   ------------------------------------------------------------ */
+.empty {
+  display: grid; gap: .5rem; justify-items: center; text-align: center;
+  padding: 2.75rem 1.25rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--muted);
+}
+.empty-title { color: var(--fg); font-weight: 700; font-size: 1rem; }
+.empty-body { max-width: 46ch; font-size: .88rem; line-height: 1.5; }
+
+/* ------------------------------------------------------------
+   Loading — a skeleton of the thing that is coming, never a spinner
+   in the middle of an empty page.
+   ------------------------------------------------------------ */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
+  background-size: 400% 100%;
+  animation: skeleton 1.3s var(--ease) infinite;
+  border-radius: var(--r-sm);
+  color: transparent;
+  user-select: none;
+}
+@keyframes skeleton { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+
+.spinner {
+  width: 16px; height: 16px; flex: none;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: var(--r-full);
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------------
+   Tables — used for applicants, timesheets, earnings, approvals.
+   ------------------------------------------------------------ */
+.table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.table th {
+  text-align: left; font-weight: 600; font-size: .76rem;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--faint);
+  padding: .6rem .75rem; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.table td { padding: .7rem .75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr { transition: background var(--t-fast) var(--ease); }
+.table-hover tbody tr:hover { background: var(--surface); }
+.table-numeric { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Numbers that are compared down a column must line up. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------
+   Tabs
+   ------------------------------------------------------------ */
+.tabs { display: flex; gap: .25rem; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: .6rem .85rem; font-size: .9rem; font-weight: 600;
+  color: var(--muted); white-space: nowrap;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.tab:hover { color: var(--fg); }
+.tab[aria-current='page'], .tab[aria-selected='true'], .tab.is-active {
+  color: var(--brand-ink); border-bottom-color: var(--color-brand-600);
+}
+
+/* ------------------------------------------------------------
+   Navigation — the dashboard's grouped menu, as a column on a wide
+   screen and as a sheet on a phone.
+   ------------------------------------------------------------ */
+.nav-link {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .45rem .75rem;
+  border-radius: var(--r-md);
+  font-size: .9rem; font-weight: 500;
+  color: var(--muted);
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.nav-link:hover { background: var(--surface); color: var(--fg); }
+.nav-link.is-active {
+  background: var(--brand-wash);
+  color: var(--brand-ink);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------------
+   Avatar
+   ------------------------------------------------------------ */
+.avatar {
+  display: grid; place-items: center; flex: none;
+  width: 36px; height: 36px; border-radius: var(--r-full);
+  background: var(--brand-wash); color: var(--brand-ink);
+  font-weight: 700; font-size: .85rem;
+  overflow: hidden;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-sm { width: 28px; height: 28px; font-size: .75rem; }
+.avatar-lg { width: 56px; height: 56px; font-size: 1.1rem; }
+
+/* ------------------------------------------------------------
+   Meter — match scores, funnel shares, assessment results.
+   ------------------------------------------------------------ */
+.meter { height: 6px; border-radius: var(--r-full); background: var(--surface-2); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: inherit; background: var(--color-brand-500); }
+
+/* ------------------------------------------------------------
+   Scrollbars — quiet, and only where something scrolls.
+   ------------------------------------------------------------ */
+.scroll-y { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.scroll-y::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: var(--r-full); }
+.scroll-y::-webkit-scrollbar-track { background: transparent; }
+
+/* Print: the portal is used to take an offer or a timesheet into a meeting. */
+@media print {
+  .no-print { display: none !important; }
+  .card { box-shadow: none; border-color: #ccc; }
+  body { background: #fff; color: #000; }
 }

@@ -11,10 +11,11 @@ import '../../data/identity.dart' show WorkIdentity;
 import '../../data/identity_repository.dart' show myIdentitiesProvider;
 import '../../data/invitations.dart' show shortDate;
 import '../work/work_widgets.dart'
-    show RepresentationMessage, WorkNote, WorkPill, WorkTone, workBackButton;
+    show WorkNote, WorkPill, WorkTone, workBackButton;
 import 'career_widgets.dart';
 import 'goal_editor.dart';
 import 'plan_checklist.dart';
+import '../../core/ui.dart';
 
 /// `/career` — My career.
 ///
@@ -69,7 +70,10 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
       if (!mounted) return;
       setState(() => _goalId = saved?.id);
       _reload();
-      showCareerSnack(context, 'Goal set. Your plan starts with the skills to build.');
+      showCareerSnack(
+        context,
+        'Goal set. Your plan starts with the skills to build.',
+      );
     } catch (e) {
       if (mounted) showCareerSnack(context, careerError(e));
     } finally {
@@ -112,14 +116,18 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(s == GoalStatus.achieved
-              ? 'Mark "${g.title}" achieved?'
-              : 'Archive "${g.title}"?'),
-          content: Text(s == GoalStatus.achieved
-              ? 'Well done. The goal moves to your past goals, and you can '
-                    'choose your next one.'
-              : 'The goal and its plan are kept in your past goals. You can '
-                    'make it active again later.'),
+          title: Text(
+            s == GoalStatus.achieved
+                ? 'Mark "${g.title}" achieved?'
+                : 'Archive "${g.title}"?',
+          ),
+          content: Text(
+            s == GoalStatus.achieved
+                ? 'Well done. The goal moves to your past goals, and you can '
+                      'choose your next one.'
+                : 'The goal and its plan are kept in your past goals. You can '
+                      'make it active again later.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -127,7 +135,9 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(s == GoalStatus.achieved ? 'Mark achieved' : 'Archive'),
+              child: Text(
+                s == GoalStatus.achieved ? 'Mark achieved' : 'Archive',
+              ),
             ),
           ],
         ),
@@ -159,14 +169,16 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
     final g = path.goal;
     if (g == null) return;
     try {
-      await ref.read(careerRepositoryProvider).addPlanItem(
-        goalId: g.id,
-        kind: kind,
-        title: title,
-        position: nextPlanPosition(path.plan),
-        resourceId: resourceId,
-        jobId: jobId,
-      );
+      await ref
+          .read(careerRepositoryProvider)
+          .addPlanItem(
+            goalId: g.id,
+            kind: kind,
+            title: title,
+            position: nextPlanPosition(path.plan),
+            resourceId: resourceId,
+            jobId: jobId,
+          );
       if (!mounted) return;
       _reload();
       showCareerSnack(context, 'Added to your plan.');
@@ -211,10 +223,19 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Edit goal')),
                 if (goal.isActive) ...[
-                  const PopupMenuItem(value: 'achieved', child: Text('Mark achieved')),
-                  const PopupMenuItem(value: 'archive', child: Text('Archive goal')),
+                  const PopupMenuItem(
+                    value: 'achieved',
+                    child: Text('Mark achieved'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'archive',
+                    child: Text('Archive goal'),
+                  ),
                 ] else
-                  const PopupMenuItem(value: 'active', child: Text('Make active again')),
+                  const PopupMenuItem(
+                    value: 'active',
+                    child: Text('Make active again'),
+                  ),
               ],
             ),
         ],
@@ -224,15 +245,16 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
         skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => needsIdentity(e)
-            ? RepresentationMessage(
+            ? OmeloMessage(
                 icon: Icons.badge_outlined,
                 title: 'Start with your work identity',
-                body: 'Your career path starts from the work you do today. '
+                body:
+                    'Your career path starts from the work you do today. '
                     'Add a work identity with your skills first.',
                 actionLabel: 'Add a work identity',
                 onAction: () => context.push('/identities'),
               )
-            : RepresentationMessage(
+            : OmeloMessage(
                 icon: Icons.cloud_off_outlined,
                 title: 'Could not load your career path',
                 body: careerError(e),
@@ -242,7 +264,9 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
         data: (p) => RefreshIndicator(
           onRefresh: () async {
             _reload();
-            await ref.read(careerPathProvider(_key).future).catchError((_) => p);
+            await ref
+                .read(careerPathProvider(_key).future)
+                .catchError((_) => p);
           },
           child: _body(context, p),
         ),
@@ -252,10 +276,12 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
 
   Widget _body(BuildContext context, CareerPath p) {
     final gutter = Breakpoints.of(context).gutter;
-    final countries = ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
-    final identities = (ref.watch(myIdentitiesProvider).valueOrNull ?? const <WorkIdentity>[])
-        .where((i) => i.isActive)
-        .toList();
+    final countries =
+        ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
+    final identities =
+        (ref.watch(myIdentitiesProvider).valueOrNull ?? const <WorkIdentity>[])
+            .where((i) => i.isActive)
+            .toList();
     final identity = identities.where((i) => i.id == p.identityId).firstOrNull;
     final home = ref.watch(homeCountryProvider);
     final currentProfessionId = p.currentProfessionId ?? identity?.professionId;
@@ -333,7 +359,10 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
                       ? 'No suggestions yet.'
                       : 'Omelo has no typical next steps for ${p.currentProfession} '
                             'yet. Choose any role you are aiming for.',
-                  style: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 )
               else
                 ResponsiveCardGrid(
@@ -353,7 +382,9 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
-                  onPressed: _savingProfession != null ? null : () => _chooseAnyRole(p),
+                  onPressed: _savingProfession != null
+                      ? null
+                      : () => _chooseAnyRole(p),
                   icon: const Icon(Icons.search),
                   label: const Text('Choose any role'),
                 ),
@@ -385,7 +416,8 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
       trailing: p.identityId == null
           ? null
           : TextButton(
-              onPressed: () => context.push('/identities/${p.identityId}?section=skills'),
+              onPressed: () =>
+                  context.push('/identities/${p.identityId}?section=skills'),
               child: const Text('Update skills'),
             ),
       child: SkillGroups(skills: p.skills),
@@ -497,7 +529,8 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
       jobs,
       targetMarket,
       ?licences,
-      if (market != null) Padding(padding: const EdgeInsets.only(top: 24), child: market),
+      if (market != null)
+        Padding(padding: const EdgeInsets.only(top: 24), child: market),
     ];
 
     return LayoutBuilder(
@@ -506,8 +539,16 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
           // Phone: plan first (what to do), then the why.
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [plan, development, skills, jobs, targetMarket, ?licences,
-              if (market != null) Padding(padding: const EdgeInsets.only(top: 24), child: market)],
+            children: [
+              plan,
+              development,
+              skills,
+              jobs,
+              targetMarket,
+              ?licences,
+              if (market != null)
+                Padding(padding: const EdgeInsets.only(top: 24), child: market),
+            ],
           );
         }
         return Row(
@@ -515,12 +556,18 @@ class _CareerScreenState extends ConsumerState<CareerScreen> {
           children: [
             Expanded(
               flex: 11,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: left),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: left,
+              ),
             ),
             const SizedBox(width: 24),
             Expanded(
               flex: 10,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: right),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: right,
+              ),
             ),
           ],
         );
@@ -550,7 +597,10 @@ class _IdentityChooser extends StatelessWidget {
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        const Text('Career path for', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text(
+          'Career path for',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         for (final i in identities)
           ChoiceChip(
             label: Text(i.label),
@@ -613,7 +663,10 @@ class _Header extends ConsumerWidget {
               const SizedBox(height: 10),
               Text(
                 p.message ?? 'Choose a career goal to see your path.',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -624,14 +677,24 @@ class _Header extends ConsumerWidget {
     final goal = g!;
     final pills = [
       if (!goal.isActive)
-        WorkPill(goal.status.label,
-            tone: goal.status == GoalStatus.achieved ? WorkTone.good : WorkTone.neutral),
+        WorkPill(
+          goal.status.label,
+          tone: goal.status == GoalStatus.achieved
+              ? WorkTone.good
+              : WorkTone.neutral,
+        ),
       for (final c in goal.targetCountries)
         OmeloPill(countryName(c, countries), icon: Icons.place_outlined),
       if (goal.targetPayLine != null)
-        OmeloPill('Target ${goal.targetPayLine}', icon: Icons.payments_outlined),
+        OmeloPill(
+          'Target ${goal.targetPayLine}',
+          icon: Icons.payments_outlined,
+        ),
       if (goal.targetDate != null)
-        OmeloPill('By ${shortDate(goal.targetDate!, now)}', icon: Icons.event_outlined),
+        OmeloPill(
+          'By ${shortDate(goal.targetDate!, now)}',
+          icon: Icons.event_outlined,
+        ),
     ];
 
     final target = Column(
@@ -641,10 +704,17 @@ class _Header extends ConsumerWidget {
         const SizedBox(height: 2),
         Text(
           goal.title,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: scheme.primary),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            color: scheme.primary,
+          ),
         ),
         if (goal.goalText != null && goal.profession != null)
-          Text(goal.goalText!, style: const TextStyle(fontSize: 13.5, height: 1.35)),
+          Text(
+            goal.goalText!,
+            style: const TextStyle(fontSize: 13.5, height: 1.35),
+          ),
       ],
     );
 
@@ -676,7 +746,9 @@ class _Header extends ConsumerWidget {
                           children: [
                             Expanded(child: now_),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               child: arrow,
                             ),
                             Expanded(child: target),
@@ -684,7 +756,12 @@ class _Header extends ConsumerWidget {
                         )
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [now_, const SizedBox(height: 4), arrow, target],
+                          children: [
+                            now_,
+                            const SizedBox(height: 4),
+                            arrow,
+                            target,
+                          ],
                         ),
                 ),
               ],
@@ -717,9 +794,10 @@ class _OtherGoals extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final goals = (ref.watch(myGoalsProvider).valueOrNull ?? const <CareerGoal>[])
-        .where((g) => g.id != currentGoalId)
-        .toList();
+    final goals =
+        (ref.watch(myGoalsProvider).valueOrNull ?? const <CareerGoal>[])
+            .where((g) => g.id != currentGoalId)
+            .toList();
     if (goals.isEmpty) return const SizedBox.shrink();
     final now = ref.watch(careerClockProvider)();
     return CareerSection(
@@ -736,13 +814,17 @@ class _OtherGoals extends ConsumerWidget {
                   GoalStatus.archived => Icons.inventory_2_outlined,
                   GoalStatus.active => Icons.flag_outlined,
                 }),
-                title: Text(goals[i].title,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text([
-                  goals[i].status.label,
-                  if (goals[i].createdAt != null)
-                    'set ${shortDate(goals[i].createdAt!, now)}',
-                ].join(' · ')),
+                title: Text(
+                  goals[i].title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  [
+                    goals[i].status.label,
+                    if (goals[i].createdAt != null)
+                      'set ${shortDate(goals[i].createdAt!, now)}',
+                  ].join(' · '),
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => onOpen(goals[i]),
               ),

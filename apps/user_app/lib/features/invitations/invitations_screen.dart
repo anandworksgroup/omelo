@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../data/invitations_repository.dart';
 import 'invitation_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/invitations` — employers who invited me to apply. Waiting ones first.
 class InvitationsScreen extends ConsumerWidget {
@@ -36,7 +37,7 @@ class InvitationsScreen extends ConsumerWidget {
           }
         },
         child: list.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const OmeloSkeletonList(),
           error: (_, __) => _Message(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your invitations',

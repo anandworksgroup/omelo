@@ -12,6 +12,7 @@ import 'discover_controller.dart';
 import 'filters_sheet.dart';
 import 'tracked_job_card.dart';
 import '../identities/identity_widgets.dart' show IdentityNudgeCard;
+import '../../core/ui.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -82,7 +83,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   Widget _buildBody(DiscoverState state, ColorScheme scheme) {
     if (state.loading && state.jobs.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const OmeloSkeletonList();
     }
 
     if (state.error != null && state.jobs.isEmpty) {

@@ -7,11 +7,10 @@ import '../../data/global_repository.dart';
 import '../../data/identity_repository.dart' show TaxonomyHit;
 import '../../data/invitations.dart' show shortDate;
 import '../identities/search_picker.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import '../work/work_widgets.dart' show WorkPill, WorkTone, workBackButton;
 import 'authorization_editor.dart';
 import 'global_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/mobility` — where I live, where I could work, whether I need a visa,
 /// my right to work in each country, and who may see it.
@@ -33,17 +32,22 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
   void _seed(MyMobility m) {
     _original = m.profile;
     _draft = m.profile;
-    final missing =
-        m.profile.preferredCityIds.where((id) => !_cityNames.containsKey(id)).toList();
+    final missing = m.profile.preferredCityIds
+        .where((id) => !_cityNames.containsKey(id))
+        .toList();
     if (missing.isEmpty) return;
-    ref.read(globalRepositoryProvider).citiesByIds(missing).then((hits) {
-      if (!mounted) return;
-      setState(() {
-        for (final h in hits) {
-          _cityNames[h.id] = h.name;
-        }
-      });
-    }).catchError((_) {});
+    ref
+        .read(globalRepositoryProvider)
+        .citiesByIds(missing)
+        .then((hits) {
+          if (!mounted) return;
+          setState(() {
+            for (final h in hits) {
+              _cityNames[h.id] = h.name;
+            }
+          });
+        })
+        .catchError((_) {});
   }
 
   void _edit(MobilityProfile Function(MobilityProfile) f) =>
@@ -77,7 +81,8 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(myMobilityProvider);
-    final countries = ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
+    final countries =
+        ref.watch(countriesProvider).valueOrNull ?? const <Country>[];
 
     final data = async.valueOrNull;
     if (data != null && _draft == null) _seed(data);
@@ -89,7 +94,7 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => RepresentationMessage(
+        error: (e, _) => OmeloMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Could not load your mobility details',
           body: globalError(e),
@@ -104,19 +109,22 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
               child: Center(
                 heightFactor: 1,
                 child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(maxWidth: Breakpoints.readingWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: Breakpoints.readingWidth,
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                     child: SizedBox(
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: _saving || !_dirty ? null : _save,
-                        child: Text(_saving
-                            ? 'Saving…'
-                            : _dirty
-                                ? 'Save changes'
-                                : 'Saved'),
+                        child: Text(
+                          _saving
+                              ? 'Saving…'
+                              : _dirty
+                              ? 'Save changes'
+                              : 'Saved',
+                        ),
                       ),
                     ),
                   ),
@@ -143,46 +151,62 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                 'Tell employers in other countries where you are and where you '
                 'could work. You decide who sees your right-to-work details.',
                 style: TextStyle(
-                    fontSize: 14.5, height: 1.4, color: scheme.onSurfaceVariant),
+                  fontSize: 14.5,
+                  height: 1.4,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
 
               _Section('Where you are'),
-              ResponsiveFieldRow(children: [
-                _PickerField(
-                  label: 'Country you live in',
-                  value: d.currentCountry == null
-                      ? null
-                      : countryName(d.currentCountry, countries),
-                  icon: Icons.home_outlined,
-                  onTap: () async {
-                    final c = await pickCountry(context, countries,
-                        title: 'Country you live in');
-                    if (c == null) return;
-                    _edit((p) => p.copyWith(
+              ResponsiveFieldRow(
+                children: [
+                  _PickerField(
+                    label: 'Country you live in',
+                    value: d.currentCountry == null
+                        ? null
+                        : countryName(d.currentCountry, countries),
+                    icon: Icons.home_outlined,
+                    onTap: () async {
+                      final c = await pickCountry(
+                        context,
+                        countries,
+                        title: 'Country you live in',
+                      );
+                      if (c == null) return;
+                      _edit(
+                        (p) => p.copyWith(
                           currentCountry: () => c.code,
                           timezone: p.timezone == null && c.timezone != null
                               ? () => c.timezone
                               : null,
-                        ));
-                  },
-                  onClear: d.currentCountry == null
-                      ? null
-                      : () => _edit((p) => p.copyWith(currentCountry: () => null)),
-                ),
-                _PickerField(
-                  label: 'Time zone',
-                  value: d.timezone?.replaceAll('_', ' '),
-                  icon: Icons.schedule,
-                  onTap: () async {
-                    final z = await pickTimeZone(context,
-                        suggested: [?home?.timezone]);
-                    if (z != null) _edit((p) => p.copyWith(timezone: () => z));
-                  },
-                  onClear: d.timezone == null
-                      ? null
-                      : () => _edit((p) => p.copyWith(timezone: () => null)),
-                ),
-              ]),
+                        ),
+                      );
+                    },
+                    onClear: d.currentCountry == null
+                        ? null
+                        : () => _edit(
+                            (p) => p.copyWith(currentCountry: () => null),
+                          ),
+                  ),
+                  _PickerField(
+                    label: 'Time zone',
+                    value: d.timezone?.replaceAll('_', ' '),
+                    icon: Icons.schedule,
+                    onTap: () async {
+                      final z = await pickTimeZone(
+                        context,
+                        suggested: [?home?.timezone],
+                      );
+                      if (z != null) {
+                        _edit((p) => p.copyWith(timezone: () => z));
+                      }
+                    },
+                    onClear: d.timezone == null
+                        ? null
+                        : () => _edit((p) => p.copyWith(timezone: () => null)),
+                  ),
+                ],
+              ),
               const SizedBox(height: 14),
               const _Label('Citizenship'),
               CountryChips(
@@ -224,7 +248,9 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
               _Section('Moving for work'),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('I\'m open to moving to another country or city'),
+                title: const Text(
+                  'I\'m open to moving to another country or city',
+                ),
                 value: d.openToRelocation,
                 onChanged: (v) => _edit((p) => p.copyWith(openToRelocation: v)),
               ),
@@ -248,8 +274,12 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                     for (final id in d.preferredCityIds)
                       InputChip(
                         label: Text(_cityNames[id] ?? 'City'),
-                        onDeleted: () => _edit((p) => p.copyWith(
-                            preferredCityIds: [...p.preferredCityIds]..remove(id))),
+                        onDeleted: () => _edit(
+                          (p) => p.copyWith(
+                            preferredCityIds: [...p.preferredCityIds]
+                              ..remove(id),
+                          ),
+                        ),
                       ),
                     if (d.preferredCityIds.length <
                         MobilityProfile.maxPreferredCities)
@@ -266,8 +296,8 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                   title: const Text('I need help to move'),
                   subtitle: const Text('Travel, housing or visa costs'),
                   value: d.relocationAssistanceRequired,
-                  onChanged: (v) => _edit(
-                      (p) => p.copyWith(relocationAssistanceRequired: v)),
+                  onChanged: (v) =>
+                      _edit((p) => p.copyWith(relocationAssistanceRequired: v)),
                 ),
                 _PickerField(
                   label: 'Earliest date you could move',
@@ -284,13 +314,16 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                       lastDate: DateTime(now.year + 5),
                     );
                     if (picked != null) {
-                      _edit((p) => p.copyWith(earliestRelocationDate: () => picked));
+                      _edit(
+                        (p) => p.copyWith(earliestRelocationDate: () => picked),
+                      );
                     }
                   },
                   onClear: d.earliestRelocationDate == null
                       ? null
                       : () => _edit(
-                          (p) => p.copyWith(earliestRelocationDate: () => null)),
+                          (p) => p.copyWith(earliestRelocationDate: () => null),
+                        ),
                 ),
               ],
 
@@ -304,8 +337,9 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                     ChoiceChip(
                       label: Text(sponsorshipNeedLabel(v)),
                       selected: d.requiresSponsorship == v,
-                      onSelected: (_) =>
-                          _edit((p) => p.copyWith(requiresSponsorship: () => v)),
+                      onSelected: (_) => _edit(
+                        (p) => p.copyWith(requiresSponsorship: () => v),
+                      ),
                     ),
                 ],
               ),
@@ -321,24 +355,33 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
                 'Add each country where you can work, or need a visa. Only you '
                 'see these details unless you choose otherwise above.',
                 style: TextStyle(
-                    fontSize: 13.5, height: 1.4, color: scheme.onSurfaceVariant),
+                  fontSize: 13.5,
+                  height: 1.4,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               for (final a in m.authorizations)
                 AuthorizationCard(
                   authorization: a,
-                  onEdit: () => showAuthorizationEditor(context, ref,
-                      countries: countries,
-                      existing: a,
-                      taken: m.authorizations.map((x) => x.country)),
+                  onEdit: () => showAuthorizationEditor(
+                    context,
+                    ref,
+                    countries: countries,
+                    existing: a,
+                    taken: m.authorizations.map((x) => x.country),
+                  ),
                   onDelete: () => _delete(context, a),
                 ),
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
-                  onPressed: () => showAuthorizationEditor(context, ref,
-                      countries: countries,
-                      taken: m.authorizations.map((x) => x.country)),
+                  onPressed: () => showAuthorizationEditor(
+                    context,
+                    ref,
+                    countries: countries,
+                    taken: m.authorizations.map((x) => x.country),
+                  ),
                   icon: const Icon(Icons.add),
                   label: const Text('Add a country'),
                 ),
@@ -357,7 +400,10 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
   }
 
   Future<void> _addCity(
-      BuildContext context, MobilityProfile d, List<Country> countries) async {
+    BuildContext context,
+    MobilityProfile d,
+    List<Country> countries,
+  ) async {
     final repo = ref.read(globalRepositoryProvider);
     final TaxonomyHit? hit = await showSearchPicker(
       context,
@@ -365,7 +411,10 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
       hint: 'City name',
       searchWhenEmpty: false,
       search: (q) async {
-        final hits = await repo.searchCities(q, countries: d.preferredCountries);
+        final hits = await repo.searchCities(
+          q,
+          countries: d.preferredCountries,
+        );
         return [
           for (final h in hits)
             if (!d.preferredCityIds.contains(h.id))
@@ -390,14 +439,17 @@ class _MobilityScreenState extends ConsumerState<MobilityScreen> {
       builder: (c) => AlertDialog(
         title: Text('Remove ${a.displayCountry}?'),
         content: const Text(
-            'Your right-to-work details for this country will be deleted.'),
+          'Your right-to-work details for this country will be deleted.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Keep')),
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Keep'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Remove')),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Remove'),
+          ),
         ],
       ),
     );
@@ -426,38 +478,41 @@ class VisibilityChooser extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Column(
-        children: [
-          for (final v in AuthorizationVisibility.values)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: v == value
-                    ? scheme.primaryContainer.withValues(alpha: 0.45)
-                    : scheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                child: RadioListTile<AuthorizationVisibility>(
-                  value: v,
-                  groupValue: value,
-                  onChanged: (x) {
-                    if (x != null) onChanged(x);
-                  },
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  title: Text(
-                    v == AuthorizationVisibility.standard
-                        ? '${v.title} (recommended)'
-                        : v.title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text(v.explanation,
-                        style: const TextStyle(height: 1.35)),
+      children: [
+        for (final v in AuthorizationVisibility.values)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Material(
+              color: v == value
+                  ? scheme.primaryContainer.withValues(alpha: 0.45)
+                  : scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              child: RadioListTile<AuthorizationVisibility>(
+                value: v,
+                groupValue: value,
+                onChanged: (x) {
+                  if (x != null) onChanged(x);
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                title: Text(
+                  v == AuthorizationVisibility.standard
+                      ? '${v.title} (recommended)'
+                      : v.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(
+                    v.explanation,
+                    style: const TextStyle(height: 1.35),
                   ),
                 ),
               ),
             ),
-        ],
+          ),
+      ],
     );
   }
 }
@@ -490,33 +545,56 @@ class AuthorizationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(a.displayCountry,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text(
+                    a.displayCountry,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(a.status.label, style: const TextStyle(fontSize: 14.5)),
                   if (dates != null)
-                    Text(dates,
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: a.isExpiredAt(now)
-                                ? scheme.error
-                                : scheme.onSurfaceVariant)),
+                    Text(
+                      dates,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: a.isExpiredAt(now)
+                            ? scheme.error
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
                   if (a.restrictions != null)
-                    Text('Limits: ${a.restrictions}',
-                        style: TextStyle(
-                            fontSize: 13, color: scheme.onSurfaceVariant)),
+                    Text(
+                      'Limits: ${a.restrictions}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   const SizedBox(height: 6),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    if (a.isVerified)
-                      const WorkPill('Verified by Omelo',
-                          tone: WorkTone.good, icon: Icons.verified),
-                    if (a.requiresSponsorship)
-                      const WorkPill('Needs sponsorship', tone: WorkTone.warning),
-                    if (a.hasDocument)
-                      const WorkPill('Document attached',
-                          icon: Icons.attach_file),
-                  ]),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (a.isVerified)
+                        const WorkPill(
+                          'Verified by Omelo',
+                          tone: WorkTone.good,
+                          icon: Icons.verified,
+                        ),
+                      if (a.requiresSponsorship)
+                        const WorkPill(
+                          'Needs sponsorship',
+                          tone: WorkTone.warning,
+                        ),
+                      if (a.hasDocument)
+                        const WorkPill(
+                          'Document attached',
+                          icon: Icons.attach_file,
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -542,10 +620,12 @@ class _Section extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 26, bottom: 10),
-        child: Text(text,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-      );
+    padding: const EdgeInsets.only(top: 26, bottom: 10),
+    child: Text(
+      text,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+    ),
+  );
 }
 
 class _Label extends StatelessWidget {
@@ -553,13 +633,16 @@ class _Label extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      );
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
 }
 
 /// A read-only field that opens a picker.
@@ -579,23 +662,25 @@ class _PickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: label,
-            prefixIcon: Icon(icon),
-            suffixIcon: onClear == null
-                ? const Icon(Icons.arrow_drop_down)
-                : IconButton(
-                    onPressed: onClear,
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Clear $label',
-                  ),
-          ),
-          child: Text(value ?? 'Not set',
-              style: const TextStyle(fontSize: 16),
-              overflow: TextOverflow.ellipsis),
-        ),
-      );
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        suffixIcon: onClear == null
+            ? const Icon(Icons.arrow_drop_down)
+            : IconButton(
+                onPressed: onClear,
+                icon: const Icon(Icons.close),
+                tooltip: 'Clear $label',
+              ),
+      ),
+      child: Text(
+        value ?? 'Not set',
+        style: const TextStyle(fontSize: 16),
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  );
 }

@@ -7,9 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/career_repository.dart';
-import '../work/work_widgets.dart'
-    show RepresentationMessage, WorkNote, WorkTone, workBackButton;
+import '../work/work_widgets.dart' show WorkNote, WorkTone, workBackButton;
 import 'career_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/career/assessment/<skill>` — a short Omelo test for one skill.
 ///
@@ -140,7 +140,8 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _session?.title ??
+    final title =
+        _session?.title ??
         (widget.skillName == null ? 'Skill test' : '${widget.skillName} test');
     return Scaffold(
       appBar: AppBar(
@@ -162,7 +163,7 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
     if (_starting) return const Center(child: CircularProgressIndicator());
     if (_startError != null) {
       final e = _startError!;
-      return RepresentationMessage(
+      return OmeloMessage(
         icon: Icons.hourglass_bottom,
         title: 'You cannot take this test right now',
         body: e is String ? e : careerError(e),
@@ -171,7 +172,9 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
       );
     }
     final r = _result;
-    if (r != null) return _ResultView(result: r, session: _session!, onDone: _backToPath);
+    if (r != null) {
+      return _ResultView(result: r, session: _session!, onDone: _backToPath);
+    }
     return _questions(context, _session!);
   }
 
@@ -219,7 +222,11 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
               const SizedBox(height: 18),
               Text(
                 q.prompt,
-                style: const TextStyle(fontSize: 18, height: 1.4, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 18,
+                  height: 1.4,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               for (var i = 0; i < q.options.length; i++)
@@ -233,7 +240,10 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
                         : (v) {
                             if (v != null) setState(() => _chosen[q.id] = v);
                           },
-                    title: Text(q.options[i], style: const TextStyle(fontSize: 15.5)),
+                    title: Text(
+                      q.options[i],
+                      style: const TextStyle(fontSize: 15.5),
+                    ),
                   ),
                 ),
               if (_timeUp) ...[
@@ -245,7 +255,10 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
                   icon: Icons.timer_off_outlined,
                 ),
                 const SizedBox(height: 10),
-                FilledButton(onPressed: () => _start(), child: const Text('Start again')),
+                FilledButton(
+                  onPressed: () => _start(),
+                  child: const Text('Start again'),
+                ),
               ] else ...[
                 const SizedBox(height: 12),
                 Row(
@@ -264,7 +277,9 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
                     else
                       FilledButton(
                         onPressed: !all || _submitting ? null : _submit,
-                        child: Text(_submitting ? 'Checking…' : 'Submit answers'),
+                        child: Text(
+                          _submitting ? 'Checking…' : 'Submit answers',
+                        ),
                       ),
                   ],
                 ),
@@ -274,7 +289,10 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
                     'Answer every question to submit ($answered of '
                     '${s.questions.length} answered).',
                     textAlign: TextAlign.end,
-                    style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ],
@@ -287,7 +305,10 @@ class _AssessmentScreenState extends ConsumerState<AssessmentScreen> {
                 Text(
                   'Pass mark: ${s.passPercent}%. Your answers are checked by '
                   'Omelo; employers see only that you passed.',
-                  style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ],
@@ -358,7 +379,11 @@ class _ResultView extends ConsumerWidget {
               Text(
                 r.passed ? 'You passed' : 'Not passed this time',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
@@ -398,8 +423,12 @@ class _ResultView extends ConsumerWidget {
                       if (i > 0) const Divider(height: 1),
                       ListTile(
                         leading: Icon(
-                          r.review[i].correct ? Icons.check_circle : Icons.cancel_outlined,
-                          color: r.review[i].correct ? OmeloTheme.verified : OmeloTheme.danger,
+                          r.review[i].correct
+                              ? Icons.check_circle
+                              : Icons.cancel_outlined,
+                          color: r.review[i].correct
+                              ? OmeloTheme.verified
+                              : OmeloTheme.danger,
                         ),
                         title: Text(
                           'Question ${i + 1}',
@@ -414,7 +443,9 @@ class _ResultView extends ConsumerWidget {
                           r.review[i].correct ? 'Correct' : 'Not correct',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: r.review[i].correct ? OmeloTheme.verified : scheme.error,
+                            color: r.review[i].correct
+                                ? OmeloTheme.verified
+                                : scheme.error,
                           ),
                         ),
                       ),

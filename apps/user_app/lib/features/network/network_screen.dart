@@ -5,9 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_state.dart';
 import '../../core/responsive.dart';
 import '../../data/network_repository.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import 'network_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/network?tab=` — connections, invitations, requests I sent, followers
 /// and who I follow, plus people Omelo thinks I may know.
@@ -79,9 +78,7 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen>
   Future<void> _remove(NetworkEntry e, {required bool withdraw}) async {
     final yes = await confirmNetworkAction(
       context,
-      title: withdraw
-          ? 'Withdraw this request?'
-          : 'Remove ${e.person.name}?',
+      title: withdraw ? 'Withdraw this request?' : 'Remove ${e.person.name}?',
       body: withdraw
           ? '${e.person.name} will no longer see your request.'
           : 'You will no longer be connected. You can ask again later.',
@@ -120,10 +117,11 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen>
           title: const Text('My network'),
           leading: networkBackButton(context, '/home'),
         ),
-        body: RepresentationMessage(
+        body: OmeloMessage(
           icon: Icons.people_outline,
           title: 'The people you work with',
-          body: 'Connect with people you have worked with and follow the '
+          body:
+              'Connect with people you have worked with and follow the '
               'organizations you want to work for. Sign in to start.',
           actionLabel: 'Sign in or create an account',
           onAction: () => context.push('/sign-in?next=/network'),
@@ -165,8 +163,8 @@ class _NetworkScreenState extends ConsumerState<NetworkScreen>
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: entries.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, __) => RepresentationMessage(
+          loading: () => const OmeloSkeletonList(),
+          error: (e, __) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your network',
             body: networkError(e),
@@ -264,15 +262,15 @@ class SuggestionsStrip extends ConsumerWidget {
         ContentWidth(
           child: Row(
             children: [
-              const Text('People you may know',
-                  style:
-                      TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const Text(
+                'People you may know',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh suggestions',
                 iconSize: 20,
-                onPressed: () =>
-                    ref.invalidate(connectionSuggestionsProvider),
+                onPressed: () => ref.invalidate(connectionSuggestionsProvider),
                 icon: const Icon(Icons.refresh),
               ),
             ],
@@ -306,7 +304,9 @@ class SuggestionsStrip extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 14.5, fontWeight: FontWeight.w700),
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Expanded(
@@ -316,9 +316,10 @@ class SuggestionsStrip extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                fontSize: 12,
-                                height: 1.3,
-                                color: scheme.onSurfaceVariant),
+                              fontSize: 12,
+                              height: 1.3,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -327,8 +328,8 @@ class SuggestionsStrip extends ConsumerWidget {
                           child: ConnectButton(
                             person: e.person,
                             compact: true,
-                            onRequested: () => ref
-                                .invalidate(connectionSuggestionsProvider),
+                            onRequested: () =>
+                                ref.invalidate(connectionSuggestionsProvider),
                           ),
                         ),
                       ],
@@ -377,7 +378,9 @@ class NetworkPersonCard extends ConsumerWidget {
       NetworkView.invitations || NetworkView.sent =>
         entry.requestedAt == null ? null : postTime(entry.requestedAt!, now),
       NetworkView.connections =>
-        entry.connectedAt == null ? null : 'Connected ${postTime(entry.connectedAt!, now)}',
+        entry.connectedAt == null
+            ? null
+            : 'Connected ${postTime(entry.connectedAt!, now)}',
       _ => null,
     };
 
@@ -405,8 +408,10 @@ class NetworkPersonCard extends ConsumerWidget {
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(entry.message!,
-                    style: const TextStyle(fontSize: 13.5, height: 1.4)),
+                child: Text(
+                  entry.message!,
+                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                ),
               ),
             ],
             const SizedBox(height: 10),
@@ -466,8 +471,10 @@ class NetworkPersonCard extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(0, 40),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                textStyle:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               child: const Text('Remove'),
             ),

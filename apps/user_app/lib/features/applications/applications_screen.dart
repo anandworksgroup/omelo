@@ -8,12 +8,13 @@ import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../data/applications_repository.dart';
 import '../../data/auth_repository.dart';
-import '../representations/representation_widgets.dart'
-    show SubmittedByLine;
+import '../representations/representation_widgets.dart' show SubmittedByLine;
 import 'hiring_widgets.dart';
+import '../../core/ui.dart';
 
-final myApplicationsProvider =
-    FutureProvider<List<ApplicationSummary>>((ref) async {
+final myApplicationsProvider = FutureProvider<List<ApplicationSummary>>((
+  ref,
+) async {
   ref.watch(authStateProvider);
   final repo = ref.watch(applicationsRepositoryProvider);
   return repo.mine();
@@ -47,7 +48,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
         body: const _Empty(
           icon: Icons.assignment_outlined,
           title: 'Track every application here',
-          body: 'You will see when an employer opens your application, and '
+          body:
+              'You will see when an employer opens your application, and '
               'what happens after. No application disappears silently.',
           signIn: true,
         ),
@@ -58,19 +60,21 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-          title: const Text('Applications'),
-          actions: const [NotificationBell(), SizedBox(width: 8)],
-        ),
+        title: const Text('Applications'),
+        actions: const [NotificationBell(), SizedBox(width: 8)],
+      ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const OmeloSkeletonList(),
         error: (_, __) => Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Could not load your applications.',
-                    textAlign: TextAlign.center),
+                const Text(
+                  'Could not load your applications.',
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(myApplicationsProvider),
@@ -130,7 +134,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
               'Nothing here right now.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           )
         else
@@ -161,7 +166,8 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
               child: SectionHeading(
                 'Closed (${s.closed.length})',
                 trailing: Icon(
-                    _showClosed ? Icons.expand_less : Icons.expand_more),
+                  _showClosed ? Icons.expand_less : Icons.expand_more,
+                ),
               ),
             ),
           ),
@@ -193,11 +199,11 @@ class _ApplicationsScreenState extends ConsumerState<ApplicationsScreen> {
       );
 
   static String _filterLabel(ApplicationFilter f) => switch (f) {
-        ApplicationFilter.active => 'Active',
-        ApplicationFilter.interviews => 'Interviews',
-        ApplicationFilter.offers => 'Offers',
-        ApplicationFilter.hired => 'Hired',
-      };
+    ApplicationFilter.active => 'Active',
+    ApplicationFilter.interviews => 'Interviews',
+    ApplicationFilter.offers => 'Offers',
+    ApplicationFilter.hired => 'Hired',
+  };
 }
 
 class _SummaryBar extends StatelessWidget {
@@ -233,23 +239,28 @@ class _SummaryBar extends StatelessWidget {
                     constraints: const BoxConstraints(minHeight: 64),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 4),
+                        vertical: 10,
+                        horizontal: 4,
+                      ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             '${counts[f] ?? 0}',
                             style: const TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.w800),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
                               _ApplicationsScreenState._filterLabel(f),
                               style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: scheme.onSurfaceVariant),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ],
@@ -293,16 +304,22 @@ class _ApplicationCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(app.jobTitle,
-                            style: const TextStyle(
-                                fontSize: 16.5, fontWeight: FontWeight.w700)),
+                        Text(
+                          app.jobTitle,
+                          style: const TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           app.companyName.isEmpty
                               ? 'Employer'
                               : app.companyName,
                           style: TextStyle(
-                              fontSize: 14, color: scheme.onSurfaceVariant),
+                            fontSize: 14,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                         SubmittedByLine(applicationId: app.id),
                       ],
@@ -315,11 +332,14 @@ class _ApplicationCard extends StatelessWidget {
                       StatusChip(state: app.state),
                       if (app.matchScore != null) ...[
                         const SizedBox(height: 6),
-                        Text('${app.matchScore}% match',
-                            style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                color: scheme.onSurfaceVariant)),
+                        Text(
+                          '${app.matchScore}% match',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -332,8 +352,10 @@ class _ApplicationCard extends StatelessWidget {
                 Text(
                   'No news for ${app.daysSinceActivity(now)} days.'
                   '${app.medianResponseHours == null ? '' : ' ${app.companyOrEmployer} ${Fmt.responseTime(app.medianResponseHours)}.'}',
-                  style:
-                      TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
               const SizedBox(height: 10),
@@ -343,14 +365,19 @@ class _ApplicationCard extends StatelessWidget {
                     child: Text(
                       'Applied ${Fmt.posted(app.appliedAt).toLowerCase()}',
                       style: TextStyle(
-                          fontSize: 12.5, color: scheme.onSurfaceVariant),
+                        fontSize: 12.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                  Text('See details',
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.primary)),
+                  Text(
+                    'See details',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.primary,
+                    ),
+                  ),
                   Icon(Icons.chevron_right, size: 18, color: scheme.primary),
                 ],
               ),
@@ -385,15 +412,21 @@ class _Empty extends StatelessWidget {
         children: [
           Icon(icon, size: 52, color: scheme.onSurfaceVariant),
           const SizedBox(height: 22),
-          Text(title,
-              textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 10),
-          Text(body,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 14.5, height: 1.5, color: scheme.onSurfaceVariant)),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.5,
+              height: 1.5,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 30),
           if (signIn) ...[
             FilledButton(

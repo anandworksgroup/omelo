@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/shifts/:id` — one shift (notification deeplinks use the shift
 /// id): when and where, the supervisor, pay, instructions, how to check in
@@ -33,7 +34,7 @@ class ShiftDetailScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load this shift',
             body: workError(e),
@@ -42,7 +43,7 @@ class ShiftDetailScreen extends ConsumerWidget {
           ),
           data: (s) {
             if (s == null) {
-              return RepresentationMessage(
+              return OmeloMessage(
                 icon: Icons.event_busy_outlined,
                 title: 'Shift not found',
                 body:
@@ -283,10 +284,7 @@ class _AttendanceNotes extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: WorkNote(
-              [
-                attendanceNoteLine(n),
-                ?n.resolutionNote,
-              ].join('. '),
+              [attendanceNoteLine(n), ?n.resolutionNote].join('. '),
               tone: n.status == 'pending' ? WorkTone.waiting : WorkTone.neutral,
               icon: Icons.rate_review_outlined,
             ),

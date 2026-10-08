@@ -7,6 +7,7 @@ import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/messaging.dart';
 import '../messages/inbox_providers.dart';
+import '../../core/ui.dart';
 
 /// Bell with the unread count, for the app bar of every main tab.
 /// Hidden when signed out: there is nothing to be notified about.
@@ -79,7 +80,7 @@ class NotificationsScreen extends ConsumerWidget {
 
   Widget _body(BuildContext context, WidgetRef ref, NotificationsState s) {
     if (s.loading && s.items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const OmeloSkeletonList();
     }
     if (s.items.isEmpty) {
       return _Empty(

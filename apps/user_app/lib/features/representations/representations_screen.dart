@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/responsive.dart';
 import '../../data/representations_repository.dart';
 import 'representation_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/representations` — recruiters and agencies who asked to represent me.
 /// Waiting ones first. `?agency=<id>` shows one agency only.
@@ -47,7 +48,7 @@ class RepresentationsScreen extends ConsumerWidget {
         },
         child: list.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => RepresentationMessage(
+          error: (_, __) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your requests',
             body: 'Check your internet and try again.',
@@ -56,7 +57,7 @@ class RepresentationsScreen extends ConsumerWidget {
           ),
           data: (_) {
             if (filtered.isEmpty) {
-              return RepresentationMessage(
+              return OmeloMessage(
                 icon: Icons.handshake_outlined,
                 title: 'No requests from recruiters yet',
                 body:

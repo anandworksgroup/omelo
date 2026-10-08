@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/timesheets/:id` — hours by day, extra time I added, totals and
 /// status. A draft can get extra time and be sent; a sent-back one can be
@@ -33,7 +34,7 @@ class TimesheetDetailScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load this timesheet',
             body: workError(e),
@@ -41,7 +42,7 @@ class TimesheetDetailScreen extends ConsumerWidget {
             onAction: () => ref.invalidate(timesheetProvider(timesheetId)),
           ),
           data: (t) => t == null
-              ? RepresentationMessage(
+              ? OmeloMessage(
                   icon: Icons.search_off,
                   title: 'Timesheet not found',
                   body: 'It may have been removed.',
@@ -149,7 +150,8 @@ class _BodyState extends ConsumerState<_Body> {
     final now = workNow(ref);
     final actions = timesheetActions(t);
     final entries = ref.watch(timesheetEntriesProvider(t.id));
-    final assignments = ref.watch(myAssignmentsProvider).valueOrNull ?? const [];
+    final assignments =
+        ref.watch(myAssignmentsProvider).valueOrNull ?? const [];
     final title = assignments
         .where((a) => a.id == t.assignmentId)
         .map((a) => '${a.title} · ${a.employerName}')
@@ -313,7 +315,8 @@ class _Totals extends StatelessWidget {
       children: [
         cell('Total', hoursWords(t.totalMinutes)),
         cell('Regular', hoursWords(t.regularMinutes)),
-        if (t.overtimeMinutes > 0) cell('Overtime', hoursWords(t.overtimeMinutes)),
+        if (t.overtimeMinutes > 0)
+          cell('Overtime', hoursWords(t.overtimeMinutes)),
         cell('Days', '${t.daysWorked}'),
         cell('Shifts', '${t.shiftsWorked}'),
       ],
@@ -452,7 +455,11 @@ class _ExtraTimeSheetState extends ConsumerState<ExtraTimeSheet> {
     final n = inclusiveDays(t.periodStart, t.periodEnd);
     return [
       for (var i = 0; i < n; i++)
-        DateTime(t.periodStart.year, t.periodStart.month, t.periodStart.day + i),
+        DateTime(
+          t.periodStart.year,
+          t.periodStart.month,
+          t.periodStart.day + i,
+        ),
     ];
   }
 

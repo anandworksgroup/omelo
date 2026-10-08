@@ -6,11 +6,10 @@ import '../../core/app_state.dart';
 import '../../core/responsive.dart';
 import '../../data/network_repository.dart';
 import '../notifications/notifications_screen.dart' show NotificationBell;
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import 'feed_preferences_sheet.dart';
 import 'network_widgets.dart';
 import 'post_card.dart';
+import '../../core/ui.dart';
 
 /// `/feed?tab=` — Omelo's professional network.
 ///
@@ -101,7 +100,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     });
 
     try {
-      final page = await ref.read(networkRepositoryProvider).feed(
+      final page = await ref
+          .read(networkRepositoryProvider)
+          .feed(
             tab,
             limit: _page,
             // Each tab uses exactly one cursor: the ranked tab an offset,
@@ -177,10 +178,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
           title: const Text('Omelo feed'),
           leading: networkBackButton(context, '/home'),
         ),
-        body: RepresentationMessage(
+        body: OmeloMessage(
           icon: Icons.groups_outlined,
           title: 'Your professional network',
-          body: 'Follow the people and organizations you work with, and see '
+          body:
+              'Follow the people and organizations you work with, and see '
               'what they are doing. Sign in to start.',
           actionLabel: 'Sign in or create an account',
           onAction: () => context.push('/sign-in?next=/feed'),
@@ -218,18 +220,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
         icon: const Icon(Icons.edit_outlined),
         label: const Text('Post'),
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _body(context, gutter),
-      ),
+      body: RefreshIndicator(onRefresh: _load, child: _body(context, gutter)),
     );
   }
 
   Widget _body(BuildContext context, double gutter) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const OmeloSkeletonList();
 
     if (_error != null) {
-      return RepresentationMessage(
+      return OmeloMessage(
         icon: Icons.cloud_off_outlined,
         title: 'Could not load the feed',
         body: _error!,
@@ -239,13 +238,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     }
 
     if (_posts.isEmpty) {
-      return RepresentationMessage(
+      return OmeloMessage(
         icon: Icons.forum_outlined,
         title: _tab.emptyTitle,
         body: _tab.emptyBody,
         actionLabel: _tab == FeedTab.saved ? null : 'Find people to follow',
-        onAction:
-            _tab == FeedTab.saved ? null : () => context.push('/network'),
+        onAction: _tab == FeedTab.saved ? null : () => context.push('/network'),
       );
     }
 
@@ -269,7 +267,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
               child: Text(
                 'Ordered by: $ranking',
                 style: TextStyle(
-                    fontSize: 12.5, color: scheme.onSurfaceVariant),
+                  fontSize: 12.5,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           );
@@ -287,8 +287,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
             child: Center(
               child: Text(
                 'That is everything for now.',
-                style:
-                    TextStyle(fontSize: 13.5, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           );
@@ -344,26 +346,35 @@ class FeedHomeCard extends ConsumerWidget {
                   Badge(
                     isLabelVisible: waiting > 0,
                     label: Text('$waiting'),
-                    child: Icon(Icons.groups_outlined,
-                        size: 30, color: scheme.onPrimaryContainer),
+                    child: Icon(
+                      Icons.groups_outlined,
+                      size: 30,
+                      color: scheme.onPrimaryContainer,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Your professional network',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w800)),
+                        const Text(
+                          'Your professional network',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 3),
                         Text(
                           waiting > 0
                               ? '$waiting connection '
-                                  'request${waiting == 1 ? '' : 's'} waiting'
+                                    'request${waiting == 1 ? '' : 's'} waiting'
                               : 'See what the people and organizations you '
-                                  'follow are doing.',
+                                    'follow are doing.',
                           style: TextStyle(
-                              fontSize: 13.5, color: scheme.onSurfaceVariant),
+                            fontSize: 13.5,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),

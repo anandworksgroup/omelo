@@ -6,10 +6,9 @@ import '../../core/app_state.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../data/network_repository.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import 'network_widgets.dart';
 import 'post_card.dart';
+import '../../core/ui.dart';
 
 /// `/feed/:id` — one post and its comments.
 ///
@@ -17,7 +16,11 @@ import 'post_card.dart';
 /// have replies, a reply cannot. Anyone may delete their own comment; the
 /// author of the post may delete any comment on it.
 class PostDetailScreen extends ConsumerStatefulWidget {
-  const PostDetailScreen({super.key, required this.postId, this.autoReply = false});
+  const PostDetailScreen({
+    super.key,
+    required this.postId,
+    this.autoReply = false,
+  });
 
   final String postId;
 
@@ -72,7 +75,8 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
       if (post == null) {
         setState(() {
           _loading = false;
-          _error = 'This post is not available. It may have been deleted, or '
+          _error =
+              'This post is not available. It may have been deleted, or '
               'you may not be able to see it.';
         });
         return;
@@ -101,11 +105,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     }
     setState(() => _sending = true);
     try {
-      await ref.read(networkRepositoryProvider).comment(
-            widget.postId,
-            _reply.text,
-            parentId: _replyingTo?.id,
-          );
+      await ref
+          .read(networkRepositoryProvider)
+          .comment(widget.postId, _reply.text, parentId: _replyingTo?.id);
       if (!mounted) return;
       _reply.clear();
       setState(() {
@@ -141,7 +143,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
     final answer = await askReport(context, what: 'comment');
     if (answer == null || !mounted) return;
     try {
-      await ref.read(networkRepositoryProvider).report(
+      await ref
+          .read(networkRepositoryProvider)
+          .report(
             subject: ReportSubject.comment,
             subjectId: id,
             reason: answer.reason,
@@ -177,14 +181,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? RepresentationMessage(
-                          icon: Icons.cloud_off_outlined,
-                          title: 'Could not open this post',
-                          body: _error!,
-                          actionLabel: 'Try again',
-                          onAction: _load,
-                        )
-                      : _list(context, gutter, post!),
+                  ? OmeloMessage(
+                      icon: Icons.cloud_off_outlined,
+                      title: 'Could not open this post',
+                      body: _error!,
+                      actionLabel: 'Try again',
+                      onAction: _load,
+                    )
+                  : _list(context, gutter, post!),
             ),
           ),
           if (!_loading && _error == null && post != null)
@@ -226,9 +230,11 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                 _comments.isEmpty
                     ? 'No comments yet'
                     : '${_comments.length} '
-                        'comment${_comments.length == 1 ? '' : 's'}',
+                          'comment${_comments.length == 1 ? '' : 's'}',
                 style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w800),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 4),
               if (_comments.isEmpty)
@@ -237,7 +243,9 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                   child: Text(
                     'Be the first to say something.',
                     style: TextStyle(
-                        fontSize: 14, color: scheme.onSurfaceVariant),
+                      fontSize: 14,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               for (final c in _comments)
@@ -273,12 +281,14 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                   child: Text(
                     'Sign in to join the conversation.',
                     style: TextStyle(
-                        fontSize: 14, color: scheme.onSurfaceVariant),
+                      fontSize: 14,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 FilledButton(
-                  onPressed: () => context
-                      .push('/sign-in?next=/feed/${widget.postId}'),
+                  onPressed: () =>
+                      context.push('/sign-in?next=/feed/${widget.postId}'),
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                   child: const Text('Sign in'),
                 ),
@@ -313,9 +323,10 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                           'Replying to '
                           '${replyingTo.author?.name ?? 'this comment'}',
                           style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurfaceVariant),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                       IconButton(
@@ -352,19 +363,20 @@ class _PostDetailScreenState extends ConsumerState<PostDetailScreen> {
                     const SizedBox(width: 8),
                     IconButton.filled(
                       tooltip: 'Send',
-                      onPressed: _sending || tooLong || _reply.text.trim().isEmpty
+                      onPressed:
+                          _sending || tooLong || _reply.text.trim().isEmpty
                           ? null
                           : _send,
                       icon: _sending
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.send),
                       style: IconButton.styleFrom(
-                          minimumSize: const Size(48, 48)),
+                        minimumSize: const Size(48, 48),
+                      ),
                     ),
                   ],
                 ),
@@ -443,8 +455,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
     final c = widget.comment;
     final scheme = Theme.of(context).colorScheme;
     final now = ref.watch(networkClockProvider)();
-    final canDelete =
-        canDeleteComment(mine: c.mine, iOwnThePost: widget.iOwnThePost);
+    final canDelete = canDeleteComment(
+      mine: c.mine,
+      iOwnThePost: widget.iOwnThePost,
+    );
 
     return Padding(
       padding: const EdgeInsets.only(top: 14),
@@ -533,8 +547,10 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                 '${c.replyCount - c.thread.length} more '
                 'repl${c.replyCount - c.thread.length == 1 ? 'y was' : 'ies were'} '
                 'deleted',
-                style:
-                    TextStyle(fontSize: 12.5, color: scheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
         ],
@@ -543,12 +559,12 @@ class _CommentTileState extends ConsumerState<CommentTile> {
   }
 
   ButtonStyle _barStyle({Color? color}) => TextButton.styleFrom(
-        foregroundColor: color,
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      );
+    foregroundColor: color,
+    minimumSize: const Size(0, 36),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+  );
 }
 
 class _CommentBody extends StatelessWidget {
@@ -578,8 +594,11 @@ class _CommentBody extends StatelessWidget {
           CircleAvatar(
             radius: radius,
             backgroundColor: scheme.surfaceContainerHighest,
-            child: Icon(Icons.person_outline,
-                size: radius, color: scheme.onSurfaceVariant),
+            child: Icon(
+              Icons.person_outline,
+              size: radius,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         const SizedBox(width: 10),
         Expanded(
@@ -599,21 +618,27 @@ class _CommentBody extends StatelessWidget {
                         author?.name ?? 'Someone who is no longer on Omelo',
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     if (author?.verified == true) ...[
                       const SizedBox(width: 5),
-                      const Icon(Icons.verified,
-                          size: 14,
-                          color: OmeloTheme.verified,
-                          semanticLabel: 'Verified'),
+                      const Icon(
+                        Icons.verified,
+                        size: 14,
+                        color: OmeloTheme.verified,
+                        semanticLabel: 'Verified',
+                      ),
                     ],
                     const SizedBox(width: 8),
                     Text(
                       edited ? '$time · edited' : time,
                       style: TextStyle(
-                          fontSize: 12, color: scheme.onSurfaceVariant),
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),

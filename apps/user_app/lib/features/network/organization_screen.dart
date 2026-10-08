@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_state.dart';
 import '../../core/responsive.dart';
 import '../../data/network_repository.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import 'network_widgets.dart';
 import 'post_card.dart';
+import '../../core/ui.dart';
 
 /// `/organizations/:id` — an organization's page on the network: who they
 /// are, how many people follow them, and what they have posted publicly.
@@ -59,7 +58,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
         onRefresh: _refresh,
         child: feed.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, __) => RepresentationMessage(
+          error: (e, __) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not open this organization',
             body: networkError(e),
@@ -68,7 +67,7 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
           ),
           data: (org) {
             if (org?.organization == null) {
-              return const RepresentationMessage(
+              return const OmeloMessage(
                 icon: Icons.business_outlined,
                 title: 'Organization not found',
                 body: 'It may have been removed from Omelo.',
@@ -100,8 +99,10 @@ class _OrganizationScreenState extends ConsumerState<OrganizationScreen> {
               const SizedBox(height: 22),
               Text(
                 posts.isEmpty ? 'Posts' : 'Posts (${posts.length})',
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 10),
               if (posts.isEmpty)
@@ -172,32 +173,42 @@ class OrganizationHeader extends ConsumerWidget {
                         child: Text(
                           author.name,
                           style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              height: 1.2),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
+                          ),
                         ),
                       ),
                       if (author.verified) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.verified,
-                            size: 19,
-                            color: Color(0xFF12805C),
-                            semanticLabel: 'Verified organization'),
+                        const Icon(
+                          Icons.verified,
+                          size: 19,
+                          color: Color(0xFF12805C),
+                          semanticLabel: 'Verified organization',
+                        ),
                       ],
                     ],
                   ),
                   if (type.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Text(type,
-                        style: TextStyle(
-                            fontSize: 13.5, color: scheme.onSurfaceVariant)),
+                    Text(
+                      type,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 4),
-                  Text(organization.followerLine,
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant)),
+                  Text(
+                    organization.followerLine,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -209,14 +220,11 @@ class OrganizationHeader extends ConsumerWidget {
           runSpacing: 10,
           children: [
             if (signedIn)
-              FollowButton(
-                author: author,
-                following: organization.following,
-              )
+              FollowButton(author: author, following: organization.following)
             else
               FilledButton(
-                onPressed: () => context
-                    .push('/sign-in?next=/organizations/${author.id}'),
+                onPressed: () =>
+                    context.push('/sign-in?next=/organizations/${author.id}'),
                 child: const Text('Sign in to follow'),
               ),
             OutlinedButton.icon(

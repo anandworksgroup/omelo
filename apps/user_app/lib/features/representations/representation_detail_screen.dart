@@ -8,6 +8,7 @@ import '../../data/account.dart' show serverMessage;
 import '../../data/invitations.dart' show shortDate;
 import '../../data/representations_repository.dart';
 import 'representation_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/representations/:id` — one request to represent me (notification
 /// deeplink for both `representation_request` and `representation_update`).
@@ -69,7 +70,7 @@ class _RepresentationDetailScreenState
       ),
       body: list.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => RepresentationMessage(
+        error: (_, __) => OmeloMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Could not load this request',
           body: 'Check your internet and try again.',
@@ -79,7 +80,7 @@ class _RepresentationDetailScreenState
         data: (items) {
           final found = _find(items);
           if (found == null) {
-            return RepresentationMessage(
+            return OmeloMessage(
               icon: Icons.handshake_outlined,
               title: 'Request not found',
               body: 'This request was not found. It may have been removed.',

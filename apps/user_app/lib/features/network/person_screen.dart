@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_state.dart';
 import '../../core/responsive.dart';
 import '../../data/network_repository.dart';
-import '../representations/representation_widgets.dart'
-    show RepresentationMessage;
 import 'network_widgets.dart';
 import 'post_card.dart';
+import '../../core/ui.dart';
 
 /// `/people/:id` — another person's page on the network.
 ///
@@ -46,7 +45,9 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
     final answer = await askReport(context, what: 'person');
     if (answer == null || !mounted) return;
     try {
-      await ref.read(networkRepositoryProvider).report(
+      await ref
+          .read(networkRepositoryProvider)
+          .report(
             subject: ReportSubject.person,
             subjectId: person.id,
             reason: answer.reason,
@@ -85,7 +86,8 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
 
     // Whatever card we have: the one handed over, else the one on their own
     // first post.
-    final author = widget.author ??
+    final author =
+        widget.author ??
         posts.valueOrNull
             ?.map((p) => p.author)
             .whereType<PostAuthor>()
@@ -103,7 +105,10 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
               onSelected: (v) =>
                   v == 'report' ? _report(author) : _block(author),
               itemBuilder: (context) => const [
-                PopupMenuItem(value: 'report', child: Text('Report this person')),
+                PopupMenuItem(
+                  value: 'report',
+                  child: Text('Report this person'),
+                ),
                 PopupMenuItem(value: 'block', child: Text('Block')),
               ],
             ),
@@ -114,7 +119,7 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
         onRefresh: _refresh,
         child: posts.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, __) => RepresentationMessage(
+          error: (e, __) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not open this profile',
             body: networkError(e),
@@ -154,13 +159,17 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
                 Text(
                   'This person has not shared anything you can see.',
                   style: TextStyle(
-                      fontSize: 15, color: scheme.onSurfaceVariant),
+                    fontSize: 15,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               const SizedBox(height: 22),
               Text(
                 isMe ? 'My posts' : 'Posts',
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 10),
               if (posts.isEmpty)
@@ -170,11 +179,12 @@ class _PersonScreenState extends ConsumerState<PersonScreen> {
                     isMe
                         ? 'You have not posted anything yet.'
                         : 'Nothing here that you can see. Posts for '
-                            'connections only stay with their connections.',
+                              'connections only stay with their connections.',
                     style: TextStyle(
-                        fontSize: 14.5,
-                        height: 1.45,
-                        color: scheme.onSurfaceVariant),
+                      fontSize: 14.5,
+                      height: 1.45,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               else
@@ -233,24 +243,29 @@ class PersonHeader extends ConsumerWidget {
                         child: Text(
                           person.name,
                           style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              height: 1.2),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            height: 1.2,
+                          ),
                         ),
                       ),
                       if (person.verified) ...[
                         const SizedBox(width: 6),
-                        const Icon(Icons.verified,
-                            size: 19,
-                            color: Color(0xFF12805C),
-                            semanticLabel: 'Verified'),
+                        const Icon(
+                          Icons.verified,
+                          size: 19,
+                          color: Color(0xFF12805C),
+                          semanticLabel: 'Verified',
+                        ),
                       ],
                     ],
                   ),
                   if (person.headline != null) ...[
                     const SizedBox(height: 4),
-                    Text(person.headline!,
-                        style: const TextStyle(fontSize: 14.5, height: 1.35)),
+                    Text(
+                      person.headline!,
+                      style: const TextStyle(fontSize: 14.5, height: 1.35),
+                    ),
                   ],
                 ],
               ),

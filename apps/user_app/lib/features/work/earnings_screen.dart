@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/earnings` — what I earned per pay period, how it adds up, and
 /// where the payment is, in each record's own currency. Totals per month.
@@ -29,7 +30,7 @@ class EarningsScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your earnings',
             body: workError(e),
@@ -38,7 +39,7 @@ class EarningsScreen extends ConsumerWidget {
           ),
           data: (list) {
             if (list.isEmpty) {
-              return const RepresentationMessage(
+              return const OmeloMessage(
                 icon: Icons.payments_outlined,
                 title: 'No earnings yet',
                 body:

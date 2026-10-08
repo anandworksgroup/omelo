@@ -6,6 +6,7 @@ import '../../core/format.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/assignments/:id` — one piece of work. An offer shows the whole
 /// agreement (who employs me, where, dates, pay, shifts, extras, overtime,
@@ -28,7 +29,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => RepresentationMessage(
+        error: (e, _) => OmeloMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Could not load this work',
           body: workError(e),
@@ -38,7 +39,7 @@ class AssignmentDetailScreen extends ConsumerWidget {
         data: (list) {
           final found = list.where((a) => a.id == assignmentId);
           if (found.isEmpty) {
-            return RepresentationMessage(
+            return OmeloMessage(
               icon: Icons.search_off,
               title: 'Work not found',
               body: 'This work is not in your list any more.',

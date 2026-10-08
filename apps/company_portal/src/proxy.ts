@@ -5,6 +5,11 @@ import { NextResponse, type NextRequest } from 'next/server';
 // signed out, before the code exchange).
 const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot-password', '/auth'];
 
+// /design is the design system reference. It holds no product data and the
+// page itself 404s outside development, but there is no reason to make it
+// wait behind a sign-in while we are working on it.
+const DEV_PATHS = process.env.NODE_ENV === 'production' ? [] : ['/design'];
+
 /**
  * Refreshes the Supabase session on every request and gates the dashboard.
  *
@@ -41,7 +46,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some(
+  const isPublic = [...PUBLIC_PATHS, ...DEV_PATHS].some(
     (p) => path === p || path.startsWith(p + '/')
   );
 

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/responsive.dart';
 import '../../data/work_repository.dart';
 import 'work_widgets.dart';
+import '../../core/ui.dart';
 
 /// `/work/leave` — ask for time off, see what was decided, cancel a request
 /// that is still waiting. `?assignment=<id>` starts a request for that work.
@@ -87,7 +88,7 @@ class LeaveScreen extends ConsumerWidget {
         },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => RepresentationMessage(
+          error: (e, _) => OmeloMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Could not load your time off',
             body: workError(e),
@@ -440,9 +441,7 @@ class _LeaveRequestSheetState extends ConsumerState<LeaveRequestSheet> {
               maxLength: kLeaveReasonMax,
               maxLines: 3,
               minLines: 1,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-              ),
+              decoration: const InputDecoration(labelText: 'Reason (optional)'),
             ),
             if (_error != null) ...[
               const SizedBox(height: 8),
