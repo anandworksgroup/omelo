@@ -227,6 +227,7 @@ recommendations, audit, intelligence.
 | MobilityProfileUpdated, TalentSearched (with global filters), exchange_rate.added (audit) | ✓ R6 | mobility, search and admin functions |
 | CareerGoalSet, SkillAssessmentPassed, SkillAssessmentFailed | ✓ R7 | career functions |
 | ApprovalWorkflowSaved, ApprovalRequested, ApprovalStepApproved, ApprovalRejected, ApprovalCancelled, RpoEngagementCreated/Proposed/Activated/Declined/StatusChanged, RpoScopeChanged, RpoRecruiterAssigned | ✓ R8 | approval and RPO functions |
+| PostPublished, PostEdited, PostDeleted, ConnectionRequested, ConnectionAccepted, ConnectionDeclined | ✓ R9 | network functions |
 
 `OfferCreated` from the proposed list maps to the existing `OfferSent` (offers are created
 and sent atomically; drafts are not events).
@@ -441,3 +442,22 @@ which it is.
 | Money stays where it belongs: worker pay, agency margin and client billing are untouched by any R8 rule | ✓ R8-008 |
 | Candidate ownership unchanged: the worker still owns their identity; RPO works inside the client's pipeline | ✓ |
 | Proven as real users | ✓ `tests/api/enterprise_e2e.py` (organization → structure → scoped roles → approvals → RPO → candidates → interview → offer) |
+
+### Release 9 status (backend proven — migrations 72–75)
+
+The network is not a separate social product: it hangs off identities, organizations and jobs, and
+it carries public content only. Private employment transactions stay where they were.
+
+| Item | State |
+|---|---|
+| Posts by a person or an organization: text, images, video, a shared job, a quoted post | ✓ R9-001 |
+| Visibility per post: public · followers · connections · organization — honoured on every read path | ✓ R9-002 |
+| A post carries a published job or a public post; never an application, offer, timesheet or payment | ✓ R9-003, R9-008 |
+| Reactions, comments with one level of replies, shares, saves — counts kept by Omelo, never by the client | ✓ R9-004 |
+| Connections: two-way, one per pair, written only by Omelo; follows for people and organizations | ✓ R9-005 |
+| Feed: for you · following · organizations · jobs · saved, paginated, each card saying why it is there | ✓ |
+| Ranking is explainable: connection 3 · following 2 · your profession 1, plus engagement, minus 0.15 a day | ✓ |
+| Feed preferences, muting, blocking and reporting all honoured | ✓ R9-006 |
+| Media in its own bucket, written only inside the owner's folder | ✓ R9-007 |
+| Public organization feed, readable signed out | ✓ |
+| Proven as real users | ✓ `tests/api/network_e2e.py` (post → see → react → comment → share → save → connect → follow → feed → mute → block → report → delete) |

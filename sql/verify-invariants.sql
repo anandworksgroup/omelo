@@ -150,7 +150,14 @@ with checks as (
                           'omelo_cancel_approval','omelo_my_approvals','omelo_approval_status',
                           'omelo_create_rpo_engagement','omelo_set_rpo_scope','omelo_assign_rpo_recruiter',
                           'omelo_propose_rpo_engagement','omelo_respond_rpo_engagement','omelo_set_rpo_status',
-                          'omelo_rpo_engagements','omelo_rpo_my_work')
+                          'omelo_rpo_engagements','omelo_rpo_my_work',
+                          -- Release 9 (74): the professional network
+                          'omelo_create_post','omelo_update_post','omelo_delete_post','omelo_react_to_post',
+                          'omelo_comment_on_post','omelo_delete_comment','omelo_share_post','omelo_save_post',
+                          'omelo_follow','omelo_request_connection','omelo_respond_connection',
+                          'omelo_remove_connection','omelo_my_network','omelo_connection_suggestions',
+                          'omelo_feed','omelo_organization_feed','omelo_person_posts','omelo_post_detail',
+                          'omelo_post_comments','omelo_save_feed_preferences','omelo_mute_from_feed')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -902,6 +909,88 @@ with checks as (
                                 and tablename in ('offers','employments')
                                 and coalesce(qual, '') like '%rpo_engagements%')
               then 'OK' else 'FAIL: an R8 rule reaches pay, margin or offers directly' end
+
+  -- ---------------------------------------------------------------
+  -- RELEASE 9 (migrations 72-74): the professional network.
+  -- Attacked as real users in tests/api/network_e2e.py.
+  -- ---------------------------------------------------------------
+  union all
+  select 83, 'R9-001 every post has exactly one author, and only that author writes it',
+         case when count(*) = 0
+               and exists (select 1 from pg_trigger where tgname = 'posts_validate' and not tgisinternal)
+               and (select count(*) from pg_policies where tablename = 'posts' and cmd = 'ALL') = 2
+              then 'OK' else 'FAIL: ' || count(*)::text || ' posts with no author or two' end
+  from posts where (author_person_id is null) = (author_company_id is null)
+
+  union all
+  select 84, 'R9-002 what a post reaches is decided by its visibility, for every read path',
+         case when count(*) = 0
+               and pg_get_functiondef('omelo_private.omelo_can_see_post(uuid)'::regprocedure) like '%connections%'
+               and pg_get_functiondef('omelo_private.omelo_can_see_post(uuid)'::regprocedure) like '%follows%'
+              then 'OK' else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public' and tablename in ('posts','post_media','post_comments','post_reactions','comment_reactions')
+    and cmd = 'SELECT' and coalesce(qual, '') not like '%omelo_can_see_post%'
+
+  union all
+  select 85, 'R9-003 a post carries a public job or a public post — never a private transaction',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || count(*)::text || ' posts point at something private' end
+  from posts p
+  where (p.job_id is not null and not exists (select 1 from jobs j where j.id = p.job_id and j.status = 'published'))
+     or (p.shared_post_id is not null
+         and not exists (select 1 from posts s where s.id = p.shared_post_id and s.visibility = 'public'))
+
+  union all
+  select 86, 'R9-004 engagement counts are kept by Omelo and match the rows behind them',
+         case when count(*) = 0
+               and (select count(*) from pg_trigger where not tgisinternal
+                     and tgname in ('post_reactions_count','post_saves_count','comment_reactions_count',
+                                    'post_comments_count','posts_share_count')) = 5
+              then 'OK' else 'FAIL: ' || count(*)::text || ' posts whose counts disagree with their rows' end
+  from posts p
+  where p.deleted_at is null
+    and (p.reaction_count <> (select count(*) from post_reactions r where r.post_id = p.id)
+      or p.save_count <> (select count(*) from post_saves s where s.post_id = p.id)
+      or p.comment_count <> (select count(*) from post_comments c where c.post_id = p.id and c.deleted_at is null))
+
+  union all
+  select 87, 'R9-005 a connection is mutual, written only by Omelo, and unique per pair',
+         case when count(*) = 0
+               and not has_table_privilege('authenticated', 'public.connections', 'insert')
+               and not has_table_privilege('authenticated', 'public.connections', 'update')
+               and exists (select 1 from pg_indexes where indexname = 'connections_pair')
+              then 'OK' else 'FAIL: ' || count(*)::text || ' connections a client could have written' end
+  from connections
+  where requester_id = addressee_id or (status = 'accepted' and responded_at is null)
+
+  union all
+  select 88, 'R9-006 blocking and muting are honoured by the feed and by post visibility',
+         case when pg_get_functiondef('omelo_private.omelo_can_see_post(uuid)'::regprocedure) like '%blocks%'
+               and pg_get_functiondef('public.omelo_feed(text,integer,timestamp with time zone,integer)'::regprocedure) like '%feed_mutes%'
+               and (select count(*) from pg_policies where tablename in ('feed_mutes','feed_preferences','post_saves')
+                     and coalesce(qual, '') not like '%auth.uid()%') = 0
+              then 'OK' else 'FAIL: a block or mute can be stepped around' end
+
+  union all
+  select 89, 'R9-007 post media lives in its own bucket, written only inside the owner''s folder',
+         case when exists (select 1 from storage.buckets where id = 'post-media')
+               and exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                            and policyname = 'post_media_own_write' and coalesce(with_check, '') like '%foldername%')
+               and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                                and cmd in ('INSERT','UPDATE') and coalesce(with_check, '') not like '%foldername%')
+              then 'OK' else 'FAIL: media can be written outside the owner''s folder' end
+
+  union all
+  select 90, 'R9-008 the network touches no employment transaction',
+         case when count(*) = 0 then 'OK' else 'FAIL: ' || string_agg(conrelid::regclass::text || '.' || conname, ', ') end
+  from pg_constraint
+  where contype = 'f'
+    and conrelid in ('public.posts'::regclass, 'public.post_comments'::regclass, 'public.post_reactions'::regclass,
+                     'public.post_media'::regclass, 'public.post_saves'::regclass, 'public.connections'::regclass,
+                     'public.feed_mutes'::regclass, 'public.feed_preferences'::regclass)
+    and confrelid in ('public.applications'::regclass, 'public.offers'::regclass, 'public.employments'::regclass,
+                      'public.earnings'::regclass, 'public.payment_records'::regclass, 'public.timesheets'::regclass,
+                      'public.assignments'::regclass, 'public.billing_records'::regclass)
 )
 select n as "#", invariant, result from checks order by n;
 

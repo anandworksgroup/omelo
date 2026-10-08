@@ -325,6 +325,13 @@ class AppNotification {
       'application' => '/applications/$id',
       'conversation' => '/messages/$id',
       'candidate_invitation' => '/invitations/$id',
+      // Release 9 network notices carry their own `/feed/...` or
+      // `/network/...` link; these are the fallbacks for one without.
+      'post' when link == null || link.trim().isEmpty => '/feed/$id',
+      'comment' when link == null || link.trim().isEmpty => '/feed/$id',
+      'connection' when link == null || link.trim().isEmpty =>
+        '/network/invitations',
+      'person' when link == null || link.trim().isEmpty => '/people/$id',
       // Recruiters get consent notices that link to their dashboard; only a
       // notice without a link of its own falls back to the worker screen.
       'candidate_consent' when link == null || link.trim().isEmpty =>
@@ -351,6 +358,8 @@ class AppNotification {
 /// `/representations/<uuid>`, the Release 5 work screens (`/work`,
 /// `/work/shifts/<uuid>`, `/work/assignments[/<uuid>]`,
 /// `/work/timesheets[/<uuid>]`, `/work/earnings`, `/work/leave`),
+/// the Release 9 network screens (`/feed`, `/feed/<uuid>`, `/network`,
+/// `/network/<view>`, `/people/<uuid>`, `/organizations/<uuid>`),
 /// `/job/<uuid>` (opened as surface `notification`), `/meet/<room>` and the
 /// list screens, as a path or a full https link to the same path. Anything
 /// else — employer dashboard links, typos, other sites — is ignored so a bad
@@ -375,6 +384,8 @@ String? workerDeeplink(String? link) {
       'representations' => '/representations',
       'recruiters' => '/recruiters',
       'work' => '/work',
+      'feed' => '/feed',
+      'network' => '/network',
       _ => null,
     };
   }
@@ -387,6 +398,13 @@ String? workerDeeplink(String? link) {
     };
   }
   if (s.length != 2) return null;
+  if (s[0] == 'network') {
+    // Only the five views the network screen has; anything else is ignored.
+    return const {'connections', 'invitations', 'sent', 'followers', 'following'}
+            .contains(s[1])
+        ? '/network/${s[1]}'
+        : null;
+  }
   if (s[0] == 'work') {
     return switch (s[1]) {
       'assignments' => '/work/assignments',
@@ -403,6 +421,9 @@ String? workerDeeplink(String? link) {
     'invitations' when isUuid(id) => '/invitations/$id',
     'representations' when isUuid(id) => '/representations/$id',
     'job' || 'jobs' when isUuid(id) => '/job/$id?from=notification',
+    'feed' when isUuid(id) => '/feed/$id',
+    'people' || 'persons' when isUuid(id) => '/people/$id',
+    'organizations' when isUuid(id) => '/organizations/$id',
     'meet' when isValidRoomName(id) => '/meet/$id',
     _ => null,
   };
@@ -419,6 +440,12 @@ enum NotificationKind {
 
   /// Release 5: shifts, assignments, timesheets, pay, leave.
   work,
+
+  /// Release 9: something happened to a post of mine.
+  post,
+
+  /// Release 9: connections and followers.
+  network,
   other
 }
 
@@ -436,6 +463,15 @@ NotificationKind notificationKind(String type) => switch (type) {
       'representation_update' =>
         NotificationKind.representation,
       'shift_update' || 'work_update' => NotificationKind.work,
+      'post_reaction' ||
+      'post_comment' ||
+      'post_share' ||
+      'post_mention' =>
+        NotificationKind.post,
+      'connection_request' ||
+      'connection_update' ||
+      'new_follower' =>
+        NotificationKind.network,
       _ => NotificationKind.other,
     };
 

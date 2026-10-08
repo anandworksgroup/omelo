@@ -19,6 +19,8 @@ import InvitationsPanel from './invitations';
 import GlobalHiringEditor from './global-editor';
 import JobTabs from './job-tabs';
 import ApprovalPanel from './approval-panel';
+import ShareToFeed, { type ExistingShare } from './share-to-feed';
+import { canPostForOrganization, suggestedJobPost } from '@/lib/network';
 import { parseApprovalStatus, publishBlockedReason } from '@/lib/enterprise';
 import { loadGlobalOptions } from '@/lib/global-data';
 import {
@@ -49,7 +51,7 @@ export default async function JobDetailPage({
     .select(
       `id, title, status, description, location_text, workplace_type, work_type,
        shift_types, hours_per_week, working_days, is_immediate_start, openings,
-       pay_min, pay_max, pay_period, pay_currency, pay_negotiable,
+       pay_min, pay_max, pay_period, pay_currency, pay_negotiable, pay_disclosed,
        min_experience_months, accepts_no_experience, requires_resume,
        quick_apply_enabled, applicant_count, view_count, published_at, created_at,
        country_code, legal_entity_id, sponsorship, sponsorship_type, immigration_support, legal_support,
@@ -82,7 +84,7 @@ export default async function JobDetailPage({
   const canEditRounds = ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'].includes(ctx.role);
 
   const payAmount = job.pay_max ?? job.pay_min;
-  const [funnelRes, invitationsRes, global, normRes, approvalRes] = await Promise.all([
+  const [funnelRes, invitationsRes, global, normRes, approvalRes, sharesRes] = await Promise.all([
     supabase.rpc('omelo_job_funnel', { p_job_id: id }),
     supabase.rpc('omelo_job_invitations', { p_job_id: id }),
     loadGlobalOptions(supabase, ctx.companyId),
@@ -94,6 +96,16 @@ export default async function JobDetailPage({
         })
       : Promise.resolve({ data: null, error: null }),
     supabase.rpc('omelo_approval_status', { p_entity_type: 'job', p_entity_id: id }),
+    // R9: has this job already been shared to the organization's feed?
+    supabase
+      .from('posts')
+      .select('id, created_at, visibility')
+      .eq('job_id', id)
+      .eq('author_company_id', ctx.companyId)
+      .is('deleted_at', null)
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .limit(5),
   ]);
   const normalized = parseNormalizedPay(normRes.data ?? null);
   // R8: an organization may require a job to be approved before it goes live.
@@ -132,6 +144,31 @@ export default async function JobDetailPage({
   const required = (job.job_skills ?? []).filter((s) => s.requirement_level === 'required');
   const preferred = (job.job_skills ?? []).filter((s) => s.requirement_level !== 'required');
   const isPublished = job.status === 'published';
+
+  // R9: sharing the job as the organization. The body is only a suggestion —
+  // it is read by people who have never heard of this employer.
+  const shares: ExistingShare[] = (sharesRes.data ?? []).map((s) => ({
+    id: s.id,
+    createdAt: s.created_at,
+    visibility: s.visibility,
+  }));
+  const suggestedPost = suggestedJobPost({
+    title: job.title,
+    locationText: job.location_text,
+    workplaceLabel: WORKPLACE_LABEL[job.workplace_type] ?? job.workplace_type,
+    workTypeLabel: WORK_TYPE_LABEL[job.work_type] ?? job.work_type,
+    // A post is public: never advertise pay the job itself keeps off the listing.
+    payText:
+      job.pay_disclosed !== false && (job.pay_min != null || job.pay_max != null)
+        ? formatPay({
+            min: job.pay_min,
+            max: job.pay_max,
+            currency: job.pay_currency,
+            period: job.pay_period,
+            negotiable: job.pay_negotiable,
+          })
+        : null,
+  });
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -203,6 +240,15 @@ export default async function JobDetailPage({
           </>
         )}
       </div>
+
+      {/* R9 — the organization's own feed */}
+      <ShareToFeed
+        jobId={job.id}
+        suggested={suggestedPost}
+        canPost={canPostForOrganization(ctx.roles)}
+        isPublished={isPublished}
+        shares={shares}
+      />
 
       {/* Approval (only when this organization approves jobs) */}
       {approvalRes.error ? (

@@ -25,6 +25,8 @@ dependencies:
   # Device
   geolocator: ^13.0.2
   shared_preferences: ^2.3.3
+  # Photos and video for a network post, picked from the device gallery.
+  image_picker: ^1.1.2
 
   # Formatting
   intl: ^0.20.2

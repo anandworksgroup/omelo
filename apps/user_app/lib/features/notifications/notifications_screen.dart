@@ -92,7 +92,9 @@ class NotificationsScreen extends ConsumerWidget {
             : 'When an employer invites you to apply, an agency asks to '
                 'represent you, an employer views your application, invites '
                 'you to an interview, sends a message, offers you work or '
-                'changes your shifts, you will see it here.',
+                'changes your shifts, you will see it here. So will '
+                'reactions and comments on your posts, and people asking to '
+                'connect.',
       );
     }
 
@@ -173,6 +175,8 @@ class _NotificationTile extends StatelessWidget {
       NotificationKind.invitation => Icons.mail_outline,
       NotificationKind.representation => Icons.handshake_outlined,
       NotificationKind.work => Icons.work_outline,
+      NotificationKind.post => Icons.forum_outlined,
+      NotificationKind.network => Icons.people_outline,
       NotificationKind.other => Icons.notifications_outlined,
     };
 

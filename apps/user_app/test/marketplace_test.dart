@@ -118,10 +118,18 @@ class _NoSavedJobs extends SavedJobIdsController {
 const _inviteId = '11111111-2222-4333-8444-555555555555';
 const _jobId = '66666666-7777-4888-9999-000000000000';
 
+/// Five days out from whenever the suite runs: the screens format the expiry
+/// against the real clock, so a fixed date silently expires and the label
+/// changes from "Answer by 3 Oct" to "Answer by today".
+final DateTime _defaultExpiry = DateTime.now().toUtc().add(const Duration(days: 5));
+
+/// Tells "not given" (use the default) apart from an explicit null (no expiry).
+const String _unsetExpiry = '__unset__';
+
 Map<String, dynamic> inviteJson({
   String status = 'pending',
   String? applicationId,
-  String? expiresAt = '2026-10-03T12:00:00Z',
+  String? expiresAt = _unsetExpiry,
   String? viewedAt,
   String? message = 'We liked your tandoor skills. Come and talk to us.',
   String? identityId = 'c',
@@ -144,7 +152,8 @@ Map<String, dynamic> inviteJson({
       'pay_currency': 'INR',
       'message': message,
       'sent_at': '2026-09-17T09:00:00Z',
-      'expires_at': expiresAt,
+      'expires_at':
+          expiresAt == _unsetExpiry ? _defaultExpiry.toIso8601String() : expiresAt,
       'viewed_at': viewedAt,
       'work_identity_id': identityId,
       'identity_label': identityLabel,
@@ -155,7 +164,7 @@ Map<String, dynamic> inviteJson({
 JobInvitation invite({
   String status = 'pending',
   String? applicationId,
-  String? expiresAt = '2026-10-03T12:00:00Z',
+  String? expiresAt = _unsetExpiry,
   String? viewedAt,
 }) =>
     JobInvitation.fromJson(inviteJson(
@@ -684,7 +693,8 @@ void main() {
         expect(find.text('Tandoor cook'), findsOneWidget);
         expect(find.textContaining('18,000'), findsOneWidget);
         expect(find.text('Invited as your Cook profile'), findsOneWidget);
-        expect(find.text('Answer by 3 Oct'), findsOneWidget);
+        expect(find.text(answerByLabel(_defaultExpiry.toLocal(), DateTime.now())),
+            findsOneWidget);
         expect(find.textContaining('tandoor skills'), findsOneWidget);
         expect(find.text('Apply now'), findsOneWidget);
         expect(find.text('Not interested'), findsOneWidget);

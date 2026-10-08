@@ -12,6 +12,8 @@ import '../../data/job_events.dart' show flushJobEvents;
 import '../../data/representations_repository.dart'
     show pendingRepresentationsProvider;
 import '../../data/messaging.dart' show badgeLabel;
+import '../../data/network_repository.dart'
+    show pendingInvitationsCountProvider;
 import '../../data/work_repository.dart' show pendingWorkCountProvider;
 import '../applications/applications_screen.dart';
 import '../identities/identity_widgets.dart';
@@ -115,6 +117,22 @@ class ProfileScreen extends ConsumerWidget {
           const _IdentitiesSummary(),
 
           const SizedBox(height: 18),
+          _Tile(
+            icon: Icons.forum_outlined,
+            label: 'Omelo feed',
+            onTap: () => context.push('/feed'),
+          ),
+          _Tile(
+            icon: Icons.people_outline,
+            label: 'My network',
+            badge: ref.watch(pendingInvitationsCountProvider),
+            onTap: () => context.push('/network'),
+          ),
+          _Tile(
+            icon: Icons.article_outlined,
+            label: 'My posts',
+            onTap: () => context.push('/people/${user.id}'),
+          ),
           _Tile(
             icon: Icons.trending_up,
             label: 'My career',

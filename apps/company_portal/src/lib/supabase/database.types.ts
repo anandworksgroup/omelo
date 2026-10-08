@@ -1994,6 +1994,42 @@ export type Database = {
           },
         ]
       }
+      comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          kind: string
+          person_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          kind?: string
+          person_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          kind?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_reactions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           about: string | null
@@ -2465,6 +2501,51 @@ export type Database = {
           {
             foreignKeyName: "company_role_grants_person_id_fkey"
             columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connections: {
+        Row: {
+          addressee_id: string
+          id: string
+          message: string | null
+          requested_at: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          id?: string
+          message?: string | null
+          requested_at?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_requester_id_fkey"
+            columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
@@ -3506,6 +3587,73 @@ export type Database = {
             columns: ["work_identity_id"]
             isOneToOne: false
             referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_mutes: {
+        Row: {
+          created_at: string
+          person_id: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          person_id: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          person_id?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_mutes_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_preferences: {
+        Row: {
+          person_id: string
+          preferred_languages: string[]
+          show_career_content: boolean
+          show_jobs: boolean
+          show_network_activity: boolean
+          show_organizations: boolean
+          updated_at: string
+        }
+        Insert: {
+          person_id: string
+          preferred_languages?: string[]
+          show_career_content?: boolean
+          show_jobs?: boolean
+          show_network_activity?: boolean
+          show_organizations?: boolean
+          updated_at?: string
+        }
+        Update: {
+          person_id?: string
+          preferred_languages?: string[]
+          show_career_content?: boolean
+          show_jobs?: boolean
+          show_network_activity?: boolean
+          show_organizations?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_preferences_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "persons"
             referencedColumns: ["id"]
           },
         ]
@@ -7557,6 +7705,285 @@ export type Database = {
           },
         ]
       }
+      post_comments: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          parent_comment_id: string | null
+          person_id: string
+          post_id: string
+          reaction_count: number
+          reply_count: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          person_id: string
+          post_id: string
+          reaction_count?: number
+          reply_count?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          parent_comment_id?: string | null
+          person_id?: string
+          post_id?: string
+          reaction_count?: number
+          reply_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "post_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_media: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          duration_seconds: number | null
+          height: number | null
+          id: string
+          kind: string
+          mime_type: string
+          position: number
+          post_id: string
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          height?: number | null
+          id?: string
+          kind: string
+          mime_type: string
+          position?: number
+          post_id: string
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          height?: number | null
+          id?: string
+          kind?: string
+          mime_type?: string
+          position?: number
+          post_id?: string
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_media_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string
+          kind: string
+          person_id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          kind?: string
+          person_id: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          person_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_saves: {
+        Row: {
+          created_at: string
+          person_id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          person_id: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          person_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_saves_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_saves_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_company_id: string | null
+          author_person_id: string | null
+          body: string | null
+          comment_count: number
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          job_id: string | null
+          kind: string
+          language_code: string | null
+          reaction_count: number
+          save_count: number
+          share_count: number
+          shared_post_id: string | null
+          status: string
+          visibility: string
+          work_identity_id: string | null
+        }
+        Insert: {
+          author_company_id?: string | null
+          author_person_id?: string | null
+          body?: string | null
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          job_id?: string | null
+          kind?: string
+          language_code?: string | null
+          reaction_count?: number
+          save_count?: number
+          share_count?: number
+          shared_post_id?: string | null
+          status?: string
+          visibility?: string
+          work_identity_id?: string | null
+        }
+        Update: {
+          author_company_id?: string | null
+          author_person_id?: string | null
+          body?: string | null
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          job_id?: string | null
+          kind?: string
+          language_code?: string | null
+          reaction_count?: number
+          save_count?: number
+          share_count?: number
+          shared_post_id?: string | null
+          status?: string
+          visibility?: string
+          work_identity_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_company_id_fkey"
+            columns: ["author_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_author_person_id_fkey"
+            columns: ["author_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_shared_post_id_fkey"
+            columns: ["shared_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_work_identity_id_fkey"
+            columns: ["work_identity_id"]
+            isOneToOne: false
+            referencedRelation: "work_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profession_aliases: {
         Row: {
           alias: string
@@ -9939,6 +10366,10 @@ export type Database = {
       omelo_client_job_orders: { Args: never; Returns: Json }
       omelo_client_submissions: { Args: { p_job_id?: string }; Returns: Json }
       omelo_client_workforce: { Args: { p_company: string }; Returns: Json }
+      omelo_comment_on_post: {
+        Args: { p_body: string; p_parent?: string; p_post: string }
+        Returns: Json
+      }
       omelo_comms_claim: {
         Args: { p_limit?: number }
         Returns: {
@@ -9996,6 +10427,10 @@ export type Database = {
         Args: { p_channel: string; p_code: string }
         Returns: Json
       }
+      omelo_connection_suggestions: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       omelo_consent_candidate: { Args: { p_consent: string }; Returns: Json }
       omelo_convert_currency: {
         Args: { p_amount: number; p_from: string; p_to: string }
@@ -10022,6 +10457,7 @@ export type Database = {
         Args: { p_client: string; p_order: Json }
         Returns: string
       }
+      omelo_create_post: { Args: { p: Json }; Returns: Json }
       omelo_create_requirement: {
         Args: { p_company: string; p_fields: Json }
         Returns: string
@@ -10048,11 +10484,26 @@ export type Database = {
         Args: { p_invitation: string }
         Returns: undefined
       }
+      omelo_delete_comment: { Args: { p_comment: string }; Returns: Json }
+      omelo_delete_post: { Args: { p_post: string }; Returns: Json }
       omelo_delete_work_identity: {
         Args: { p_identity: string }
         Returns: undefined
       }
       omelo_end_client_link: { Args: { p_client: string }; Returns: undefined }
+      omelo_feed: {
+        Args: {
+          p_before?: string
+          p_limit?: number
+          p_offset?: number
+          p_tab?: string
+        }
+        Returns: Json
+      }
+      omelo_follow: {
+        Args: { p_follow?: boolean; p_target_id: string; p_target_type: string }
+        Returns: Json
+      }
       omelo_generate_shifts: {
         Args: { p_from: string; p_template: string; p_to: string }
         Returns: number
@@ -10135,6 +10586,10 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["application_state"]
       }
+      omelo_mute_from_feed: {
+        Args: { p_mute?: boolean; p_target_id: string; p_target_type: string }
+        Returns: Json
+      }
       omelo_my_agency_relationships: { Args: never; Returns: Json }
       omelo_my_approvals: { Args: { p_company?: string }; Returns: Json }
       omelo_my_assignments: { Args: never; Returns: Json }
@@ -10145,6 +10600,7 @@ export type Database = {
         Returns: Json
       }
       omelo_my_mobility: { Args: never; Returns: Json }
+      omelo_my_network: { Args: { p_view?: string }; Returns: Json }
       omelo_my_profile_views: { Args: { p_days?: number }; Returns: Json }
       omelo_my_representations: { Args: never; Returns: Json }
       omelo_my_sessions: {
@@ -10222,6 +10678,10 @@ export type Database = {
         Args: { p_assignments: string[]; p_shift: string }
         Returns: Json
       }
+      omelo_organization_feed: {
+        Args: { p_before?: string; p_company: string; p_limit?: number }
+        Returns: Json
+      }
       omelo_pay_monthly: {
         Args: {
           p_amount: number
@@ -10230,7 +10690,16 @@ export type Database = {
         }
         Returns: number
       }
+      omelo_person_posts: {
+        Args: { p_before?: string; p_limit?: number; p_person: string }
+        Returns: Json
+      }
       omelo_pool_members: { Args: { p_pool: string }; Returns: Json }
+      omelo_post_comments: {
+        Args: { p_after?: string; p_limit?: number; p_post: string }
+        Returns: Json
+      }
+      omelo_post_detail: { Args: { p_post: string }; Returns: Json }
       omelo_profile_schema_for: {
         Args: { p_work_identity_id?: string }
         Returns: {
@@ -10256,6 +10725,10 @@ export type Database = {
           eligible: boolean
           score: number
         }[]
+      }
+      omelo_react_to_post: {
+        Args: { p_kind?: string; p_post: string }
+        Returns: Json
       }
       omelo_recommend_jobs: {
         Args: {
@@ -10307,6 +10780,7 @@ export type Database = {
         Args: { p_application_id: string; p_reason: string }
         Returns: undefined
       }
+      omelo_remove_connection: { Args: { p_person: string }; Returns: Json }
       omelo_remove_pay_component: {
         Args: { p_component: string }
         Returns: undefined
@@ -10335,6 +10809,10 @@ export type Database = {
       omelo_request_client_link: {
         Args: { p_client: string; p_company: string }
         Returns: undefined
+      }
+      omelo_request_connection: {
+        Args: { p_message?: string; p_person: string }
+        Returns: Json
       }
       omelo_request_email_verification: { Args: never; Returns: Json }
       omelo_request_leave: {
@@ -10374,6 +10852,10 @@ export type Database = {
       omelo_respond_client_link: {
         Args: { p_accept: boolean; p_client: string }
         Returns: undefined
+      }
+      omelo_respond_connection: {
+        Args: { p_accept: boolean; p_connection: string }
+        Returns: Json
       }
       omelo_respond_rpo_engagement: {
         Args: { p_accept: boolean; p_engagement: string; p_note?: string }
@@ -10428,6 +10910,7 @@ export type Database = {
       omelo_rpo_my_work: { Args: { p_engagement?: string }; Returns: Json }
       omelo_save_approval_workflow: { Args: { p: Json }; Returns: Json }
       omelo_save_career_goal: { Args: { p: Json }; Returns: Json }
+      omelo_save_feed_preferences: { Args: { p: Json }; Returns: Json }
       omelo_save_identity_profile: {
         Args: { p_identity: string; p_values: Json }
         Returns: Json
@@ -10459,6 +10942,10 @@ export type Database = {
           p_shift_types?: string[]
         }
         Returns: string
+      }
+      omelo_save_post: {
+        Args: { p_post: string; p_save?: boolean }
+        Returns: Json
       }
       omelo_save_shift_template: {
         Args: {
@@ -10558,6 +11045,10 @@ export type Database = {
         Args: { p_engagement: string; p_note?: string; p_status: string }
         Returns: Json
       }
+      omelo_share_post: {
+        Args: { p_body?: string; p_post: string; p_visibility?: string }
+        Returns: Json
+      }
       omelo_shift_replacements: { Args: { p_shift: string }; Returns: Json }
       omelo_shift_roster: { Args: { p_shift: string }; Returns: Json }
       omelo_start_conversation: {
@@ -10626,6 +11117,7 @@ export type Database = {
         Args: { p_changes: Json; p_placement: string }
         Returns: undefined
       }
+      omelo_update_post: { Args: { p: Json; p_post: string }; Returns: Json }
       omelo_update_requirement: {
         Args: { p_changes: Json; p_requirement: string }
         Returns: undefined
@@ -10870,6 +11362,13 @@ export type Database = {
         | "approval_request"
         | "approval_update"
         | "rpo_update"
+        | "post_reaction"
+        | "post_comment"
+        | "post_share"
+        | "post_mention"
+        | "connection_request"
+        | "connection_update"
+        | "new_follower"
       offer_status:
         | "draft"
         | "sent"
@@ -11361,6 +11860,13 @@ export const Constants = {
         "approval_request",
         "approval_update",
         "rpo_update",
+        "post_reaction",
+        "post_comment",
+        "post_share",
+        "post_mention",
+        "connection_request",
+        "connection_update",
+        "new_follower",
       ],
       offer_status: [
         "draft",

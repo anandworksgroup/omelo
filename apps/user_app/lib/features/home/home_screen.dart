@@ -13,6 +13,7 @@ import '../../data/invitations_repository.dart';
 import '../../data/job_events.dart' show JobSurface;
 import '../discover/tracked_job_card.dart';
 import '../identities/identity_widgets.dart' show IdentityNudgeCard;
+import '../network/feed_screen.dart' show FeedHomeCard;
 import '../representations/representation_widgets.dart'
     show RepresentationsHomeCard;
 import '../settings/account_widgets.dart' show DeletionBanner;
@@ -106,6 +107,10 @@ class HomeScreen extends ConsumerWidget {
               // Release 7: where next — the career goal and path.
               if (signedIn)
                 const CareerHomeCard(padding: EdgeInsets.only(top: 20)),
+              // Release 9: the professional network. Last of the cards:
+              // today's work comes before what the network is talking about.
+              if (signedIn)
+                const FeedHomeCard(padding: EdgeInsets.only(top: 20)),
 
               if (!signedIn) ...[
                 const SizedBox(height: 20),

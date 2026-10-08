@@ -23,6 +23,12 @@ import '../features/invitations/invitations_screen.dart';
 import '../features/meet/meet_screen.dart';
 import '../features/messages/messages_screen.dart';
 import '../features/messages/thread_screen.dart';
+import '../features/network/composer_screen.dart';
+import '../features/network/feed_screen.dart';
+import '../features/network/network_screen.dart';
+import '../features/network/organization_screen.dart';
+import '../features/network/person_screen.dart';
+import '../features/network/post_detail_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/onboarding/onboarding_screens.dart';
 import '../features/profile/profile_screen.dart';
@@ -43,6 +49,8 @@ import '../features/work/timesheet_detail_screen.dart';
 import '../features/work/timesheets_screen.dart';
 import '../features/work/work_screen.dart';
 import '../data/global.dart' show GlobalTab;
+import '../data/network.dart'
+    show FeedPost, PostAuthor, feedTabFromWire, networkViewFromWire;
 import '../data/job_events.dart' show JobSurface;
 import 'app_state.dart';
 import 'auth_links.dart';
@@ -176,6 +184,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ...globalRoutes(redirect: _requireSignIn),
       // Release 7: my career — goal, readiness, skill gap, Omelo tests.
       ...careerRoutes(redirect: _requireSignIn),
+      // Release 9: the professional network — feed, posts, people and
+      // organizations.
+      ...networkRoutes(redirect: _requireSignIn),
       GoRoute(
         path: '/saved',
         redirect: _requireSignIn,
@@ -322,6 +333,76 @@ List<RouteBase> careerRoutes({GoRouterRedirect? redirect}) => [
           skillId: state.pathParameters['skill']!,
           skillName: state.uri.queryParameters['name'],
           identityId: state.uri.queryParameters['identity'],
+        ),
+      ),
+    ];
+
+/// Release 9 network screens.
+///
+/// `/feed`, `/feed/<post>`, `/network` and the composer need a signed-in
+/// worker. A person's page and an organization's page are public, the same
+/// way the server grants `omelo_person_posts` and `omelo_organization_feed`
+/// to anyone — a post shared publicly can be read by anyone. Public so
+/// tests can open them.
+List<RouteBase> networkRoutes({GoRouterRedirect? redirect}) => [
+      GoRoute(
+        path: '/feed',
+        redirect: redirect,
+        builder: (_, state) => FeedScreen(
+          initialTab: state.uri.queryParameters['tab'] == null
+              ? null
+              : feedTabFromWire(state.uri.queryParameters['tab']),
+        ),
+      ),
+      GoRoute(
+        path: '/feed/compose',
+        redirect: redirect,
+        builder: (_, __) => const ComposerScreen(),
+      ),
+      GoRoute(
+        path: '/feed/:id',
+        redirect: redirect,
+        builder: (_, state) => PostDetailScreen(
+          postId: state.pathParameters['id']!,
+          autoReply: state.uri.queryParameters['reply'] == '1',
+        ),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            redirect: redirect,
+            builder: (_, state) =>
+                ComposerScreen(editing: state.extra as FeedPost?),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/network',
+        redirect: redirect,
+        builder: (_, state) => NetworkScreen(
+          initialView: state.uri.queryParameters['tab'] == null
+              ? null
+              : networkViewFromWire(state.uri.queryParameters['tab']),
+        ),
+      ),
+      // `/network/invitations` and `/network/followers` are what the
+      // server's own notification deeplinks point at.
+      GoRoute(
+        path: '/network/:view',
+        redirect: redirect,
+        builder: (_, state) => NetworkScreen(
+          initialView: networkViewFromWire(state.pathParameters['view']),
+        ),
+      ),
+      GoRoute(
+        path: '/organizations/:id',
+        builder: (_, state) =>
+            OrganizationScreen(companyId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/people/:id',
+        builder: (_, state) => PersonScreen(
+          personId: state.pathParameters['id']!,
+          author: state.extra as PostAuthor?,
         ),
       ),
     ];
