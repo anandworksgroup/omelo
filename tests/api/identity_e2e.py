@@ -91,9 +91,17 @@ print("\n4. EMPLOYERS SEE ONLY THE IDENTITY THAT APPLIED")
 s, slug = rpc("omelo_company_slug", {"p_name": f"Identity Kitchens {stamp}"}, emp_tok)
 s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Identity Kitchens {stamp}", "country_code": "IN",
              "size_band": "11-50", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
-s, d = post("/rest/v1/companies", {"slug": slug + "-x", "display_name": "Fake Agency", "country_code": "IN",
-            "size_band": "11-50", "created_by": emp_id, "company_kind": "agency"}, emp_tok)
-blocked("self-registering as a recruitment agency", s, d)
+# R10: calling yourself a recruitment agency is a business classification, not a
+# privilege, so it is no longer refused — and it buys nothing. The row is created
+# unverified, and an unverified company cannot search for anyone.
+s, d = post("/rest/v1/companies", {"slug": slug + "-x", "display_name": "Self-declared Agency",
+            "country_code": "IN", "size_band": "11-50", "created_by": emp_id,
+            "organization_type": "recruitment_agency"}, emp_tok)
+check("declaring your organization a recruitment agency is allowed", s == 201, f"{s} {msg(d)}")
+check("and it arrives unverified, so it can still find nobody",
+      s == 201 and d[0]["is_verified"] is False, msg(d))
+s, d2 = patch(f"/rest/v1/companies?id=eq.{d[0]['id']}", {"is_verified": True}, emp_tok)
+blocked("verifying the organization you just declared", s, d2)
 s, loc = get("/rest/v1/locations?select=id&latitude=not.is.null&country_code=eq.IN&limit=1")
 s, job = post("/rest/v1/jobs", {"company_id": cid, "created_by": emp_id, "title": "Tandoor Cook", "profession_id": prof("cook"),
               "location_id": loc[0]["id"], "workplace_type": "onsite", "work_type": "full_time", "pay_min": 20000, "pay_max": 25000,
