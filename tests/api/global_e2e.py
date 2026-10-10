@@ -45,7 +45,9 @@ def setup():
     tok = {k: login(v["email"], PW)[0] for k, v in acc.items()}
     nurse = prof("nurse")
     berlin, munich = city("Berlin", "DE"), city("Munich", "DE")
-    for k, vis in [("w1", "recruiters"), ("w2", "discoverable"), ("w3", "recruiters")]:
+    # R10: "recruiters" is gone; a discoverable identity is discoverable to
+    # every eligible organization, whatever business it is in.
+    for k, vis in [("w1", "discoverable"), ("w2", "discoverable"), ("w3", "discoverable")]:
         s, wid = rpc("omelo_create_work_identity", {"p_label": "Registered Nurse", "p_profession_id": nurse}, tok[k])
         check(f"{k} creates a nurse identity", s == 200, f"{s} {msg(wid)}")
         patch(f"/rest/v1/work_identities?id=eq.{wid}", {"discoverability": vis}, tok[k])

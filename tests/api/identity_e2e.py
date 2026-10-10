@@ -78,9 +78,14 @@ check("completeness is recomputed by the server as the profile fills (headline a
       p2["completeness"]["score"] > before and "headline" not in p2["completeness"]["missing"], f"{before} -> {p2['completeness']}")
 
 print("\n3. VISIBILITY")
-for level in ["matched_only", "discoverable", "recruiters", "public", "private"]:
+for level in ["matched_only", "discoverable", "public", "private"]:
     s, d = patch(f"/rest/v1/work_identities?id=eq.{eng}", {"discoverability": level}, wrk_tok)
     check(f"set visibility to {level}", s == 200 and d and d[0]["discoverability"] == level, f"{s} {msg(d)}")
+# R10: "recruiters" let agencies see workers that employers could not. Who may
+# find you no longer depends on what business the organization is in, so the
+# level is refused outright rather than quietly meaning something else.
+s, d = patch(f"/rest/v1/work_identities?id=eq.{eng}", {"discoverability": "recruiters"}, wrk_tok)
+blocked("the retired recruiters visibility is refused", s, d)
 
 print("\n4. EMPLOYERS SEE ONLY THE IDENTITY THAT APPLIED")
 s, slug = rpc("omelo_company_slug", {"p_name": f"Identity Kitchens {stamp}"}, emp_tok)

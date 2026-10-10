@@ -45,7 +45,9 @@ def setup():
     tok = {k: login(v["email"], PW)[0] for k, v in acc.items()}
     s, loc = get("/rest/v1/locations?select=id&latitude=not.is.null&country_code=eq.IN&limit=1")
     loc_id = loc[0]["id"]; wh = prof("warehouse-worker")
-    for k, vis in [("w1", "recruiters"), ("w2", "discoverable")]:
+    # R10: one discoverability ladder for every organization; the separate
+    # allow_recruiter_requests switch is what controls representation.
+    for k, vis in [("w1", "discoverable"), ("w2", "discoverable")]:
         s, wid = rpc("omelo_create_work_identity", {"p_label": "Warehouse Associate", "p_profession_id": wh}, tok[k])
         patch(f"/rest/v1/work_identities?id=eq.{wid}", {"discoverability": vis}, tok[k])
         acc[k]["identity"] = wid

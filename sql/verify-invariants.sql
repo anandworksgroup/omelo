@@ -157,7 +157,8 @@ with checks as (
                           'omelo_follow','omelo_request_connection','omelo_respond_connection',
                           'omelo_remove_connection','omelo_my_network','omelo_connection_suggestions',
                           'omelo_feed','omelo_organization_feed','omelo_person_posts','omelo_post_detail',
-                          'omelo_post_comments','omelo_save_feed_preferences','omelo_mute_from_feed')
+                          'omelo_post_comments','omelo_save_feed_preferences','omelo_mute_from_feed',
+                          'omelo_set_capability')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)

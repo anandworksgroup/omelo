@@ -41,7 +41,7 @@ def setup():
     for key, name, role in [("rec", "Rita Recruiter", "employer"), ("src", "Sam Sourcer", "employer"),
                             ("rec2", "Ravi Unassigned", "employer"), ("cli", "Clara Client", "employer"),
                             ("rogue", "Rogue Agent", "employer"), ("w1", "Ravi Kumar", "worker"),
-                            ("w2", "Sita Employers Only", "worker"), ("w3", "Arun NoRecruiters", "worker")]:
+                            ("w2", "Sita Private", "worker"), ("w3", "Arun NoRequests", "worker")]:
         email = f"probe.r{key}.{stamp}@omelo.dev"
         _, pid = signup(email, PW, name, role)
         acc[key] = {"email": email, "id": pid}
@@ -52,7 +52,10 @@ def setup():
     sk = skill("inventory", "forklift", "loading", "packing")
 
     print("\n0a. WORKERS")
-    vis = {"w1": ("recruiters", True), "w2": ("discoverable", True), "w3": ("recruiters", False)}
+    # R10: discoverability says who may FIND you and no longer mentions the kind
+    # of organization; allow_recruiter_requests says who may ask to REPRESENT
+    # you. They are separate controls, so the two refusals below are too.
+    vis = {"w1": ("discoverable", True), "w2": ("private", True), "w3": ("discoverable", False)}
     for k, (level, allow) in vis.items():
         s, wid = rpc("omelo_create_work_identity", {"p_label": "Warehouse Associate", "p_profession_id": wh}, tok[k])
         assert s == 200, (k, s, wid)
@@ -170,8 +173,8 @@ def run():
     s, r = rpc("omelo_search_talent_for_order", {"p_job_order": jo1, "p_filters": {"radius_km": 100}}, tok["src"])
     ids = [x["work_identity_id"] for x in r.get("results", [])] if s == 200 else []
     check("a sourcer searches for the job order", s == 200, f"{s} {msg(r)}")
-    check("a worker visible to recruiters is found", W["w1"] in ids, ids)
-    check("R4-006 a worker visible to employers only is NOT found by an agency", W["w2"] not in ids, ids)
+    check("a discoverable worker is found by any eligible organization", W["w1"] in ids, ids)
+    check("R4-006 a private worker is not found, whoever is searching", W["w2"] not in ids, ids)
     card = next((x for x in r.get("results", []) if x["work_identity_id"] == W["w1"]), {})
     check("result shows match, availability/pay slots, evidence counts and consent status",
           isinstance(card.get("score"), int) and "verified_employers" in card and "consent" in card
@@ -202,7 +205,7 @@ def run():
     s, d = rpc("omelo_request_representation", {"p_job_order": jo1, "p_identity": W["w2"]}, tok["src"])
     blocked("R4-006 asking a worker the agency cannot see", s, d)
     s, d = rpc("omelo_request_representation", {"p_job_order": jo1, "p_identity": W["w3"]}, tok["src"])
-    blocked("asking a worker who turned recruiter requests off", s, d)
+    blocked("asking a worker who turned representation requests off", s, d)
     s, d = rpc("omelo_request_representation", {"p_job_order": jo1, "p_identity": W["w1"], "p_scope": ["skills"]}, tok["src"])
     blocked("a scope without the professional identity", s, d)
     s, c1 = rpc("omelo_request_representation", {"p_job_order": jo1, "p_identity": W["w1"], "p_scope": scope,
