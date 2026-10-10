@@ -1,22 +1,51 @@
 import { redirect } from 'next/navigation';
-import { getCompanyContext, getMemberships } from '@/lib/supabase/server';
-import SwitchPrompt from './switch-prompt';
+import { createClient, getCompanyContext } from '@/lib/supabase/server';
 
 /**
- * Agency pages only make sense in an agency workspace. Convenience routing
- * only: every read below goes through RLS / agency-scoped RPCs that refuse
- * non-members anyway.
+ * The client-recruitment section.
  *
- * A notification can deep-link here while the user is working in another
- * company; if they belong to an agency, offer to switch instead of bouncing.
+ * It used to be a separate dashboard for a separate kind of company. It is now
+ * a section of the one workspace, and what decides whether you see it is
+ * whether this organization has turned client recruitment on — not what sort
+ * of business it is.
+ *
+ * Convenience routing only: every read below goes through RLS and
+ * organization-scoped RPCs, which refuse a non-member whatever this says.
  */
-export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
+export default async function ClientRecruitmentLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const ctx = await getCompanyContext();
   if (!ctx) redirect('/onboarding');
-  if (ctx.kind !== 'agency') {
-    const agencies = (await getMemberships()).filter((m) => m.kind === 'agency');
-    if (agencies.length === 0) redirect('/dashboard');
-    return <SwitchPrompt agencies={agencies.map((a) => ({ id: a.companyId, name: a.companyName }))} current={ctx.companyName} />;
-  }
+
+  const supabase = await createClient();
+  const [{ data: cap }, { count: clients }, { data: company }] = await Promise.all([
+    supabase
+      .from('company_capabilities')
+      .select('is_enabled')
+      .eq('company_id', ctx.companyId)
+      .eq('capability', 'client_recruitment')
+      .maybeSingle(),
+    supabase
+      .from('agency_clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', ctx.companyId),
+    supabase
+      .from('companies')
+      .select('organization_type')
+      .eq('id', ctx.companyId)
+      .maybeSingle(),
+  ]);
+
+  // An explicit choice wins; otherwise the business type is the default, and
+  // work that already exists is always reachable.
+  const byType = ['recruitment_agency', 'staffing_agency', 'rpo_provider', 'workforce_provider'].includes(
+    company?.organization_type ?? 'employer'
+  );
+  const on = cap ? cap.is_enabled : byType;
+  if (!on && (clients ?? 0) === 0) redirect('/dashboard/company');
+
   return children;
 }

@@ -84,13 +84,29 @@ export const ROLE_LABEL: Record<string, string> = {
 
 export const roleLabel = (r: string) => ROLE_LABEL[r] ?? r.replace(/_/g, ' ');
 
-/** What each role can do, in plain words, for the team page. */
-export const AGENCY_ROLE_HELP: { role: string; does: string }[] = [
-  { role: 'owner', does: 'Everything, including inviting other owners and removing the agency’s admins.' },
-  { role: 'admin', does: 'Everything except managing owners: team, clients, job orders, submissions, placements.' },
+/**
+ * What each role can do, in plain words, for the team page.
+ *
+ * One list for every organization. There used to be two — an agency list and
+ * an employer list — which meant a company hiring for itself could not invite
+ * a sourcer and an agency could not have an HR lead, because the UI never
+ * offered the role. All ten exist everywhere now; what a role may actually
+ * reach is decided per action, and the client-recruitment lines only matter
+ * once that module is on.
+ */
+export const ROLE_HELP: { role: string; does: string }[] = [
+  { role: 'owner', does: 'Everything, including inviting and removing other owners.' },
+  {
+    role: 'admin',
+    does: 'Everything except managing owners: the team, the organization profile, jobs, candidates and clients.',
+  },
   {
     role: 'recruiter',
-    does: 'Clients and job orders, talent search, consent requests, full consented profiles, submitting to clients, placements.',
+    does: 'Jobs, candidates, talent search and invitations. With client recruitment on: clients, job orders, consent requests and submissions.',
+  },
+  {
+    role: 'hiring_manager',
+    does: 'Reviews candidates, runs interviews and makes offers. Can open job orders and search for a client.',
   },
   {
     role: 'sourcer',
@@ -98,18 +114,11 @@ export const AGENCY_ROLE_HELP: { role: string; does: string }[] = [
   },
   {
     role: 'coordinator',
-    does: 'Interviews, offers and placements. Sees skills only; cannot search or submit.',
+    does: 'Interviews, offers, placements and shift and time approvals. Sees skills only; cannot search or submit.',
   },
-];
-
-export const EMPLOYER_ROLE_HELP: { role: string; does: string }[] = [
-  { role: 'owner', does: 'Everything, including inviting other owners.' },
-  { role: 'admin', does: 'Everything except managing owners: team, company profile, jobs, candidates.' },
-  { role: 'recruiter', does: 'Jobs, candidates, talent search and invitations.' },
-  { role: 'hiring_manager', does: 'Reviews candidates, runs interviews and makes offers.' },
-  { role: 'hr', does: 'Reviews candidates, interviews and offers.' },
+  { role: 'hr', does: 'Reviews candidates, interviews and offers, and approves time and pay.' },
   { role: 'interviewer', does: 'Only the interviews they are on, and their own feedback.' },
-  { role: 'finance', does: 'Billing and plan information.' },
+  { role: 'finance', does: 'Billing, pay and plan information.' },
   { role: 'viewer', does: 'Read-only access to jobs and the pipeline.' },
 ];
 

@@ -51,22 +51,21 @@ export async function setOrganizationType(_prev: OrgState, fd: FormData): Promis
   if (!s.ctx.roles.some((r) => r === 'owner' || r === 'admin'))
     return { error: 'Only an owner or admin changes what kind of organization this is.' };
 
-  const { data, error } = await s.supabase
-    .from('companies')
-    .update({ organization_type: type })
-    .eq('id', s.ctx.companyId)
-    .select('id, organization_type, company_kind');
+  // R10: the business type is no longer writable by a bare UPDATE — it decides
+  // nothing about access, but it does set the defaults, so it goes through a
+  // function that checks who is asking and records the change.
+  const { error } = await s.supabase.rpc('omelo_set_organization_type', {
+    p_company: s.ctx.companyId,
+    p_type: type,
+  });
   if (error) return fail(error, 'setOrganizationType');
-  if (!data?.length) return { error: 'Only an owner or admin changes what kind of organization this is.' };
 
-  // company_kind follows organization_type, and the whole menu follows kind.
   revalidatePath('/', 'layout');
   return {
     ok: true,
     message:
-      data[0].company_kind === 'agency'
-        ? 'Saved. This workspace now uses the agency menu.'
-        : 'Saved. This workspace uses the employer menu.',
+      'Saved. This describes your organization and sets which optional modules start ' +
+      'switched on — every organization keeps the same core hiring tools.',
   };
 }
 

@@ -158,7 +158,8 @@ with checks as (
                           'omelo_remove_connection','omelo_my_network','omelo_connection_suggestions',
                           'omelo_feed','omelo_organization_feed','omelo_person_posts','omelo_post_detail',
                           'omelo_post_comments','omelo_save_feed_preferences','omelo_mute_from_feed',
-                          'omelo_set_capability')
+                          'omelo_set_capability','omelo_create_organization',
+                          'omelo_set_organization_type')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -586,19 +587,23 @@ with checks as (
   -- attacked as real users in tests/api/staffing_e2e.py.
   -- ---------------------------------------------------------------
   union all
-  select 47, 'R5-001..003 assignments: own identity, authorised agency, valid dates',
+  -- R10 rewrote this. It used to ask whether the company was an agency, which
+  -- meant a private company recruiting for a client was held to no rule at all.
+  -- It asks about the work now: every assignment worked FOR A CLIENT needs the
+  -- worker's consent for that client's job order, whoever the organization is.
+  select 47, 'R5-001..003 assignments: own identity, valid dates, and consent for client work',
          case when exists (select 1 from pg_trigger where tgname = 'assignments_validate' and not tgisinternal)
                and not exists (select 1 from assignments a join work_identities wi on wi.id = a.work_identity_id
                                 where wi.person_id <> a.person_id or (a.end_date is not null and a.end_date < a.start_date))
-               and not exists (select 1 from assignments a join companies c on c.id = a.company_id
-                                where c.company_kind = 'agency'
+               and not exists (select 1 from assignments a
+                                where a.client_id is not null
                                   and not exists (select 1 from candidate_consents cc where cc.person_id = a.person_id
                                                    and cc.agency_id = a.company_id and cc.job_order_id = a.job_order_id
                                                    and cc.status in ('accepted','active','expired','revoked'))
                                   and not exists (select 1 from candidate_submissions s where s.person_id = a.person_id
                                                    and s.agency_id = a.company_id and s.job_order_id = a.job_order_id
                                                    and s.status = 'hired'))
-              then 'OK' else 'FAIL: an assignment without its worker''s identity, dates or agency authority' end
+              then 'OK' else 'FAIL: an assignment without its worker''s identity, dates or the client''s consent' end
 
   union all
   select 48, 'R5-004 no worker is booked on two overlapping shifts',
@@ -992,6 +997,81 @@ with checks as (
     and confrelid in ('public.applications'::regclass, 'public.offers'::regclass, 'public.employments'::regclass,
                       'public.earnings'::regclass, 'public.payment_records'::regclass, 'public.timesheets'::regclass,
                       'public.assignments'::regclass, 'public.billing_records'::regclass)
+  union all
+  -- ---------------------------------------------------------------
+  -- R10 (migrations 76-81) — one organization model
+  --
+  -- Omelo has two entry options: a Personal Profile and an Organization
+  -- Workspace. Every organization gets the same core product. What kind of
+  -- business it is describes it and sets its defaults; it must never be the
+  -- thing that grants or withholds a capability.
+  -- ---------------------------------------------------------------
+  select 91, 'R10-001 nothing decides authority by the organization''s business type',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: type-dependent — ' || string_agg(p.proname, ', ') end
+  from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+  where ns.nspname in ('public', 'omelo_private')
+    and p.prosrc ~ 'company_kind|organization_type'
+    -- The only functions allowed to mention it, and why:
+    --   sync / guard        keep the two columns consistent and protected
+    --   has_capability      reads the type as a DEFAULT, never as a refusal
+    --   create_organization / set_organization_type  set it
+    --   author_card / my_team_invitations            report it for display
+    and p.proname not in ('omelo_sync_organization_type', 'omelo_guard_company_trust',
+                          'omelo_has_capability', 'omelo_create_organization',
+                          'omelo_set_organization_type', 'omelo_author_card',
+                          'omelo_my_team_invitations')
+
+  union all
+  select 92, 'R10-002 no RLS policy has ever decided anything by business type',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: ' || string_agg(tablename || '.' || policyname, ', ') end
+  from pg_policies
+  where schemaname = 'public'
+    and (coalesce(qual, '') || coalesce(with_check, '')) ~ 'company_kind|organization_type'
+
+  union all
+  select 93, 'R10-003 the client-work rules key on the client, not on the organization',
+         case when pg_get_functiondef('omelo_private.omelo_validate_assignment()'::regprocedure) like '%v_kind = ''client''%'
+               and pg_get_functiondef('omelo_private.omelo_validate_assignment()'::regprocedure) like '%candidate_consents%'
+               and pg_get_functiondef('public.omelo_set_assignment_billing(uuid,numeric,text,text)'::regprocedure) like '%a.client_id is null%'
+              then 'OK' else 'FAIL: a client-work rule still asks what kind of organization this is' end
+
+  union all
+  select 94, 'R10-004 capabilities are turned on through Omelo, and core hiring is not one',
+         case when not has_table_privilege('authenticated', 'public.company_capabilities', 'insert')
+               and not has_table_privilege('authenticated', 'public.company_capabilities', 'update')
+               and not has_table_privilege('authenticated', 'public.company_capabilities', 'delete')
+               and (select count(*) from pg_constraint
+                     where conrelid = 'public.company_capabilities'::regclass and contype = 'c'
+                       and pg_get_constraintdef(oid) like '%client_recruitment%'
+                       and pg_get_constraintdef(oid) not like '%hiring%'
+                       and pg_get_constraintdef(oid) not like '%jobs%'
+                       and pg_get_constraintdef(oid) not like '%candidates%') = 1
+              then 'OK' else 'FAIL: capabilities are client-writable, or core hiring was made optional' end
+
+  union all
+  select 95, 'R10-005 the retired ''recruiters'' visibility cannot be stored',
+         case when count(*) = 0
+               and exists (select 1 from pg_constraint
+                            where conrelid = 'public.work_identities'::regclass
+                              and conname = 'work_identities_discoverability_live')
+               and pg_get_functiondef('omelo_private.omelo_is_identity_discoverable_to(uuid,uuid)'::regprocedure)
+                   not like '%company_kind%'
+              then 'OK' else 'FAIL: ' || count(*)::text || ' identities still hold the retired level' end
+  from work_identities where discoverability::text = 'recruiters'
+
+  union all
+  select 96, 'R10-006 verification and business type are Omelo''s, on insert and on update',
+         case when pg_get_functiondef('omelo_private.omelo_guard_company_trust()'::regprocedure)
+                   like '%new.organization_type is distinct from old.organization_type%'
+               and pg_get_functiondef('omelo_private.omelo_guard_company_trust()'::regprocedure)
+                   like '%new.company_kind is distinct from old.company_kind%'
+               and pg_get_functiondef('public.omelo_create_agency(text,boolean,text)'::regprocedure)
+                   like '%omelo_create_organization%'
+               and not has_function_privilege('anon', 'public.omelo_create_organization(text,text,text,boolean)', 'execute')
+              then 'OK' else 'FAIL: a company row can still be reclassified or self-verified' end
+
 )
 select n as "#", invariant, result from checks order by n;
 

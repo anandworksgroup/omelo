@@ -126,11 +126,11 @@ export default function WorkspaceSwitcher({
           )}
           <div className="border-t hairline mt-1.5 pt-1.5">
             <Link
-              href="/onboarding/agency"
+              href="/onboarding"
               className="block rounded-lg px-2.5 py-2 text-sm hover:bg-[var(--surface)]"
               onClick={() => setOpen(false)}
             >
-              + Create an agency
+              + Create an organization
             </Link>
           </div>
           {pending && <p className="text-xs muted px-2.5 pb-1">Switching…</p>}

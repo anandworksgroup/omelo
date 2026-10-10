@@ -12,6 +12,23 @@ export type ActionState = { error?: string; ok?: boolean; message?: string };
 /* Company                                                             */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Create the one kind of thing Omelo has: an Organization Workspace.
+ *
+ * There is no employer sign-up and no separate agency sign-up any more. The
+ * business type is a description the organization picks — it sets which
+ * optional modules start switched on and nothing else. The database owns
+ * creation (omelo_create_organization): it makes the caller the owner, checks
+ * the name and the limit, and refuses to let anyone self-verify.
+ */
+const ORGANIZATION_TYPES = [
+  'employer',
+  'recruitment_agency',
+  'staffing_agency',
+  'rpo_provider',
+  'workforce_provider',
+] as const;
+
 export async function createCompany(
   _prev: ActionState,
   formData: FormData
@@ -23,32 +40,38 @@ export async function createCompany(
   if (!user) return { error: 'You are signed out. Sign in and try again.' };
 
   const name = String(formData.get('display_name') ?? '').trim();
-  if (!name) return { error: 'Enter your company name.' };
+  if (!name) return { error: 'Enter your organization name.' };
 
-  const { data: slug, error: slugErr } = await supabase.rpc(
-    'omelo_company_slug',
-    { p_name: name }
+  const typeRaw = String(formData.get('organization_type') ?? 'employer');
+  const type = (ORGANIZATION_TYPES as readonly string[]).includes(typeRaw)
+    ? typeRaw
+    : 'employer';
+
+  const { data: created, error: createError } = await supabase.rpc(
+    'omelo_create_organization',
+    {
+      p_name: name,
+      p_type: type,
+      p_country: String(formData.get('country_code') ?? 'IN'),
+      p_independent: formData.get('independent') === 'on',
+    }
   );
-  if (slugErr) return { error: slugErr.message };
+  if (createError) return { error: friendlyDbError(createError) };
+  const companyId = created as string;
 
-  const { data, error } = await supabase
+  // Everything else is description, and the owner may edit it directly.
+  const { error: detailError } = await supabase
     .from('companies')
-    .insert({
-      slug: slug as string,
-      display_name: name,
+    .update({
       legal_name: String(formData.get('legal_name') ?? '').trim() || null,
-      country_code: String(formData.get('country_code') ?? 'IN'),
-      size_band: (String(formData.get('size_band') ?? '1-10') ||
-        null) as never,
+      size_band: (String(formData.get('size_band') ?? '1-10') || null) as never,
       website: String(formData.get('website') ?? '').trim() || null,
       about: String(formData.get('about') ?? '').trim() || null,
       hq_location_id: String(formData.get('hq_location_id') ?? '') || null,
-      created_by: user.id,
     })
-    .select('id')
-    .single();
-
-  if (error) return { error: error.message };
+    .eq('id', companyId);
+  // The workspace exists either way; details can be filled in from Settings.
+  if (detailError) reportError(detailError, { action: 'createCompany.details', companyId });
 
   // Mirror the HQ into company_locations so jobs can inherit its geo.
   const hq = String(formData.get('hq_location_id') ?? '');
@@ -59,7 +82,7 @@ export async function createCompany(
       .eq('id', hq)
       .single();
     const { error: hqError } = await supabase.from('company_locations').insert({
-      company_id: data.id,
+      company_id: companyId,
       location_id: hq,
       name: 'Head office',
       address: loc?.name ?? null,
@@ -67,7 +90,7 @@ export async function createCompany(
       is_hq: true,
     });
     // The company exists; a missing HQ row only loses geo inheritance.
-    if (hqError) reportError(hqError, { action: 'createCompany.hq_location', companyId: data.id });
+    if (hqError) reportError(hqError, { action: 'createCompany.hq_location', companyId });
   }
 
   revalidatePath('/', 'layout');

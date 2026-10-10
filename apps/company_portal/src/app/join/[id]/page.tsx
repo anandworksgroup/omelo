@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient, getMemberships, getUser } from '@/lib/supabase/server';
-import { AGENCY_ROLE_HELP, EMPLOYER_ROLE_HELP, parseTeamInvitations, roleLabel } from '@/lib/agency';
+import { ROLE_HELP, parseTeamInvitations, roleLabel } from '@/lib/agency';
 import { UUID_RE } from '@/lib/talent';
 import LocalTime from '../../dashboard/local-time';
 import JoinButtons from './join-buttons';
@@ -28,7 +28,7 @@ export default async function JoinPage({ params }: { params: Promise<{ id: strin
   const hasCompany = memberships.length > 0;
   const back = hasCompany ? '/dashboard' : '/onboarding';
 
-  const help = invitation?.company.kind === 'agency' ? AGENCY_ROLE_HELP : EMPLOYER_ROLE_HELP;
+  const help = ROLE_HELP;
   const roleHelp = invitation ? help.find((h) => h.role === invitation.role)?.does : null;
 
   return (

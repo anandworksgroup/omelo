@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
-import { AGENCY_ROLE_HELP, EMPLOYER_ROLE_HELP, roleLabel } from '@/lib/agency';
+import { ROLE_HELP, roleLabel } from '@/lib/agency';
 import { loadTeam, memberName } from '@/lib/team';
 import { timeAgo } from '@/lib/format';
 import {
@@ -53,7 +53,7 @@ export default async function PeoplePage() {
 
   const canManage = ctx.roles.some((r) => r === 'owner' || r === 'admin');
   const isOwner = ctx.roles.includes('owner');
-  const help = ctx.kind === 'agency' ? AGENCY_ROLE_HELP : EMPLOYER_ROLE_HELP;
+  const help = ROLE_HELP;
   const assignable = help.map((h) => h.role).filter((r) => r !== 'owner' || isOwner);
 
   const options: ScopeOptions = {

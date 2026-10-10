@@ -2167,6 +2167,48 @@ export type Database = {
           },
         ]
       }
+      company_capabilities: {
+        Row: {
+          capability: string
+          company_id: string
+          enabled_at: string
+          enabled_by: string | null
+          is_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          capability: string
+          company_id: string
+          enabled_at?: string
+          enabled_by?: string | null
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          capability?: string
+          company_id?: string
+          enabled_at?: string
+          enabled_by?: string | null
+          is_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_capabilities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_capabilities_enabled_by_fkey"
+            columns: ["enabled_by"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_entitlements: {
         Row: {
           active_job_slots: number
@@ -10457,6 +10499,15 @@ export type Database = {
         Args: { p_client: string; p_order: Json }
         Returns: string
       }
+      omelo_create_organization: {
+        Args: {
+          p_country?: string
+          p_independent?: boolean
+          p_name: string
+          p_type?: string
+        }
+        Returns: string
+      }
       omelo_create_post: { Args: { p: Json }; Returns: Json }
       omelo_create_requirement: {
         Args: { p_company: string; p_fields: Json }
@@ -11026,6 +11077,14 @@ export type Database = {
           p_reason?: string
           p_status: string
         }
+        Returns: undefined
+      }
+      omelo_set_capability: {
+        Args: { p_capability: string; p_company: string; p_enabled?: boolean }
+        Returns: undefined
+      }
+      omelo_set_organization_type: {
+        Args: { p_company: string; p_type: string }
         Returns: undefined
       }
       omelo_set_primary_identity: {

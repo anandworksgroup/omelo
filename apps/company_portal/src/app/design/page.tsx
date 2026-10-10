@@ -263,9 +263,8 @@ export default function DesignSystem() {
               real question and gets a real empty answer. */}
           <DashboardNav
             companyId="00000000-0000-0000-0000-000000000000"
-            kind="employer"
             isAdmin
-            showRpo
+            capabilities={{ client_recruitment: true, workforce: true, rpo: true, billing: true }}
           />
           <div className="flex-1 muted text-sm">
             The real component, rendered with a preview workspace. Nothing is marked current here

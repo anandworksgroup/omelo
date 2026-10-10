@@ -30,25 +30,10 @@ const tone = (table: Record<string, { label: string; color: string }>, key: stri
 export default async function AgenciesPage() {
   const ctx = (await getCompanyContext())!;
 
-  if (ctx.kind === 'agency') {
-    return (
-      <div className="space-y-6 max-w-4xl">
-        <h1 className="text-xl sm:text-2xl font-bold">Agencies</h1>
-        <Notice
-          title="This page is for employers"
-          action={
-            <Link href="/dashboard/agency/clients" className="btn btn-primary w-full sm:w-auto">
-              Your clients
-            </Link>
-          }
-        >
-          Employers use it to confirm the agencies that recruit for them. Your own client companies are under
-          Clients.
-        </Notice>
-      </div>
-    );
-  }
-
+  // R10: this is the view from the client's side — the agencies recruiting FOR us.
+  // An organization that also recruits for others sees both: this page, and its own
+  // clients under Client recruitment. They are different relationships and different
+  // records, so neither one replaces the other.
   const supabase = await createClient();
   const [relRes, orderRes, jobRes] = await Promise.all([
     supabase.rpc('omelo_my_agency_relationships'),

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { CountBadge } from '@/components/notifications/bell';
 import { useUnreadMessages } from '@/lib/realtime/unread';
 
@@ -10,148 +10,107 @@ type Item = { href: string; label: string; badge?: boolean; exact?: boolean };
 /** A heading of null means the items sit at the top with no heading above them. */
 type Group = { heading: string | null; items: Item[] };
 
+export type Capabilities = {
+  client_recruitment?: boolean;
+  workforce?: boolean;
+  rpo?: boolean;
+  billing?: boolean;
+};
+
 /**
- * The employer menu, grouped by the job being done rather than listed flat.
+ * One menu for every organization.
  *
- * It was one row of seventeen links, which is a list of everything the portal
- * can do and no help in finding anything. The groups below are the four
- * questions an employer actually arrives with: who am I hiring, how is the
- * work going, what is happening, and who are we.
+ * There used to be two: an employer menu and an agency menu, chosen by what
+ * kind of company this was, with two dashboards behind them. The core is the
+ * same for everyone now — a page, jobs, candidates, interviews, hiring, posts,
+ * a team — and the rest appears when the organization turns it on.
+ *
+ * What does NOT merge is the work itself. Hiring for yourself runs on jobs and
+ * applications; recruiting for a client runs on job orders and submissions.
+ * They are different records with different rules, so they stay different
+ * sections. An organization doing both sees both, in one workspace.
  */
-const EMPLOYER_NAV: Group[] = [
-  {
-    heading: null,
-    items: [
-      { href: '/dashboard', label: 'Overview', exact: true },
-      { href: '/dashboard/messages', label: 'Messages', badge: true },
-      { href: '/dashboard/workforce', label: 'Workforce' },
-      { href: '/dashboard/updates', label: 'Updates' },
-    ],
-  },
-  {
-    heading: 'Hiring',
-    items: [
-      { href: '/dashboard/jobs', label: 'Jobs' },
-      { href: '/dashboard/candidates', label: 'Candidates' },
-      { href: '/dashboard/talent', label: 'Find talent' },
-      { href: '/dashboard/interviews', label: 'Interviews' },
-      { href: '/dashboard/offers', label: 'Offers' },
-      { href: '/dashboard/approvals', label: 'Approvals' },
-    ],
-  },
-  {
+const A = '/dashboard/agency';
+
+export function menuFor({
+  isAdmin = false,
+  capabilities = {},
+}: {
+  isAdmin?: boolean;
+  capabilities?: Capabilities;
+}): Group[] {
+  const groups: Group[] = [
+    {
+      heading: null,
+      items: [
+        { href: '/dashboard', label: 'Overview', exact: true },
+        { href: '/dashboard/messages', label: 'Messages', badge: true },
+        { href: '/dashboard/updates', label: 'Updates' },
+      ],
+    },
+    {
+      heading: 'Hiring',
+      items: [
+        { href: '/dashboard/jobs', label: 'Jobs' },
+        { href: '/dashboard/candidates', label: 'Candidates' },
+        { href: '/dashboard/talent', label: 'Find talent' },
+        { href: '/dashboard/interviews', label: 'Interviews' },
+        { href: '/dashboard/offers', label: 'Offers' },
+        { href: '/dashboard/approvals', label: 'Approvals' },
+      ],
+    },
+  ];
+
+  if (capabilities.client_recruitment) {
+    groups.push({
+      heading: 'Client recruitment',
+      items: [
+        { href: A, label: 'Client overview', exact: true },
+        { href: `${A}/clients`, label: 'Clients' },
+        { href: `${A}/job-orders`, label: 'Job orders' },
+        { href: `${A}/talent`, label: 'Client talent search' },
+        { href: `${A}/candidates`, label: 'Represented candidates' },
+        { href: `${A}/pools`, label: 'Talent pools' },
+        { href: `${A}/submissions`, label: 'Submissions' },
+        { href: `${A}/interviews`, label: 'Client interviews' },
+        { href: `${A}/offers`, label: 'Client offers' },
+        { href: `${A}/placements`, label: 'Placements' },
+        ...(capabilities.billing ? [{ href: `${A}/billing`, label: 'Billing' }] : []),
+      ],
+    });
+  }
+
+  if (capabilities.workforce) {
+    groups.push({
+      heading: 'Workforce',
+      items: [{ href: '/dashboard/workforce', label: 'Shifts and pay' }],
+    });
+  }
+
+  groups.push({
     heading: 'Insight',
     items: [
       { href: '/dashboard/insights', label: 'Insights' },
+      ...(capabilities.client_recruitment
+        ? [{ href: `${A}/analytics`, label: 'Client analytics' }]
+        : []),
       { href: '/dashboard/global', label: 'Global' },
     ],
-  },
-  {
+  });
+
+  groups.push({
     heading: 'Organization',
     items: [
       { href: '/dashboard/organization', label: 'Structure' },
       { href: '/dashboard/team', label: 'Team' },
-      { href: '/dashboard/agencies', label: 'Agencies' },
+      { href: '/dashboard/agencies', label: 'Agencies working for us' },
+      ...(capabilities.rpo ? [{ href: '/dashboard/rpo', label: 'RPO' }] : []),
       { href: '/dashboard/company', label: 'Company' },
       { href: '/dashboard/settings', label: 'Settings' },
     ],
-  },
-];
+  });
 
-const A = '/dashboard/agency';
-const AGENCY_NAV: Group[] = [
-  {
-    heading: null,
-    items: [
-      { href: A, label: 'Dashboard', exact: true },
-      { href: '/dashboard/workforce', label: 'Workforce' },
-      { href: '/dashboard/updates', label: 'Updates' },
-    ],
-  },
-  {
-    heading: 'Clients',
-    items: [
-      { href: `${A}/clients`, label: 'Clients' },
-      { href: `${A}/job-orders`, label: 'Job orders' },
-    ],
-  },
-  {
-    heading: 'Talent',
-    items: [
-      { href: `${A}/talent`, label: 'Talent search' },
-      { href: `${A}/candidates`, label: 'Candidates' },
-      { href: `${A}/pools`, label: 'Talent pools' },
-      { href: `${A}/submissions`, label: 'Submissions' },
-    ],
-  },
-  {
-    heading: 'Hiring',
-    items: [
-      { href: `${A}/interviews`, label: 'Interviews' },
-      { href: `${A}/offers`, label: 'Offers' },
-      { href: `${A}/placements`, label: 'Placements' },
-    ],
-  },
-  {
-    heading: 'Insight',
-    items: [
-      { href: `${A}/analytics`, label: 'Analytics' },
-      { href: '/dashboard/global', label: 'Global' },
-    ],
-  },
-  {
-    heading: 'Organization',
-    items: [
-      { href: `${A}/billing`, label: 'Billing' },
-      { href: '/dashboard/team', label: 'Team' },
-      { href: '/dashboard/company', label: 'Settings' },
-    ],
-  },
-];
-
-/** Agencies see Insights only when they post jobs of their own. */
-const INSIGHTS_ITEM: Item = { href: '/dashboard/insights', label: 'Insights' };
-
-/** Shown only to platform admins (decided server-side by the layout). */
-const ADMIN_ITEM: Item = { href: '/admin', label: 'Admin' };
-
-/**
- * RPO belongs to both sides: the organization running recruiting for someone
- * else, and the one it is run for. The layout decides when to show it.
- */
-const RPO_ITEM: Item = { href: '/dashboard/rpo', label: 'RPO' };
-
-/** Add an item to a named group, keeping every other group as it was. */
-function addTo(groups: Group[], heading: string, item: Item, at = -1): Group[] {
-  return groups.map((g) =>
-    g.heading === heading
-      ? {
-          ...g,
-          items:
-            at < 0
-              ? [...g.items, item]
-              : [...g.items.slice(0, at), item, ...g.items.slice(at)],
-        }
-      : g
-  );
-}
-
-export function menuFor({
-  kind,
-  isAdmin = false,
-  agencyHasJobs = false,
-  showRpo = false,
-}: {
-  kind: 'employer' | 'agency';
-  isAdmin?: boolean;
-  agencyHasJobs?: boolean;
-  showRpo?: boolean;
-}): Group[] {
-  let groups = kind === 'agency' ? AGENCY_NAV : EMPLOYER_NAV;
-  if (kind === 'agency' && agencyHasJobs) groups = addTo(groups, 'Insight', INSIGHTS_ITEM, 0);
-  // RPO is an organization-level relationship, so it sits with the rest of them.
-  if (showRpo) groups = addTo(groups, 'Organization', RPO_ITEM);
-  if (isAdmin) groups = [...groups, { heading: 'Platform', items: [ADMIN_ITEM] }];
+  if (isAdmin) groups.push({ heading: 'Platform', items: [{ href: '/admin', label: 'Admin' }] });
   return groups;
 }
 
@@ -219,32 +178,24 @@ function NavGroups({
 }
 
 /**
- * Dashboard navigation.
- *
- * On a wide screen it is a column beside the work, where the groups are
+ * On a wide screen the menu is a column beside the work, where the groups are
  * visible at a glance. On a phone it is a button that opens the same grouped
- * list as a sheet — seventeen links in a sideways-scrolling strip was a menu
- * you had to drag through to read.
+ * list as a sheet.
  */
 export default function DashboardNav({
   companyId,
-  kind,
   isAdmin = false,
-  agencyHasJobs = false,
-  showRpo = false,
+  capabilities = {},
 }: {
   companyId: string;
-  kind: 'employer' | 'agency';
   isAdmin?: boolean;
-  agencyHasJobs?: boolean;
-  showRpo?: boolean;
+  capabilities?: Capabilities;
 }) {
-  const groups = menuFor({ kind, isAdmin, agencyHasJobs, showRpo });
+  const groups = menuFor({ isAdmin, capabilities });
   const unreadMessages = useUnreadMessages(companyId);
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const panelId = useId();
-  const label = kind === 'agency' ? 'Agency' : 'Dashboard';
 
   // The sheet closes when the route changes, so following a link inside it —
   // or going back — does not leave it covering the page you just asked for.
@@ -256,24 +207,8 @@ export default function DashboardNav({
     if (open) setOpen(false);
   }
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
   const current =
-    groups
-      .flatMap((g) => g.items)
-      .find((i) => isActive(path, i))?.label ?? 'Menu';
+    groups.flatMap((g) => g.items).find((i) => isActive(path, i))?.label ?? 'Menu';
 
   return (
     <>
@@ -286,7 +221,16 @@ export default function DashboardNav({
           aria-controls={panelId}
           onClick={() => setOpen((v) => !v)}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            aria-hidden
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          >
             <path d="M2 4h12M2 8h12M2 12h12" />
           </svg>
           Menu
@@ -310,12 +254,12 @@ export default function DashboardNav({
           />
           <nav
             id={panelId}
-            aria-label={label}
+            aria-label="Workspace"
             className="relative w-[18rem] max-w-[85vw] h-full scroll-y p-3 shadow-lg"
             style={{ background: 'var(--bg)', borderRight: '1px solid var(--line)' }}
           >
             <div className="flex items-center justify-between px-3 pb-2">
-              <span className="section-title">{label}</span>
+              <span className="section-title">Workspace</span>
               <button type="button" className="btn btn-quiet btn-sm" onClick={() => setOpen(false)}>
                 Close
               </button>
@@ -332,7 +276,7 @@ export default function DashboardNav({
 
       {/* Desktop: a column that stays with you as the page scrolls. */}
       <nav
-        aria-label={label}
+        aria-label="Workspace"
         className="hidden lg:block w-56 shrink-0 sticky self-start scroll-y pr-1 pb-8"
         style={{ top: '0.75rem', maxHeight: 'calc(100vh - 1.5rem)' }}
       >

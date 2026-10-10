@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
-import { AGENCY_ROLE_HELP, EMPLOYER_ROLE_HELP, roleLabel } from '@/lib/agency';
+import { ROLE_HELP, roleLabel } from '@/lib/agency';
 import { loadTeam, memberName } from '@/lib/team';
 import { timeAgo } from '@/lib/format';
 import LocalTime from '../local-time';
@@ -20,7 +20,7 @@ export default async function TeamPage() {
   const isOwner = ctx.roles.includes('owner');
 
   const team = await loadTeam(supabase, ctx.companyId, user?.id ?? null, user?.email ?? null);
-  const help = isAgency ? AGENCY_ROLE_HELP : EMPLOYER_ROLE_HELP;
+  const help = ROLE_HELP;
   // Only owners may grant the owner role; sourcer/coordinator exist only in agencies.
   const assignable = help.map((h) => h.role).filter((r) => r !== 'owner' || isOwner);
   const active = team.members.filter((m) => m.isActive);

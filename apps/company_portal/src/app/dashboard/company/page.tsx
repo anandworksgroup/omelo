@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
 import { roleLabel } from '@/lib/agency';
 import CompanyEditForm from './edit-form';
+import Capabilities from './capabilities';
 
 export default async function CompanyPage() {
   const ctx = (await getCompanyContext())!;
@@ -25,6 +26,43 @@ export default async function CompanyPage() {
 
   const canEdit = ['owner', 'admin'].includes(ctx.role);
   const isAgency = ctx.kind === 'agency';
+
+  // What this organization has turned on, and what it is already doing. A
+  // module with records behind it stays on: switching it off would only hide
+  // work that exists, which is not what the switch is for.
+  const [{ data: caps }, { count: clientCount }, { count: requirementCount },
+         { count: rpoCount }, { count: billingCount }] = await Promise.all([
+    supabase
+      .from('company_capabilities')
+      .select('capability, is_enabled')
+      .eq('company_id', ctx.companyId),
+    supabase.from('agency_clients').select('id', { count: 'exact', head: true })
+      .eq('agency_id', ctx.companyId),
+    supabase.from('workforce_requirements').select('id', { count: 'exact', head: true })
+      .eq('company_id', ctx.companyId),
+    supabase.from('rpo_engagements').select('id', { count: 'exact', head: true }),
+    supabase.from('billing_records').select('id', { count: 'exact', head: true })
+      .eq('agency_id', ctx.companyId),
+  ]);
+
+  const inUse: Record<string, boolean> = {
+    client_recruitment: (clientCount ?? 0) > 0,
+    workforce: (requirementCount ?? 0) > 0,
+    rpo: (rpoCount ?? 0) > 0,
+    billing: (billingCount ?? 0) > 0,
+  };
+
+  // No row means the organization has not chosen, and its business type says
+  // what is sensible — the same default the database applies.
+  const byType: Record<string, boolean> = {
+    client_recruitment: isAgency,
+    workforce: isAgency,
+    rpo: isAgency,
+    billing: isAgency,
+  };
+  const enabled: Record<string, boolean> = { ...byType };
+  for (const row of caps ?? []) enabled[row.capability] = row.is_enabled;
+  for (const key of Object.keys(inUse)) if (inUse[key]) enabled[key] = true;
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -97,6 +135,13 @@ export default async function CompanyPage() {
         </section>
       )}
 
+      <Capabilities
+        companyId={ctx.companyId}
+        enabled={enabled}
+        canEdit={canEdit}
+        inUse={inUse}
+      />
+
       <section className="card p-5 space-y-3">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
@@ -135,14 +180,15 @@ export default async function CompanyPage() {
         <section className="card p-5 space-y-3">
           <div className="flex items-start gap-3 flex-wrap">
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold">Create an agency</h2>
+              <h2>Add another organization</h2>
               <p className="text-sm muted mt-1 leading-relaxed">
-                Recruit for other companies? Create an agency or work as an independent recruiter. Searching needs
-                Omelo verification.
+                Running a second business, or setting up a recruitment firm of your own? Each
+                organization keeps its own page, team and permissions. To recruit for clients from
+                <em>this</em> workspace instead, turn on Client recruitment below.
               </p>
             </div>
-            <Link href="/onboarding/agency" className="btn btn-ghost w-full sm:w-auto">
-              Create an agency
+            <Link href="/onboarding" className="btn btn-ghost w-full sm:w-auto">
+              New organization
             </Link>
           </div>
         </section>

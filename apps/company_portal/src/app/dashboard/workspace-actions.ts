@@ -48,35 +48,6 @@ export async function switchWorkspaceForm(formData: FormData): Promise<void> {
   if (res && !res.ok) redirect('/dashboard');
 }
 
-/**
- * Create an agency (or an independent recruiter's one-person agency). Only
- * omelo_create_agency can make a company with kind 'agency'; the creator
- * becomes its owner. Searching and asking for consent stay closed until
- * Omelo verifies it.
- */
-export async function createAgency(input: {
-  name: string;
-  independent: boolean;
-  country?: string;
-}): Promise<Fail | void> {
-  const name = input.name.trim().replace(/\s+/g, ' ');
-  if (name.length < 2 || name.length > 120)
-    return { ok: false, error: 'Give the agency a name between 2 and 120 characters.' };
-  const country = (input.country ?? '').trim().toUpperCase();
-  if (country && !/^[A-Z]{2}$/.test(country)) return { ok: false, error: 'Choose a country.' };
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('omelo_create_agency', {
-    p_name: name,
-    p_independent: input.independent,
-    p_country: country || undefined,
-  });
-  if (error) return { ok: false, error: error.message, code: error.code };
-  await rememberWorkspace(String(data));
-  revalidatePath('/', 'layout');
-  redirect('/dashboard/agency?welcome=1');
-}
-
 /** Accept a team invitation, then work in that company. */
 export async function acceptTeamInvitation(invitationId: string): Promise<Fail | void> {
   if (!UUID_RE.test(invitationId)) return { ok: false, error: 'Invitation not found.' };

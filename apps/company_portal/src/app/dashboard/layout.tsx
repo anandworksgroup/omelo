@@ -7,7 +7,7 @@ import { isPlatformAdmin } from '@/lib/admin';
 import { reportError } from '@/lib/observability';
 import NotificationBell from '@/components/notifications/bell';
 import { signOut } from '../auth/actions';
-import DashboardNav from './nav';
+import DashboardNav, { type Capabilities } from './nav';
 import WorkspaceSwitcher from './workspace-switcher';
 import LocalTime from './local-time';
 import { cancelAccountDeletionForm } from './settings/actions';
@@ -24,20 +24,28 @@ export default async function DashboardLayout({
   if (!ctx) redirect('/onboarding');
 
   const supabase = await createClient();
-  const [trustRes, isAdmin, memberships, invitesRes, agencyJobsRes, orgRes, rpoRes] = await Promise.all([
-    supabase.rpc('omelo_my_trust_status'),
-    isPlatformAdmin(),
-    getMemberships(),
-    supabase.rpc('omelo_my_team_invitations'),
-    // Agencies get the Insights menu entry only when they post jobs themselves.
-    ctx.kind === 'agency'
-      ? supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('company_id', ctx.companyId)
-      : Promise.resolve({ count: 0 }),
-    // R8: what kind of organization this is, and whether RPO applies to it.
-    supabase.from('companies').select('organization_type').eq('id', ctx.companyId).maybeSingle(),
-    // RLS shows only engagements this workspace is one side of.
-    supabase.from('rpo_engagements').select('id', { count: 'exact', head: true }),
-  ]);
+  const [trustRes, isAdmin, memberships, invitesRes, capsRes, orgRes, rpoRes, clientRes, workforceRes] =
+    await Promise.all([
+      supabase.rpc('omelo_my_trust_status'),
+      isPlatformAdmin(),
+      getMemberships(),
+      supabase.rpc('omelo_my_team_invitations'),
+      // R10: what this organization has turned on. One menu for everyone; the
+      // optional sections appear when they are switched on or already in use.
+      supabase
+        .from('company_capabilities')
+        .select('capability, is_enabled')
+        .eq('company_id', ctx.companyId),
+      // The business type is still what supplies the defaults.
+      supabase.from('companies').select('organization_type').eq('id', ctx.companyId).maybeSingle(),
+      // RLS shows only engagements this workspace is one side of.
+      supabase.from('rpo_engagements').select('id', { count: 'exact', head: true }),
+      supabase.from('agency_clients').select('id', { count: 'exact', head: true }).eq('agency_id', ctx.companyId),
+      supabase
+        .from('workforce_requirements')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', ctx.companyId),
+    ]);
   if (trustRes.error) reportError(trustRes.error, { action: 'dashboardLayout.trustStatus' });
   if (invitesRes.error) reportError(invitesRes.error, { action: 'dashboardLayout.teamInvitations' });
   const invitations = parseTeamInvitations(invitesRes.data ?? null);
@@ -49,10 +57,24 @@ export default async function DashboardLayout({
     isVerified: m.isVerified,
     role: m.role,
   }));
-  // RPO appears for both sides: an organization that runs it, and one it is run
-  // for. An agency or RPO provider sees the menu entry before its first client.
+  // A capability row is an explicit choice. Without one the business type
+  // supplies the default, exactly as omelo_has_capability does in the database,
+  // and anything already in use stays visible whatever the switch says.
   const orgType = orgRes.data?.organization_type ?? 'employer';
-  const showRpo = (rpoRes.count ?? 0) > 0 || orgType === 'rpo_provider' || ctx.kind === 'agency';
+  const agencyLike = ['recruitment_agency', 'staffing_agency', 'rpo_provider', 'workforce_provider'];
+  const byType: Capabilities = {
+    client_recruitment: agencyLike.includes(orgType),
+    workforce: ['staffing_agency', 'workforce_provider'].includes(orgType),
+    rpo: orgType === 'rpo_provider',
+    billing: orgType !== 'employer',
+  };
+  const capabilities: Capabilities = { ...byType };
+  for (const row of capsRes.data ?? []) {
+    capabilities[row.capability as keyof Capabilities] = row.is_enabled;
+  }
+  if ((clientRes.count ?? 0) > 0) capabilities.client_recruitment = true;
+  if ((workforceRes.count ?? 0) > 0) capabilities.workforce = true;
+  if ((rpoRes.count ?? 0) > 0) capabilities.rpo = true;
   const deletionAt = asTrustStatus(trustRes.data)?.deletion_scheduled_for ?? null;
   const deletionDays = deletionAt ? daysUntil(deletionAt) : 0;
   const initial = (user.email ?? '?').trim().charAt(0).toUpperCase();
@@ -131,10 +153,8 @@ export default async function DashboardLayout({
       <div className="flex-1 w-full max-w-[84rem] mx-auto lg:flex lg:gap-8 lg:px-6">
         <DashboardNav
           companyId={ctx.companyId}
-          kind={ctx.kind}
           isAdmin={isAdmin}
-          agencyHasJobs={(agencyJobsRes.count ?? 0) > 0}
-          showRpo={showRpo}
+          capabilities={capabilities}
         />
 
         {/* min-w-0 so a wide table or a long job title scrolls inside the

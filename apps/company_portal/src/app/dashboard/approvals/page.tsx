@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient, getCompanyContext } from '@/lib/supabase/server';
-import { AGENCY_ROLE_HELP, EMPLOYER_ROLE_HELP, roleLabel } from '@/lib/agency';
+import { ROLE_HELP, roleLabel } from '@/lib/agency';
 import { timeAgo } from '@/lib/format';
 import {
   APPROVAL_ENTITIES,
@@ -86,7 +86,7 @@ export default async function ApprovalsPage({
     };
   };
 
-  const roles = (ctx.kind === 'agency' ? AGENCY_ROLE_HELP : EMPLOYER_ROLE_HELP).map((h) => h.role);
+  const roles = ROLE_HELP.map((h) => h.role);
   const tabsToShow = canManage ? TABS : TABS.filter((t) => t.key === 'mine');
 
   return (
