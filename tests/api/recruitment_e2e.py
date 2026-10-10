@@ -71,9 +71,19 @@ def setup():
     check("worker identities set up", all("identity" in acc[k] for k in vis))
 
     print("\n0b. AGENCY AND TEAM")
-    s, d = post("/rest/v1/companies", {"slug": f"fake-agency-{stamp}", "display_name": "Fake Agency", "country_code": "IN",
-                "company_kind": "agency", "created_by": acc["rogue"]["id"]}, tok["rogue"])
-    blocked("creating an agency by inserting a company row", s, d)
+    # R10: being an agency is not a privilege any more, so declaring yourself one
+    # is no longer refused. What is still refused is what was always worth
+    # refusing - vouching for yourself.
+    s, d = post("/rest/v1/companies", {"slug": f"self-verified-{stamp}",
+                "display_name": "Self-verified Agency", "country_code": "IN",
+                "company_kind": "agency", "created_by": acc["rogue"]["id"],
+                "is_verified": True}, tok["rogue"])
+    blocked("creating an agency that vouches for itself", s, d)
+    s, d = post("/rest/v1/companies", {"slug": f"self-indie-{stamp}",
+                "display_name": "Self-declared Solo", "country_code": "IN",
+                "company_kind": "agency", "created_by": acc["rogue"]["id"],
+                "is_independent_recruiter": True}, tok["rogue"])
+    blocked("claiming independent-recruiter status by hand", s, d)
     s, agency = rpc("omelo_create_agency", {"p_name": f"Acme Staffing {stamp}"}, tok["rec"])
     check("create an agency", s == 200 and isinstance(agency, str), f"{s} {msg(agency)}")
     s, rogue_agency = rpc("omelo_create_agency", {"p_name": f"Rogue Talent {stamp}", "p_independent": True}, tok["rogue"])

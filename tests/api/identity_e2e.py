@@ -92,15 +92,17 @@ s, slug = rpc("omelo_company_slug", {"p_name": f"Identity Kitchens {stamp}"}, em
 s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Identity Kitchens {stamp}", "country_code": "IN",
              "size_band": "11-50", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
 # R10: calling yourself a recruitment agency is a business classification, not a
-# privilege, so it is no longer refused — and it buys nothing. The row is created
-# unverified, and an unverified company cannot search for anyone.
-s, d = post("/rest/v1/companies", {"slug": slug + "-x", "display_name": "Self-declared Agency",
-            "country_code": "IN", "size_band": "11-50", "created_by": emp_id,
-            "organization_type": "recruitment_agency"}, emp_tok)
-check("declaring your organization a recruitment agency is allowed", s == 201, f"{s} {msg(d)}")
+# privilege. It goes through the one organization sign-up, it is not refused, and
+# it buys nothing: the organization arrives unverified, and an unverified
+# organization can find nobody.
+s, agency_co = rpc("omelo_create_organization",
+                   {"p_name": f"Self-declared Agency {stamp}", "p_type": "recruitment_agency"}, emp_tok)
+check("declaring your organization a recruitment agency is allowed", s == 200, f"{s} {msg(agency_co)}")
+s, d = get(f"/rest/v1/companies?select=organization_type,is_verified&id=eq.{agency_co}", emp_tok)
 check("and it arrives unverified, so it can still find nobody",
-      s == 201 and d[0]["is_verified"] is False, msg(d))
-s, d2 = patch(f"/rest/v1/companies?id=eq.{d[0]['id']}", {"is_verified": True}, emp_tok)
+      s == 200 and d and d[0]["organization_type"] == "recruitment_agency"
+      and d[0]["is_verified"] is False, msg(d))
+s, d2 = patch(f"/rest/v1/companies?id=eq.{agency_co}", {"is_verified": True}, emp_tok)
 blocked("verifying the organization you just declared", s, d2)
 s, loc = get("/rest/v1/locations?select=id&latitude=not.is.null&country_code=eq.IN&limit=1")
 s, job = post("/rest/v1/jobs", {"company_id": cid, "created_by": emp_id, "title": "Tandoor Cook", "profession_id": prof("cook"),

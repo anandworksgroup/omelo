@@ -143,11 +143,19 @@ def main():
     blocked("R8-003 writing a decision directly", s, d)
 
     print("\n4. RPO ENGAGEMENT")
-    s, slug = rpc("omelo_company_slug", {"p_name": f"TalentWorks RPO {stamp}"}, tok["rpo"])
-    s, rco = post("/rest/v1/companies", {"slug": slug, "display_name": f"TalentWorks RPO {stamp}", "country_code": "IN",
-                  "size_band": "51-200", "created_by": acc["rpo"]["id"], "organization_type": "rpo_provider"}, tok["rpo"])
-    provider = rco[0]["id"] if s == 201 else None
-    check("an RPO provider organization is created", s == 201 and rco[0]["company_kind"] == "agency", f"{s} {msg(rco)}")
+    # R10: one organization sign-up for every business. The suite used to insert
+    # the company row with organization_type set, which slipped past the guard
+    # that was meant to stop it (migration 79 closed that, and removed the
+    # refusal deliberately, since the type grants nothing). It goes through the
+    # supported sign-up now.
+    s, provider = rpc("omelo_create_organization",
+                      {"p_name": f"TalentWorks RPO {stamp}", "p_type": "rpo_provider"}, tok["rpo"])
+    check("an RPO provider organization is created through the one sign-up",
+          s == 200 and isinstance(provider, str), f"{s} {msg(provider)}")
+    s, rco = get(f"/rest/v1/companies?select=organization_type,is_verified&id=eq.{provider}", tok["rpo"])
+    check("it is an rpo_provider, and unverified like any new organization",
+          s == 200 and rco and rco[0]["organization_type"] == "rpo_provider"
+          and rco[0]["is_verified"] is False, msg(rco))
     s, inv = rpc("omelo_invite_team_member", {"p_company": provider, "p_email": acc["rrec"]["email"], "p_role": "recruiter"}, tok["rpo"])
     rpc("omelo_accept_team_invitation", {"p_invitation": inv}, tok["rrec"])
     s, eng = rpc("omelo_create_rpo_engagement", {"p": {"provider_id": provider, "client_company_id": acme,
