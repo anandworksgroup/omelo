@@ -6,10 +6,23 @@ import { renderEmail } from "./email-templates.ts";
 
 const cfg = { url: "wss://example.livekit.cloud", apiKey: "APIkey123", apiSecret: "s3cr3t-very-long-secret-value-for-test" };
 
-function b64urlDecode(s: string): Uint8Array {
+// No return annotation: Uint8Array.from returns bytes backed by a plain ArrayBuffer, which
+// crypto.subtle.verify requires. Annotating it as Uint8Array widens that to ArrayBufferLike
+// (which includes SharedArrayBuffer), and newer TypeScript rejects it as a BufferSource.
+function b64urlDecode(s: string) {
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
+
+Deno.test("b64urlDecode restores the exact bytes, with or without padding", () => {
+  assertEquals([...b64urlDecode("AQID")], [1, 2, 3]);
+  assertEquals([...b64urlDecode("AQ")], [1]);
+  assertEquals([...b64urlDecode("AQI")], [1, 2]);
+  assertEquals([...b64urlDecode("-_8")], [251, 255]);
+  const bytes = b64urlDecode("AQID");
+  assert(bytes.buffer instanceof ArrayBuffer);
+  assertEquals(bytes.byteLength, bytes.buffer.byteLength);
+});
 
 Deno.test("liveKitConfig is null until all three secrets exist", () => {
   assertEquals(liveKitConfig(() => undefined), null);
