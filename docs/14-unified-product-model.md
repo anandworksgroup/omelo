@@ -1,6 +1,6 @@
 # 14 — Unified Product Model
 
-**Status:** Agreed product rule. Implementation waits for R9 verification (§5, step 0).
+**Status:** Agreed product rule; decisions recorded in §8. Implementation waits for R9 verification (§5, step 0).
 **Owner:** Product + Engineering
 **Repository state reviewed:** `main` at `e40e711` (2026-10-10), migrations up to `82_r10_client_record_needs_the_module`
 
@@ -146,11 +146,15 @@ This logic exists twice, and both copies must change together:
   and `apps/company_portal/src/app/dashboard/agency/layout.tsx` (its own `byType`).
 
 The portal layout also switches a capability on when matching records exist (clients, workforce
-requirements, RPO engagements). Keep that behavior only if the database agrees; otherwise the
-navigation and the database can disagree about what an organization may do.
+requirements, RPO engagements). The database does not, so the navigation and the database can
+disagree about what an organization may do. This behavior goes (§8, decision 2).
 
 **Migration risk.** Organizations of an agency type that never made an explicit choice currently
 rely on the default. Removing it without a backfill would silently switch modules off for them.
+The state to preserve is the **database's** effective state (explicit row, otherwise the type
+default), because that is what authorizes actions. Organizations where the portal shows an area
+only because records exist, while the database says the capability is off, are listed for review,
+not switched on.
 
 ### 4.2 Capability areas are hidden until turned on
 
@@ -219,16 +223,22 @@ Steps 1–3 are small, backend-led and testable on their own. Step 4 is the UI/U
   mentions `organization_type` or `company_kind`.
 - A migration first writes an explicit `company_capabilities` row for every existing
   organization whose effective state comes from the default, so **no live organization gains or
-  loses a capability** in the change. The migration reports how many rows it wrote.
+  loses a capability** in the change. The migration reports how many rows it wrote, and a
+  before/after comparison of `omelo_has_capability` for every organization and capability shows
+  no differences.
+- Organizations where existing records and the capability state disagree are reported for review.
+  None is switched on automatically.
 - `omelo_has_capability` is removed from invariant 91's allowlist, and 91 passes.
 - The portal reads capability state from the database (one source), not from its own copy of the
-  rule. `byType` is gone from both layouts.
+  rule. `byType` and the existing-records activation are gone from both layouts.
 
 ### Step 2 — one workspace
 
 - Every organization's navigation lists the same twelve areas (§1.2) in the same order.
-- An area whose capability isn't set up shows a setup screen; a member without the permission to
-  set it up sees who can.
+- An area whose capability isn't set up shows a setup screen. Authorized members configure it
+  there; a member without that permission sees who can.
+- Seeing an area in the navigation never means a member can do everything in it. Every action is
+  still checked by role permissions, RLS and the business rules, exactly as today.
 - Turning a capability on still discloses nothing (§2, rule 6); the client-confirmation and
   worker-consent rules are unchanged.
 
@@ -238,8 +248,10 @@ Steps 1–3 are small, backend-led and testable on their own. Step 4 is the UI/U
   or `company_kind`. Remaining reads are labelled display-only.
 - Any organization can provide RPO when its `rpo` capability is on and the member's role allows it.
 - Any organization can be another organization's client.
-- Sign-up doesn't ask for an organization type. If the type is kept as a public descriptor, it
-  is optional, can be set later, and changes nothing.
+- Sign-up doesn't ask for an organization type, and a new organization with no type can use
+  every capability.
+- Where `organization_type` is still shown (organization settings, public page, platform admin),
+  it is optional and labelled as a description. Changing or clearing it changes nothing else.
 
 ### Step 4 — redesign
 
@@ -274,6 +286,12 @@ Steps 1–3 are small, backend-led and testable on their own. Step 4 is the UI/U
   margin.
 - *Changing the type changes nothing.* Change an organization's `organization_type` and assert
   its capabilities, navigation data and permitted actions are identical before and after.
+- *No type needed.* Create an organization without choosing a type and set up every capability.
+- *Records don't switch capabilities on.* With `client_recruitment` off, an existing client record
+  does not turn it on: the database still refuses new client work, and the workspace shows the
+  setup screen.
+- *Visible is not permitted.* A member whose role lacks a permission sees the area in the
+  navigation but is refused the action by the database, not only by the screen.
 
 **Portal and User App:**
 
@@ -282,10 +300,36 @@ Steps 1–3 are small, backend-led and testable on their own. Step 4 is the UI/U
 
 ---
 
-## 8. Decisions still owed
+## 8. Decisions
 
-- Keep `organization_type` as an optional public descriptor ("Recruitment agency" on the
-  organization page), or retire it? Either is consistent with this rule as long as it changes
-  nothing (§6, step 3).
-- Should the existing-records rule in the portal layout (§4.1) become a database rule, or be
-  dropped in favour of explicit setup?
+| Question | Decision |
+|---|---|
+| Separate company, agency and RPO products? | No |
+| Organization type required? | No |
+| Organization type controls behavior? | Never |
+| All capabilities visible in the workspace? | Yes |
+| Existing records automatically enable capabilities? | No |
+| Permissions and security rules retained? | Yes |
+| R9 verification before redesign? | Required |
+
+### Decision 1 — `organization_type` is optional and display-only
+
+Kept for now, for backward compatibility. The long-term product model does not depend on
+organization type at all.
+
+- It is not part of sign-up, and a new organization never needs a type to operate.
+- It never enables, disables, authorizes or hides a capability.
+- It never restricts client selection, RPO, staffing or recruitment workflows.
+- Existing values may stay, for legacy data or as an optional description of the organization.
+
+### Decision 2 — capabilities are set up explicitly
+
+- Every capability appears in the unified workspace navigation from day one.
+- Authorized members configure each capability; nothing is switched on silently, whether because
+  of the organization's type or because matching records exist.
+- Access to each action is decided by permissions and the applicable business rules.
+- Before the type defaults are removed, a migration preserves every organization's effective
+  settings and verifies that no organization gains or loses functionality (§4.1, §6 step 1).
+
+Visible is not the same as permitted: a capability being in the navigation does not mean every
+member can perform every action in it. Authorization and data-access policies stay enforced.
