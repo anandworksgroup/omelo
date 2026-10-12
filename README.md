@@ -205,6 +205,7 @@ cannot operate without.
 | 11 | [Roadmap](docs/11-roadmap.md) | Phases and exit gates |
 | 12 | [Open Questions](docs/12-open-questions.md) | Decisions still owed |
 | 13 | [Platform Admin](docs/13-platform-admin.md) | The third surface: moderation, taxonomy, fraud, countries |
+| 14 | [Unified Product Model](docs/14-unified-product-model.md) | One User App, one Organization Workspace, capabilities not organization types |
 
 ---
 
