@@ -5,13 +5,28 @@ guard triggers apply exactly as they do for the apps.
 
     python tests/api/hiring_loop_e2e.py
 
-Creates four throwaway `probe.*@omelo.dev` accounts per run. The signup
-function allows 10 accounts per IP per hour, so run it at most twice an hour.
-Remove the data afterwards (SQL editor, development only):
+Creates four throwaway `probe.*@omelo.dev` accounts per run. supabase/functions/
+auth-signup allows 10 accounts per IP per hour (it counts `auth.signup` rows in
+audit_log), so run it at most twice an hour, or clear the probe rows below —
+which removes those audit rows and so resets the window for this IP.
 
-    delete from companies where created_by in
-      (select id from persons where email like 'probe.%@omelo.dev');
-    delete from auth.users where email like 'probe.%@omelo.dev';
+Remove the data afterwards (SQL editor, development only), ONE PERSON AT A
+TIME. Deleting several people in a single statement can fail with a NOT NULL
+violation on shift_workers.person_id: that person's rows cascade away while a
+second person's `assigned_by` is set to NULL on the same row, and the two
+referential actions collide. omelo_process_account_deletions already deletes
+one person per loop iteration, which is why the product path is unaffected.
+
+    do $$
+    declare r record;
+    begin
+      for r in select id from auth.users where email like 'probe.%@omelo.dev' loop
+        delete from companies where created_by = r.id;
+        delete from outbound_messages where person_id = r.id;
+        delete from audit_log where actor_id = r.id;
+        delete from auth.users where id = r.id;
+      end loop;
+    end $$;
 """
 import sys, time, datetime as dt
 from omelo_api import *
