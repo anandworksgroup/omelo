@@ -67,8 +67,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Fail on service role keys or private keys
+        # A secret key is the sb_secret_ prefix followed by the key itself, so the rule needs
+        # key characters after it. The bare prefix appears legitimately in code that refuses
+        # secret keys (apps/user_app/lib/core/env.dart) and in short fake test values.
         run: |
-          if grep -RInE "service_role\"?[[:space:]]*[:=][[:space:]]*\"?eyJ|sb_secret_|-----BEGIN (RSA |EC )?PRIVATE KEY-----|re_[A-Za-z0-9]{20,}" \
+          if grep -RInE "service_role\"?[[:space:]]*[:=][[:space:]]*\"?eyJ|sb_secret_[A-Za-z0-9_-]{20,}|-----BEGIN (RSA |EC )?PRIVATE KEY-----|re_[A-Za-z0-9]{20,}" \
                --exclude-dir=.git --exclude-dir=node_modules --exclude=ci.yml . ; then
             echo "Possible secret committed"; exit 1
           fi
