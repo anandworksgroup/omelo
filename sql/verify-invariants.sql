@@ -1014,11 +1014,13 @@ with checks as (
     and p.prosrc ~ 'company_kind|organization_type'
     -- The only functions allowed to mention it, and why:
     --   sync / guard        keep the two columns consistent and protected
-    --   has_capability      reads the type as a DEFAULT, never as a refusal
     --   create_organization / set_organization_type  set it
     --   author_card / my_team_invitations            report it for display
+    --
+    -- omelo_has_capability left this list in migration 84: it used to read the
+    -- type as a default and now reads nothing but the explicit choice.
     and p.proname not in ('omelo_sync_organization_type', 'omelo_guard_company_trust',
-                          'omelo_has_capability', 'omelo_create_organization',
+                          'omelo_create_organization',
                           'omelo_set_organization_type', 'omelo_author_card',
                           'omelo_my_team_invitations')
 

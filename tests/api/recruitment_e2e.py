@@ -86,6 +86,11 @@ def setup():
     blocked("claiming independent-recruiter status by hand", s, d)
     s, agency = rpc("omelo_create_agency", {"p_name": f"Acme Staffing {stamp}"}, tok["rec"])
     check("create an agency", s == 200 and isinstance(agency, str), f"{s} {msg(agency)}")
+    # R10-084: no organization gets client recruitment for being called an
+    # agency. The owner turns it on, and that is audited.
+    s, d = rpc("omelo_set_capability",
+               {"p_company": agency, "p_capability": "client_recruitment", "p_enabled": True}, tok["rec"])
+    check("the agency owner turns on client recruitment", s in (200, 204), f"{s} {msg(d)}")
     s, rogue_agency = rpc("omelo_create_agency", {"p_name": f"Rogue Talent {stamp}", "p_independent": True}, tok["rogue"])
     check("an independent recruiter creates their own agency", s == 200, f"{s} {msg(rogue_agency)}")
     s, d = post("/rest/v1/company_members", {"company_id": agency, "person_id": acc["w1"]["id"], "role": "recruiter"}, tok["rec"])

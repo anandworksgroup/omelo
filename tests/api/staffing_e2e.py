@@ -52,6 +52,9 @@ def setup():
         patch(f"/rest/v1/work_identities?id=eq.{wid}", {"discoverability": vis}, tok[k])
         acc[k]["identity"] = wid
     s, agency = rpc("omelo_create_agency", {"p_name": f"Shift Staffing {stamp}"}, tok["rec"])
+    # R10-084: client recruitment is opt-in for every organization.
+    rpc("omelo_set_capability",
+        {"p_company": agency, "p_capability": "client_recruitment", "p_enabled": True}, tok["rec"])
     s, slug = rpc("omelo_company_slug", {"p_name": f"ABC Warehousing {stamp}"}, tok["cli"])
     s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"ABC Warehousing {stamp}", "country_code": "IN",
                  "size_band": "51-200", "created_by": acc["cli"]["id"]}, tok["cli"]); client_company = co[0]["id"]
