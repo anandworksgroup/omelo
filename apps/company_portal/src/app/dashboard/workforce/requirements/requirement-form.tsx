@@ -16,6 +16,7 @@ import {
   requirementTone,
 } from '@/lib/workforce';
 import { createRequirement, updateRequirement, type RequirementInput } from '../actions';
+import type { SourceOption } from './form-data';
 import { ErrorLine } from '../ui';
 
 export type Option = { id: string; label: string };
@@ -79,7 +80,6 @@ function Field({
  * the job / job order, the supervisor, the time zone and every field.
  */
 export default function RequirementForm({
-  kind,
   sources,
   professions,
   areas,
@@ -89,8 +89,7 @@ export default function RequirementForm({
   initial,
   editId,
 }: {
-  kind: 'employer' | 'agency';
-  sources: Option[];
+  sources: SourceOption[];
   professions: Option[];
   areas: Option[];
   policies: Option[];
@@ -111,7 +110,24 @@ export default function RequirementForm({
     set(k, e.target.value as never);
 
   const currencies = v.currency && !CURRENCIES.includes(v.currency) ? [v.currency, ...CURRENCIES] : CURRENCIES;
-  const fromSource = creating && linked ? ' Leave empty to copy it from the ' + (kind === 'agency' ? 'job order.' : 'job.') : '';
+  const chosen = v.job_order_id ?? v.job_id ?? '';
+  const chosenIsOrder = !!v.job_order_id;
+  const fromSource = creating && linked
+    ? ` Leave empty to copy it from the ${chosenIsOrder ? 'job order.' : 'job.'}`
+    : '';
+
+  // One list, two groups. Picking decides which field the requirement carries;
+  // nothing here asks what kind of organization this is.
+  function chooseSource(id: string) {
+    const picked = sources.find((o) => o.id === id);
+    setV((st) => ({
+      ...st,
+      job_id: picked?.type === 'job' ? picked.id : null,
+      job_order_id: picked?.type === 'job_order' ? picked.id : null,
+    }));
+  }
+  const orders = sources.filter((o) => o.type === 'job_order');
+  const ownJobs = sources.filter((o) => o.type === 'job');
 
   function submit() {
     setError(null);
@@ -139,52 +155,44 @@ export default function RequirementForm({
     >
       <section className="card p-4 sm:p-5 grid gap-4 sm:grid-cols-2">
         <h2 className="font-bold sm:col-span-2">The work</h2>
-        {kind === 'agency' ? (
-          <Field
-            label="Job order *"
-            htmlFor={`${uid}src`}
-            wide
-            hint="Workers can be offered this work only if they consented to representation for this job order."
+        <Field
+          label="From a job or job order (optional)"
+          htmlFor={`${uid}src`}
+          wide
+          hint={
+            chosenIsOrder
+              ? 'Workers can be offered this work only if they consented to representation for this job order.'
+              : 'Linking a job lets you offer work to its applicants and copies its title, place and pay.'
+          }
+        >
+          <select
+            id={`${uid}src`}
+            className="input"
+            disabled={!creating}
+            value={chosen}
+            onChange={(e) => chooseSource(e.target.value)}
           >
-            <select
-              id={`${uid}src`}
-              className="input"
-              required
-              disabled={!creating}
-              value={v.job_order_id ?? ''}
-              onChange={(e) => set('job_order_id', e.target.value || null)}
-            >
-              <option value="">{sources.length ? 'Choose a job order…' : 'Create a job order first'}</option>
-              {sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : (
-          <Field
-            label="From a job (optional)"
-            htmlFor={`${uid}src`}
-            wide
-            hint="Linking a job lets you offer work to its applicants and copies its title, place and pay."
-          >
-            <select
-              id={`${uid}src`}
-              className="input"
-              disabled={!creating}
-              value={v.job_id ?? ''}
-              onChange={(e) => set('job_id', e.target.value || null)}
-            >
-              <option value="">No job — a standalone requirement</option>
-              {sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
+            <option value="">Nothing — a standalone requirement</option>
+            {orders.length > 0 && (
+              <optgroup label="Client job orders">
+                {orders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {ownJobs.length > 0 && (
+              <optgroup label="Your own jobs">
+                {ownJobs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </Field>
         <Field label={linked && creating ? 'Title' : 'Title *'} htmlFor={`${uid}title`} hint={fromSource || undefined}>
           <input
             id={`${uid}title`}

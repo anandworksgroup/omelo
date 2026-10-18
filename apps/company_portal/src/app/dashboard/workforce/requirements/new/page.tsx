@@ -29,8 +29,9 @@ export default async function NewRequirementPage({
   const pre = (k: string) => (typeof sp[k] === 'string' && UUID_RE.test(sp[k] as string) ? (sp[k] as string) : null);
   const initial = {
     ...EMPTY_REQUIREMENT,
-    job_id: ctx.kind === 'employer' ? pre('job') : null,
-    job_order_id: ctx.kind === 'agency' ? pre('order') : null,
+    // Either deep link works for any organization now.
+    job_id: pre('job'),
+    job_order_id: pre('order'),
   };
 
   return (
@@ -38,15 +39,10 @@ export default async function NewRequirementPage({
       <PageHeader
         title="New requirement"
         back={back}
-        subtitle={
-          ctx.kind === 'agency'
-            ? 'From one of your job orders. Title, place, openings and pay are copied from it unless you change them.'
-            : 'Optionally from a job. Title, place, openings and pay are copied from it unless you change them.'
-        }
+        subtitle="Optionally from one of your jobs or a client job order. Title, place, openings and pay are copied from it unless you change them." 
       />
-      {o.error && <ErrorNote label={ctx.kind === 'agency' ? 'job orders' : 'jobs'} message={o.error} />}
+      {o.error && <ErrorNote label="jobs and job orders" message={o.error} />}
       <RequirementForm
-        kind={ctx.kind}
         sources={o.sources}
         professions={o.professions}
         areas={o.areas}

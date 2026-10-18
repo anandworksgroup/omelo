@@ -43,7 +43,10 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
   if (error) return <ErrorNote label="the requirement" message={error.message} />;
   if (!r) notFound();
 
-  const isAgency = ctx.kind === 'agency';
+  // R10: what this requirement is depends on the requirement, not on the
+  // organization. One carrying a job order is client work, whoever raised it;
+  // one carrying a job, or nothing, is the organization's own.
+  const isClientWork = !!r.job_order_id;
   const canManage = wfCan(ctx, 'manage_workforce');
   const canPay = wfCan(ctx, 'manage_pay');
   const now = serverNow();
@@ -87,7 +90,7 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
   let candidates: Candidate[] = [];
   let candidateError: string | null = null;
   if (canManage && ['open', 'filled', 'active'].includes(r.status)) {
-    if (isAgency && r.job_order_id) {
+    if (r.job_order_id) {
       const res = await supabase.rpc('omelo_agency_candidates', { p_agency: ctx.companyId, p_job_order: r.job_order_id });
       candidateError = res.error?.message ?? null;
       candidates = parseConsents(res.data ?? null)
@@ -100,7 +103,7 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
             .join(' · '),
           existing: openByIdentity.get(c.card!.workIdentityId) ?? null,
         }));
-    } else if (!isAgency) {
+    } else {
       let q = supabase
         .from('applications')
         .select('id, person_id, work_identity_id, state, jobs ( title ), persons!applications_person_id_fkey ( display_name ), work_identities ( label )')
@@ -131,7 +134,11 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
   const supervisor = team.members.find((m) => m.personId === r.supervisor_id);
   const policy = policyRes.data as { name: string; multiplier: number } | null;
   const src = source.data as { id: string; title: string; reference?: string; agency_clients?: { name: string } | null } | null;
-  const talentHref = isAgency ? `/dashboard/agency/talent?order=${r.job_order_id}` : r.job_id ? `/dashboard/talent?job=${r.job_id}` : '/dashboard/talent';
+  const talentHref = isClientWork
+    ? `/dashboard/agency/talent?order=${r.job_order_id}`
+    : r.job_id
+      ? `/dashboard/talent?job=${r.job_id}`
+      : '/dashboard/talent';
   const liveReq = ['open', 'filled', 'active'].includes(r.status);
 
   return (
@@ -143,7 +150,7 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
           <span className="inline-flex gap-2 items-center flex-wrap">
             <TonePill tone={requirementTone(r.status)} />
             {src &&
-              (isAgency ? (
+              (isClientWork ? (
                 <Link href={`/dashboard/agency/job-orders/${src.id}`} className="underline">
                   {src.reference ? `${src.reference} · ` : ''}
                   {src.title}
@@ -201,7 +208,7 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
 
       {canManage && (
         <Section
-          title={isAgency ? 'Offer to consented candidates' : 'Offer to applicants'}
+          title={isClientWork ? 'Offer to consented candidates' : 'Offer to applicants'}
           aside={
             <Link href={talentHref} className="text-sm underline muted">
               Find more talent
@@ -216,8 +223,8 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
             <OfferPanel
               requirementId={id}
               candidates={candidates}
-              canBill={isAgency && canPay}
-              isAgency={isAgency}
+              canBill={isClientWork && canPay}
+              isClientWork={isClientWork}
               canManageJobs={canManage}
             />
           )}

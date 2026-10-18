@@ -71,13 +71,13 @@ export function OfferPanel({
   requirementId,
   candidates,
   canBill,
-  isAgency,
+  isClientWork,
   canManageJobs,
 }: {
   requirementId: string;
   candidates: Candidate[];
   canBill: boolean;
-  isAgency: boolean;
+  isClientWork: boolean;
   canManageJobs: boolean;
 }) {
   const uid = useId();
@@ -136,7 +136,7 @@ export function OfferPanel({
   if (candidates.length === 0) {
     return (
       <p className="text-sm muted">
-        {isAgency
+        {isClientWork
           ? 'Nobody has consented to representation for this job order yet. Ask candidates for consent from Talent Search; only they can be offered this work.'
           : 'No applicants to offer this work to. Link a job and invite people to apply, or find talent.'}
       </p>

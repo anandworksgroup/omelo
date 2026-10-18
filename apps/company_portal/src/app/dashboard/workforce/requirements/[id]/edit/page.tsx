@@ -32,7 +32,6 @@ export default async function EditRequirementPage({ params }: { params: Promise<
     <div className="space-y-5 max-w-4xl">
       <PageHeader title="Edit requirement" back={back} />
       <RequirementForm
-        kind={ctx.kind}
         sources={o.sources}
         professions={o.professions}
         areas={o.areas}
