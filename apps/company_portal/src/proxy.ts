@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 // /auth covers /auth/callback and /auth/reset (the recovery link lands there
 // signed out, before the code exchange).
-const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot-password', '/auth'];
+// /organizations/<slug> is the public organization page: it must open for
+// someone with no account at all, which is the point of it.
+const PUBLIC_PATHS = ['/', '/sign-in', '/sign-up', '/forgot-password', '/auth', '/organizations'];
 
 // /design is the design system reference. It holds no product data and the
 // page itself 404s outside development, but there is no reason to make it
