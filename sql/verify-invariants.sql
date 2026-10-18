@@ -159,7 +159,7 @@ with checks as (
                           'omelo_feed','omelo_organization_feed','omelo_person_posts','omelo_post_detail',
                           'omelo_post_comments','omelo_save_feed_preferences','omelo_mute_from_feed',
                           'omelo_set_capability','omelo_create_organization',
-                          'omelo_set_organization_type')
+                          'omelo_set_organization_type','omelo_organization_private_details')
 
   -- ---------------------------------------------------------------
   -- BUG 2 (migration 21)
@@ -1071,6 +1071,34 @@ with checks as (
                    like '%omelo_create_organization%'
                and not has_function_privilege('anon', 'public.omelo_create_organization(text,text,text,boolean)', 'execute')
               then 'OK' else 'FAIL: a company row can still be reclassified or self-verified' end
+
+  union all
+  -- ---------------------------------------------------------------
+  -- R10 (migration 83) — the public column contract
+  --
+  -- RLS is row-level only. `companies_public_read` lets anyone read the row,
+  -- so what stops a tax number being public is the column grant, not a policy.
+  -- An anonymous caller really could read all 31 columns before this.
+  -- ---------------------------------------------------------------
+  select 97, 'R10-007 confidential organization columns are not selectable by a client role',
+         case when count(*) = 0 then 'OK'
+              else 'FAIL: readable — ' || string_agg(grantee || '.' || column_name, ', ') end
+  from information_schema.column_privileges
+  where table_schema = 'public' and table_name = 'companies'
+    and privilege_type = 'SELECT'
+    and grantee in ('anon', 'authenticated')
+    and column_name in ('tax_id', 'registration_number', 'created_by',
+                        'verification_method', 'stats_computed_at')
+
+  union all
+  select 98, 'R10-008 the authorized read paths exist and are gated',
+         case when (select pg_get_viewdef('public.omelo_admin_companies'::regclass))
+                   like '%omelo_is_platform_admin%'
+               and not has_table_privilege('anon', 'public.omelo_admin_companies', 'select')
+               and pg_get_functiondef('public.omelo_organization_private_details(uuid)'::regprocedure)
+                   like '%''owner'',''admin'',''finance''%'
+               and not has_function_privilege('anon', 'public.omelo_organization_private_details(uuid)', 'execute')
+              then 'OK' else 'FAIL: an authorized read path is missing or ungated' end
 
 )
 select n as "#", invariant, result from checks order by n;

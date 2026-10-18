@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -154,10 +154,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "agency_clients_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "agency_clients_client_company_id_fkey"
             columns: ["client_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -179,6 +193,13 @@ export type Database = {
             columns: ["requested_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_clients_requested_company_id_fkey"
+            columns: ["requested_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -290,6 +311,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "application_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       applications: {
@@ -368,6 +396,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -518,6 +553,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "approval_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "approval_requests_requested_by_fkey"
             columns: ["requested_by"]
             isOneToOne: false
@@ -608,6 +650,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -883,6 +932,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignments_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "assignments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -894,6 +950,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1245,6 +1308,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "automated_decision_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "automated_decision_log_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
@@ -1318,6 +1388,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "billing_records_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "billing_records_assignment_id_fkey"
             columns: ["assignment_id"]
             isOneToOne: false
@@ -1329,6 +1406,13 @@ export type Database = {
             columns: ["client_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_records_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1420,6 +1504,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1558,6 +1649,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "candidate_consents_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "candidate_consents_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -1646,6 +1744,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1784,6 +1889,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_submissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2201,6 +2313,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_capabilities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "company_capabilities_enabled_by_fkey"
             columns: ["enabled_by"]
             isOneToOne: false
@@ -2254,6 +2373,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_entitlements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       company_invitations: {
@@ -2296,6 +2422,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2350,6 +2483,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_legal_entities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2408,6 +2548,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2472,6 +2619,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "company_members_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
@@ -2531,6 +2685,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_role_grants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2647,6 +2808,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2871,6 +3039,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "departments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -2916,6 +3091,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_shares_company_fk"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -3033,6 +3215,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domain_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -3188,6 +3377,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "earnings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -3368,6 +3564,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -3580,6 +3783,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "experiences_company_fk"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -4018,6 +4228,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_feedback_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -4484,6 +4701,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -5018,6 +5242,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "job_orders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "job_orders_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -5479,6 +5710,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "jobs_company_location_id_fkey"
             columns: ["company_location_id"]
             isOneToOne: false
@@ -5688,6 +5926,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -5959,6 +6204,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -6572,6 +6824,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "offers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "offers_contract_document_id_fkey"
             columns: ["contract_document_id"]
             isOneToOne: false
@@ -6722,6 +6981,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "overtime_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "overtime_policies_country_fk"
             columns: ["country_code"]
             isOneToOne: false
@@ -6849,6 +7115,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -7655,6 +7928,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "placements_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "placements_application_id_fkey"
             columns: ["application_id"]
             isOneToOne: false
@@ -7994,6 +8274,13 @@ export type Database = {
             columns: ["author_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_author_company_id_fkey"
+            columns: ["author_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -8337,6 +8624,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "profile_views_viewer_company_id_fkey"
+            columns: ["viewer_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profile_views_viewer_person_id_fkey"
             columns: ["viewer_person_id"]
             isOneToOne: false
@@ -8618,6 +8912,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rpo_engagements_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rpo_engagements_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -8629,6 +8930,13 @@ export type Database = {
             columns: ["provider_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rpo_engagements_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -8992,6 +9300,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -9442,6 +9757,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "talent_pools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "talent_pools_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -9530,6 +9852,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -9683,6 +10012,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -10006,6 +10342,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workforce_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workforce_events_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
@@ -10069,6 +10412,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
             referencedColumns: ["id"]
           },
           {
@@ -10199,6 +10549,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workforce_requirements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "omelo_admin_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workforce_requirements_country_fk"
             columns: ["country_code"]
             isOneToOne: false
@@ -10265,7 +10622,71 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      omelo_admin_companies: {
+        Row: {
+          company_kind: string | null
+          country_code: string | null
+          created_at: string | null
+          deleted_at: string | null
+          display_name: string | null
+          id: string | null
+          is_independent_recruiter: boolean | null
+          is_verified: boolean | null
+          legal_name: string | null
+          organization_type: string | null
+          size_band: Database["public"]["Enums"]["company_size_band"] | null
+          slug: string | null
+          verification_method:
+            | Database["public"]["Enums"]["verification_method"]
+            | null
+          verified_at: string | null
+        }
+        Insert: {
+          company_kind?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_independent_recruiter?: boolean | null
+          is_verified?: boolean | null
+          legal_name?: string | null
+          organization_type?: string | null
+          size_band?: Database["public"]["Enums"]["company_size_band"] | null
+          slug?: string | null
+          verification_method?:
+            | Database["public"]["Enums"]["verification_method"]
+            | null
+          verified_at?: string | null
+        }
+        Update: {
+          company_kind?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_independent_recruiter?: boolean | null
+          is_verified?: boolean | null
+          legal_name?: string | null
+          organization_type?: string | null
+          size_band?: Database["public"]["Enums"]["company_size_band"] | null
+          slug?: string | null
+          verification_method?:
+            | Database["public"]["Enums"]["verification_method"]
+            | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_country_fk"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "country_policies"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
     }
     Functions: {
       omelo_accept_team_invitation: {
@@ -10731,6 +11152,10 @@ export type Database = {
       }
       omelo_organization_feed: {
         Args: { p_before?: string; p_company: string; p_limit?: number }
+        Returns: Json
+      }
+      omelo_organization_private_details: {
+        Args: { p_company: string }
         Returns: Json
       }
       omelo_pay_monthly: {

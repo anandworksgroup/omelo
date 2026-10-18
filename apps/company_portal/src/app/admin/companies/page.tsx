@@ -31,6 +31,33 @@ type CompanyRow = {
   created_at: string;
 };
 
+/**
+ * A view cannot carry NOT NULL through to the generated types, so every column
+ * of omelo_admin_companies arrives nullable. The underlying columns are not,
+ * so this fills the few the page relies on rather than spreading `?? ''`
+ * through the markup. A row without an id could not be rendered or acted on,
+ * so it is dropped.
+ */
+type AdminCompanyView = {
+  [K in keyof CompanyRow]: CompanyRow[K] | null;
+};
+
+function asCompanyRows(rows: AdminCompanyView[] | null): CompanyRow[] {
+  return (rows ?? [])
+    .filter((r): r is AdminCompanyView & { id: string } => typeof r.id === 'string')
+    .map((r) => ({
+      id: r.id,
+      display_name: r.display_name ?? '(no name)',
+      slug: r.slug ?? '',
+      is_verified: r.is_verified ?? false,
+      verified_at: r.verified_at,
+      verification_method: r.verification_method,
+      company_kind: r.company_kind ?? 'employer',
+      is_independent_recruiter: r.is_independent_recruiter ?? false,
+      created_at: r.created_at ?? '',
+    }));
+}
+
 const SELECT =
   'id, display_name, slug, is_verified, verified_at, verification_method, company_kind, is_independent_recruiter, created_at';
 
@@ -56,7 +83,10 @@ export default async function CompaniesPage({
 
   if (waitingList) {
     const res = await supabase
-      .from('companies')
+      // R10-083: verification_method is no longer selectable from `companies`
+      // by a client role. This view returns it, and returns nothing at all
+      // unless the caller is a platform admin.
+      .from('omelo_admin_companies')
       .select(SELECT)
       .is('deleted_at', null)
       .eq('company_kind', 'agency')
@@ -64,12 +94,12 @@ export default async function CompaniesPage({
       .order('created_at', { ascending: true })
       .limit(50);
     if (res.error) error = res.error.message;
-    companies = res.data ?? [];
+    companies = asCompanyRows(res.data);
   }
 
   if (raw) {
     // Companies are publicly readable (not deleted), verified or not.
-    let q = supabase.from('companies').select(SELECT).is('deleted_at', null).limit(20);
+    let q = supabase.from('omelo_admin_companies').select(SELECT).is('deleted_at', null).limit(20);
     if (kind) q = q.eq('company_kind', kind);
     if (UUID_RE.test(raw)) {
       q = q.eq('id', raw);
@@ -86,7 +116,7 @@ export default async function CompaniesPage({
     if (!error) {
       const res = await q;
       if (res.error) error = res.error.message;
-      companies = res.data ?? [];
+      companies = asCompanyRows(res.data);
     }
   }
 

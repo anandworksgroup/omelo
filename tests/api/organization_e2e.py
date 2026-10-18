@@ -219,6 +219,34 @@ def run():
     s, d = patch(f"/rest/v1/work_identities?id=eq.{wid}", {"discoverability": "recruiters"}, tok["w1"])
     blocked("R10-005 setting the retired 'recruiters' visibility", s, d)
 
+    print()
+    print("F. CONFIDENTIAL ORGANIZATION COLUMNS (migration 83)")
+    # RLS is row-level: companies_public_read lets any signed-in person read
+    # the row, so what protects a tax number is the column grant.
+    for col in ("tax_id", "registration_number", "created_by",
+                "verification_method", "stats_computed_at"):
+        s, d = get(f"/rest/v1/companies?select={col}&limit=1", tok["cli"])
+        blocked(f"a signed-in non-member selects companies.{col}", s, d)
+        s, d = get(f"/rest/v1/companies?select={col}&id=eq.{emp_co}", tok["emp"])
+        blocked(f"even the owner selects companies.{col} directly", s, d)
+
+    s, d = get("/rest/v1/companies?select=id,display_name,is_verified&limit=1", tok["cli"])
+    check("the public columns still read for a signed-in person",
+          s == 200 and isinstance(d, list), f"{s} {msg(d)}")
+
+    # Membership is not the test: a sourcer belongs to this organization.
+    s, d = rpc("omelo_organization_private_details", {"p_company": emp_co}, tok["emp2"])
+    blocked("a sourcer member reads the organization identifiers", s, d)
+    s, d = rpc("omelo_organization_private_details", {"p_company": emp_co}, tok["cli"])
+    blocked("a non-member reads the organization identifiers", s, d)
+    s, d = rpc("omelo_organization_private_details", {"p_company": emp_co}, tok["emp"])
+    check("the owner reads them through the authorized path",
+          s == 200 and isinstance(d, dict) and "tax_id" in d, f"{s} {msg(d)}")
+
+    s, d = get("/rest/v1/omelo_admin_companies?select=id,verification_method&limit=1", tok["emp"])
+    check("the admin view shows nothing to a non-admin",
+          s >= 400 or d == [], f"{s} {msg(d)}")
+
     print(f"\n{'ALL PASSED' if not FAIL else str(len(FAIL)) + ' FAILED: ' + '; '.join(FAIL)}")
 
 
