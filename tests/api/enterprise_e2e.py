@@ -40,7 +40,7 @@ def main():
 
     print("\n1. ENTERPRISE STRUCTURE")
     s, slug = rpc("omelo_company_slug", {"p_name": f"Acme Corporation {stamp}"}, tok["own"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Acme Corporation {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Acme Corporation {stamp}", "country_code": "IN",
                  "size_band": "1001-5000", "created_by": acc["own"]["id"]}, tok["own"])
     if s != 201: raise SystemExit(f"company: {s} {msg(co)}")
     acme = co[0]["id"]

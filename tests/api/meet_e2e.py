@@ -38,7 +38,7 @@ riv_tok, riv_id = signup(f"probe.riv.{stamp}@omelo.dev", PW, "Rival Person", "wo
 
 # --- setup: company, job for a cook, application, panel member ---------------
 s, slug = rpc("omelo_company_slug", {"p_name": f"Meet Kitchens {stamp}"}, emp_tok)
-s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Meet Kitchens {stamp}", "country_code": "IN",
+s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Meet Kitchens {stamp}", "country_code": "IN",
              "size_band": "11-50", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
 s, loc = get("/rest/v1/locations?select=id&latitude=not.is.null&country_code=eq.IN&limit=1")
 s, prof = get("/rest/v1/professions?select=id,category_id&slug=eq.cook")

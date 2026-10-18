@@ -43,7 +43,7 @@ def main():
         acc[k]["identity"] = wid
         patch(f"/rest/v1/persons?id=eq.{acc[k]['id']}", {"headline": f"Nurse · {k}"}, tok[k])
     s, slug = rpc("omelo_company_slug", {"p_name": f"Northside Clinic {stamp}"}, tok["emp"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Northside Clinic {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Northside Clinic {stamp}", "country_code": "IN",
                  "size_band": "51-200", "created_by": acc["emp"]["id"]}, tok["emp"])
     if s != 201: raise SystemExit(f"company: {s} {msg(co)}")
     org = co[0]["id"]

@@ -64,7 +64,7 @@ def setup():
 
     # Employer: company + two published jobs.
     s, slug = rpc("omelo_company_slug", {"p_name": f"Talent Kitchens {stamp}"}, tok["emp"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Talent Kitchens {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Talent Kitchens {stamp}", "country_code": "IN",
                  "size_band": "11-50", "created_by": acc["emp"]["id"]}, tok["emp"])
     cid = co[0]["id"]
     jobs = []

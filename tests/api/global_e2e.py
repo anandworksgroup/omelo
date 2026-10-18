@@ -58,7 +58,7 @@ def setup():
     patch(f"/rest/v1/persons?id=eq.{acc['w3']['id']}", {"country_code": "IN", "timezone": "Asia/Kolkata"}, tok["w3"])
 
     s, slug = rpc("omelo_company_slug", {"p_name": f"Klinikum Probe {stamp}"}, tok["emp"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Klinikum Probe {stamp}", "country_code": "DE",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Klinikum Probe {stamp}", "country_code": "DE",
                  "size_band": "201-500", "created_by": acc["emp"]["id"]}, tok["emp"])
     if s != 201: raise SystemExit(f"company: {s} {msg(co)}")
     company = co[0]["id"]

@@ -49,7 +49,7 @@ wk2_tok, wk2_id = signup(f"probe.wk2.{stamp}@omelo.dev", PW, "Meena Worker", "wo
 
 def make_company(tok, uid, name):
     s, slug = rpc("omelo_company_slug", {"p_name": name}, tok)
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": name, "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": name, "country_code": "IN",
                  "size_band": "11-50", "created_by": uid}, tok)
     assert s == 201, (s, co)
     return co[0]["id"]

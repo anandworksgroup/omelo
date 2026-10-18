@@ -24,7 +24,7 @@ wrk_tok, wrk_id = signup(f"probe.wrk.{stamp}@omelo.dev", PW, "Ravi Candidate", "
 riv_tok, riv_id = signup(f"probe.riv.{stamp}@omelo.dev", PW, "Rival Worker", "worker")
 
 s, slug = rpc("omelo_company_slug", {"p_name": f"Chat Kitchens {stamp}"}, emp_tok)
-s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Chat Kitchens {stamp}", "country_code": "IN",
+s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Chat Kitchens {stamp}", "country_code": "IN",
              "size_band": "11-50", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
 _, _inv = rpc("omelo_invite_team_member", {"p_company": cid, "p_email": f"probe.vwr.{stamp}@omelo.dev", "p_role": "viewer"}, emp_tok)
 assert rpc("omelo_accept_team_invitation", {"p_invitation": _inv}, vwr_tok)[0] == 200, "viewer could not join the team"

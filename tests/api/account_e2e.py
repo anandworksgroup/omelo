@@ -58,7 +58,7 @@ check("the current session keeps working", s == 200 and d.get("access_token"), f
 
 print("\n3. ACCOUNT DELETION")
 s, slug = rpc("omelo_company_slug", {"p_name": f"Delete Test {stamp}"}, emp_tok)
-s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Delete Test {stamp}", "country_code": "IN",
+s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Delete Test {stamp}", "country_code": "IN",
              "size_band": "1-10", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
 s, loc = get("/rest/v1/locations?select=id&latitude=not.is.null&country_code=eq.IN&limit=1")
 s, prof = get("/rest/v1/professions?select=id,category_id&slug=eq.driver")

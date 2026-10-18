@@ -89,7 +89,7 @@ blocked("the retired recruiters visibility is refused", s, d)
 
 print("\n4. EMPLOYERS SEE ONLY THE IDENTITY THAT APPLIED")
 s, slug = rpc("omelo_company_slug", {"p_name": f"Identity Kitchens {stamp}"}, emp_tok)
-s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Identity Kitchens {stamp}", "country_code": "IN",
+s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Identity Kitchens {stamp}", "country_code": "IN",
              "size_band": "11-50", "created_by": emp_id}, emp_tok); cid = co[0]["id"]
 # R10: calling yourself a recruitment agency is a business classification, not a
 # privilege. It goes through the one organization sign-up, it is not refused, and

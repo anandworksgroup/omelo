@@ -74,12 +74,12 @@ def setup():
     # R10: being an agency is not a privilege any more, so declaring yourself one
     # is no longer refused. What is still refused is what was always worth
     # refusing - vouching for yourself.
-    s, d = post("/rest/v1/companies", {"slug": f"self-verified-{stamp}",
+    s, d = post("/rest/v1/companies?select=id", {"slug": f"self-verified-{stamp}",
                 "display_name": "Self-verified Agency", "country_code": "IN",
                 "company_kind": "agency", "created_by": acc["rogue"]["id"],
                 "is_verified": True}, tok["rogue"])
     blocked("creating an agency that vouches for itself", s, d)
-    s, d = post("/rest/v1/companies", {"slug": f"self-indie-{stamp}",
+    s, d = post("/rest/v1/companies?select=id", {"slug": f"self-indie-{stamp}",
                 "display_name": "Self-declared Solo", "country_code": "IN",
                 "company_kind": "agency", "created_by": acc["rogue"]["id"],
                 "is_independent_recruiter": True}, tok["rogue"])
@@ -109,7 +109,7 @@ def setup():
 
     print("\n0c. CLIENT")
     s, slug = rpc("omelo_company_slug", {"p_name": f"ABC Logistics {stamp}"}, tok["cli"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"ABC Logistics {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"ABC Logistics {stamp}", "country_code": "IN",
                  "size_band": "51-200", "created_by": acc["cli"]["id"]}, tok["cli"])
     client_company = co[0]["id"]
     s, job = post("/rest/v1/jobs", {"company_id": client_company, "created_by": acc["cli"]["id"], "title": "Warehouse Associate (night)",

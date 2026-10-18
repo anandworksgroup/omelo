@@ -56,7 +56,7 @@ def setup():
     rpc("omelo_set_capability",
         {"p_company": agency, "p_capability": "client_recruitment", "p_enabled": True}, tok["rec"])
     s, slug = rpc("omelo_company_slug", {"p_name": f"ABC Warehousing {stamp}"}, tok["cli"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"ABC Warehousing {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"ABC Warehousing {stamp}", "country_code": "IN",
                  "size_band": "51-200", "created_by": acc["cli"]["id"]}, tok["cli"]); client_company = co[0]["id"]
     s, cl = post("/rest/v1/agency_clients", {"agency_id": agency, "name": "ABC Warehousing", "relationship_status": "active"}, tok["rec"])
     client_id = cl[0]["id"]
@@ -68,7 +68,7 @@ def setup():
     check("agency, confirmed client and job order set up", s == 200, f"{s} {msg(jo)}")
     # direct employer
     s, slug = rpc("omelo_company_slug", {"p_name": f"Direct Foods {stamp}"}, tok["emp"])
-    s, co = post("/rest/v1/companies", {"slug": slug, "display_name": f"Direct Foods {stamp}", "country_code": "IN",
+    s, co = post("/rest/v1/companies?select=id", {"slug": slug, "display_name": f"Direct Foods {stamp}", "country_code": "IN",
                  "size_band": "11-50", "created_by": acc["emp"]["id"]}, tok["emp"]); emp_company = co[0]["id"]
     s, job = post("/rest/v1/jobs", {"company_id": emp_company, "created_by": acc["emp"]["id"], "title": "Packer (daily wage)",
                   "profession_id": prof("packer"), "location_id": loc_id, "workplace_type": "onsite", "work_type": "daily_wage",
