@@ -83,7 +83,6 @@ export const ORGANIZATION_TYPE_HELP: Record<OrganizationType, string> = {
   workforce_provider: 'You manage a workforce on behalf of others — assignments, attendance and timesheets.',
 };
 
-export const isAgencyType = (t: string) => t !== 'employer';
 
 /** Organization types that may create an RPO engagement as the provider. */
 export const RPO_PROVIDER_TYPES: string[] = ['rpo_provider', 'recruitment_agency', 'staffing_agency'];

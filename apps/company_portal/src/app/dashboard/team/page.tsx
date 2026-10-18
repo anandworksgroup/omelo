@@ -15,7 +15,6 @@ export default async function TeamPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const isAgency = ctx.kind === 'agency';
   const canManage = ctx.roles.some((r) => r === 'owner' || r === 'admin');
   const isOwner = ctx.roles.includes('owner');
 
@@ -139,7 +138,7 @@ export default async function TeamPage() {
         </div>
         <p className="hint">
           Only an owner can invite another owner or change an owner&apos;s role.
-          {isAgency ? '' : ' Sourcer and coordinator are agency-only roles.'} The database enforces every rule;
+          {' '}The database enforces every rule;
           this table only explains them.
         </p>
       </section>

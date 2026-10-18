@@ -131,7 +131,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
               </p>
             </div>
           ) : (
-            <Why>{onlyWf(ctx.kind, 'approve_time', 'see check-in codes')}</Why>
+            <Why>{onlyWf('approve_time', 'see check-in codes')}</Why>
           )}
         </Section>
 
@@ -183,7 +183,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
                 ? 'The agency manages this shift. You see its roster and approve time for its workers at your site.'
                 : !live
                   ? `This shift is ${shiftTone(s.status).label.toLowerCase()}.`
-                  : onlyWf(ctx.kind, 'manage_workforce', 'change shifts')}
+                  : onlyWf('manage_workforce', 'change shifts')}
             </Why>
           )}
         </Section>

@@ -28,26 +28,29 @@ const num = (v: unknown): number => numOrNull(v) ?? 0;
 /* Roles                                                               */
 /* ------------------------------------------------------------------ */
 
-/** Mirror of omelo_private.omelo_workforce_roles(kind, action). */
+/**
+ * Mirror of omelo_private.omelo_workforce_roles(action).
+ *
+ * This used to be two maps chosen by company_kind, copied from a database
+ * function that took a kind. Migration 76 made that one map for every
+ * organization, and this copy did not follow — so an employer's coordinator
+ * was allowed by the database and refused by the interface. One map now, and
+ * it is the same one.
+ */
 export const WORKFORCE_ROLES = {
-  employer: {
-    manage_workforce: ['owner', 'admin', 'recruiter', 'hiring_manager', 'hr'],
-    approve_time: ['owner', 'admin', 'hiring_manager', 'hr'],
-    manage_pay: ['owner', 'admin', 'finance', 'hr'],
-    view: ['owner', 'admin', 'recruiter', 'hiring_manager', 'interviewer', 'hr', 'finance', 'viewer'],
-  },
-  agency: {
-    manage_workforce: ['owner', 'admin', 'recruiter', 'coordinator'],
-    approve_time: ['owner', 'admin', 'coordinator'],
-    manage_pay: ['owner', 'admin', 'finance', 'coordinator'],
-    view: ['owner', 'admin', 'recruiter', 'sourcer', 'coordinator', 'finance', 'viewer'],
-  },
+  manage_workforce: ['owner', 'admin', 'recruiter', 'coordinator', 'hiring_manager', 'hr'],
+  approve_time: ['owner', 'admin', 'coordinator', 'hiring_manager', 'hr'],
+  manage_pay: ['owner', 'admin', 'finance', 'coordinator', 'hr'],
+  view: [
+    'owner', 'admin', 'recruiter', 'sourcer', 'coordinator',
+    'hiring_manager', 'interviewer', 'hr', 'finance', 'viewer',
+  ],
 } as const;
 
-export type WorkforceAction = keyof (typeof WORKFORCE_ROLES)['employer'];
+export type WorkforceAction = keyof typeof WORKFORCE_ROLES;
 
-export function wfCan(ctx: { kind: 'employer' | 'agency'; roles: readonly string[] }, action: WorkforceAction): boolean {
-  const allowed = WORKFORCE_ROLES[ctx.kind][action] as readonly string[];
+export function wfCan(ctx: { roles: readonly string[] }, action: WorkforceAction): boolean {
+  const allowed = WORKFORCE_ROLES[action] as readonly string[];
   return ctx.roles.some((r) => allowed.includes(r));
 }
 
@@ -65,8 +68,8 @@ const ROLE_WORD: Record<string, string> = {
 };
 
 /** "Only owners, admins and coordinators can approve time." */
-export function onlyWf(kind: 'employer' | 'agency', action: WorkforceAction, what: string): string {
-  const names = (WORKFORCE_ROLES[kind][action] as readonly string[]).map((r) => ROLE_WORD[r] ?? r);
+export function onlyWf(action: WorkforceAction, what: string): string {
+  const names = (WORKFORCE_ROLES[action] as readonly string[]).map((r) => ROLE_WORD[r] ?? r);
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
   return `Only ${list} can ${what}.`;
 }
@@ -790,7 +793,10 @@ export async function loadWorkerNames(
   );
   for (const r of results) for (const p of r.data ?? []) if (p.display_name) out.set(p.id, p.display_name);
   const missing = people.filter((p) => !out.has(p.personId));
-  if (missing.length && ctx.kind === 'agency') {
+  // Names can also come from the organization's represented candidates. The
+  // RPC authorizes the caller itself, so asking is governed by the client
+  // relationship rather than by what kind of business this is.
+  if (missing.length) {
     const { data: cand } = await supabase.rpc('omelo_agency_candidates', { p_agency: ctx.companyId });
     const byIdentity = new Map<string, string>();
     for (const c of arr(cand)) {

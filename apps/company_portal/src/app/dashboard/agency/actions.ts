@@ -202,7 +202,9 @@ export async function findEmployerCompanies(
   const { data, error } = await a.supabase
     .from('companies')
     .select('id, display_name, is_verified, slug')
-    .eq('company_kind', 'employer')
+    // R10-077: a client is any organization on Omelo except your own. A
+    // recruitment firm can be an RPO provider's client, and a staffing firm
+    // can hand overflow to another.
     .is('deleted_at', null)
     .neq('id', a.ctx.companyId)
     .ilike('display_name', `%${t.replace(/[%_]/g, (m) => `\\${m}`)}%`)

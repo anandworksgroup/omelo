@@ -209,7 +209,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
         {canManage ? (
           <AssignmentActions id={id} status={a.status} today={today} />
         ) : (
-          <Why>{onlyWf(ctx.kind, 'manage_workforce', 'change an assignment')}</Why>
+          <Why>{onlyWf('manage_workforce', 'change an assignment')}</Why>
         )}
       </Section>
 
@@ -325,7 +325,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             <p className="text-sm muted">
               {wfCan(ctx, 'manage_pay') || wfCan(ctx, 'approve_time')
                 ? 'No earnings yet. They are calculated when a timesheet is approved.'
-                : onlyWf(ctx.kind, 'manage_pay', 'see earnings')}
+                : onlyWf('manage_pay', 'see earnings')}
             </p>
           ) : (
             <Table head={['Period', 'Gross', 'Status']}>

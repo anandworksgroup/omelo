@@ -180,11 +180,15 @@ export async function createRequirement(input: RequirementInput): Res<{ id: stri
   if (!s) return bad(SIGNED_OUT);
   if (input.job_id && !isId(input.job_id)) return bad('Choose a job from the list.');
   if (input.job_order_id && !isId(input.job_order_id)) return bad('Choose a job order from the list.');
-  if (s.ctx.kind === 'agency' && !input.job_order_id) return bad('An agency requirement starts from one of its job orders.');
+  // R10-077 took this rule off "is an agency" and onto the work: a
+  // requirement carries a job order when it is for a client and a job when it
+  // is our own. Keeping the old test here would have refused an agency its own
+  // internal hiring, and refused a private company the client work it is now
+  // allowed to do.
   const r = requirementFields(input, true);
   if ('error' in r) return bad(r.error);
   const fields = { ...r.fields };
-  if (s.ctx.kind === 'agency') fields.job_order_id = input.job_order_id;
+  if (input.job_order_id) fields.job_order_id = input.job_order_id;
   else if (input.job_id) fields.job_id = input.job_id;
   const { data, error } = await s.supabase.rpc('omelo_create_requirement', { p_company: s.ctx.companyId, p_fields: fields });
   if (error) return fail(error, 'createRequirement');

@@ -314,7 +314,7 @@ export default async function RequirementPage({ params }: { params: Promise<{ id
       <Section title="Allowances, bonuses and deductions">
         <p className="text-xs muted">
           Added to earnings when a timesheet is approved, as separate lines.
-          {!canPay ? ` ${onlyWf(ctx.kind, 'manage_pay', 'change them')}` : ''}
+          {!canPay ? ` ${onlyWf('manage_pay', 'change them')}` : ''}
         </p>
         <PayComponentsPanel
           requirementId={id}

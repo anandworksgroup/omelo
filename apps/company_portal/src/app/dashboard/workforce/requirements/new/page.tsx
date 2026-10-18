@@ -20,7 +20,7 @@ export default async function NewRequirementPage({
     return (
       <div className="space-y-5">
         <PageHeader title="New requirement" back={back} />
-        <Notice title="Not available to your role">{onlyWf(ctx.kind, 'manage_workforce', 'create requirements')}</Notice>
+        <Notice title="Not available to your role">{onlyWf('manage_workforce', 'create requirements')}</Notice>
       </div>
     );
   }

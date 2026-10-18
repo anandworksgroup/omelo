@@ -27,7 +27,7 @@ export default async function PayPage({
     return (
       <div className="space-y-5">
         <PageHeader title="Pay" />
-        <Notice title="Not available to your role">{onlyWf(ctx.kind, 'manage_pay', 'manage pay')}</Notice>
+        <Notice title="Not available to your role">{onlyWf('manage_pay', 'manage pay')}</Notice>
       </div>
     );
   }

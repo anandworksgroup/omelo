@@ -52,15 +52,9 @@ export default async function CompanyPage() {
     billing: (billingCount ?? 0) > 0,
   };
 
-  // No row means the organization has not chosen, and its business type says
-  // what is sensible — the same default the database applies.
-  const byType: Record<string, boolean> = {
-    client_recruitment: isAgency,
-    workforce: isAgency,
-    rpo: isAgency,
-    billing: isAgency,
-  };
-  const enabled: Record<string, boolean> = { ...byType };
+  // R10-084: no row means off. The database stopped deriving capabilities
+  // from the business type, and this panel must not re-invent that.
+  const enabled: Record<string, boolean> = {};
   for (const row of caps ?? []) enabled[row.capability] = row.is_enabled;
   for (const key of Object.keys(inUse)) if (inUse[key]) enabled[key] = true;
 
@@ -110,7 +104,7 @@ export default async function CompanyPage() {
 
       <CompanyEditForm company={company!} canEdit={canEdit} />
 
-      {!isAgency && (
+      {(
         <section className="card p-5">
           <h2 className="font-bold mb-1">Your hiring behaviour</h2>
           <p className="text-sm muted mb-4 leading-relaxed">
@@ -176,7 +170,7 @@ export default async function CompanyPage() {
         </p>
       </section>
 
-      {!isAgency && (
+      {(
         <section className="card p-5 space-y-3">
           <div className="flex items-start gap-3 flex-wrap">
             <div className="flex-1 min-w-0">

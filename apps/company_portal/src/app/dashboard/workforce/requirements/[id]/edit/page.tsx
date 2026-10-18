@@ -23,7 +23,7 @@ export default async function EditRequirementPage({ params }: { params: Promise<
     return (
       <div className="space-y-5">
         <PageHeader title="Edit requirement" back={back} />
-        <Notice title="Not available to your role">{onlyWf(ctx.kind, 'manage_workforce', 'edit requirements')}</Notice>
+        <Notice title="Not available to your role">{onlyWf('manage_workforce', 'edit requirements')}</Notice>
       </div>
     );
   }

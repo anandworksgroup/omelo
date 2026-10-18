@@ -149,7 +149,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
           <Why>
             {!approverIsUs
               ? 'The client approves attendance for its site.'
-              : onlyWf(ctx.kind, 'approve_time', 'approve attendance')}
+              : onlyWf('approve_time', 'approve attendance')}
           </Why>
         ) : !reviewed ? (
           <AttendanceReview

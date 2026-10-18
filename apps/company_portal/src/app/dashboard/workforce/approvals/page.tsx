@@ -27,7 +27,7 @@ export default async function ApprovalsPage() {
     return (
       <div className="space-y-5">
         <PageHeader title="Approvals" />
-        <Notice title="Not available to your role">{onlyWf(ctx.kind, 'approve_time', 'approve attendance, timesheets and leave')}</Notice>
+        <Notice title="Not available to your role">{onlyWf('approve_time', 'approve attendance, timesheets and leave')}</Notice>
       </div>
     );
   }

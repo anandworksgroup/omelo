@@ -79,7 +79,7 @@ export default async function RequirementsPage({
             ? ctx.kind === 'agency'
               ? 'Start one from a job order: set openings, dates, pay, shifts and check-in, then offer the work to consented candidates.'
               : 'Start one from a job (to offer work to its applicants) or on its own.'
-            : onlyWf(ctx.kind, 'manage_workforce', 'create requirements')}
+            : onlyWf('manage_workforce', 'create requirements')}
         </Notice>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">

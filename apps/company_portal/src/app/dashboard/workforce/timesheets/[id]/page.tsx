@@ -151,7 +151,7 @@ export default async function TimesheetPage({ params }: { params: Promise<{ id: 
           canApprove ? (
             <TimesheetDecision id={id} status={t.status} pendingExceptions={pend?.length ?? 0} canPayLink={canPay} />
           ) : (
-            <Why>{approverIsUs ? onlyWf(ctx.kind, 'approve_time', 'approve timesheets') : 'The client approves timesheets for its site.'}</Why>
+            <Why>{approverIsUs ? onlyWf('approve_time', 'approve timesheets') : 'The client approves timesheets for its site.'}</Why>
           )
         ) : t.status === 'draft' || t.status === 'rejected' ? (
           <Why>Waiting for the worker to submit it.</Why>
@@ -168,7 +168,7 @@ export default async function TimesheetPage({ params }: { params: Promise<{ id: 
                 )}
               </p>
             )}
-            {canPay ? <ReopenTimesheet id={id} /> : <Why>Approved. {onlyWf(ctx.kind, 'manage_pay', 'reopen it')}</Why>}
+            {canPay ? <ReopenTimesheet id={id} /> : <Why>Approved. {onlyWf('manage_pay', 'reopen it')}</Why>}
           </div>
         )}
       </Section>

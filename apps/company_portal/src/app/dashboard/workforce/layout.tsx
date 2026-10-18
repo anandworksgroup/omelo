@@ -13,9 +13,10 @@ export default async function WorkforceLayout({ children }: { children: React.Re
   const ctx = await getCompanyContext();
   if (!ctx) redirect('/onboarding');
   const canView = wfCan(ctx, 'view');
-  // "At your sites" appears only for an employer that hosts agency workers.
+  // "At your sites" appears for any organization that actually hosts workers
+  // placed by someone else — the RPC answers that, not the business type.
   let hostsAgencyWorkers = false;
-  if (ctx.kind === 'employer' && canView) {
+  if (canView) {
     const supabase = await createClient();
     const { data } = await supabase.rpc('omelo_client_workforce', { p_company: ctx.companyId });
     hostsAgencyWorkers = parseClientWorkforce(data ?? null).length > 0;
@@ -31,7 +32,7 @@ export default async function WorkforceLayout({ children }: { children: React.Re
       {canView ? (
         children
       ) : (
-        <Notice title="Workforce is not available to your role">{onlyWf(ctx.kind, 'view', 'see the workforce')}</Notice>
+        <Notice title="Workforce is not available to your role">{onlyWf('view', 'see the workforce')}</Notice>
       )}
     </div>
   );

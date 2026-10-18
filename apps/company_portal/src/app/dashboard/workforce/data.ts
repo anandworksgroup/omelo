@@ -91,7 +91,7 @@ export async function loadShifts(
   let rows = (own.data ?? []) as ShiftDb[];
   const siteIds = new Set<string>();
 
-  if (ctx.kind === 'employer' && !opts.requirementId) {
+  if (!opts.requirementId) {
     const cw = await supabase.rpc('omelo_client_workforce', { p_company: ctx.companyId });
     const asg = parseClientWorkforce(cw.data ?? null).map((c) => c.assignmentId);
     if (asg.length) {

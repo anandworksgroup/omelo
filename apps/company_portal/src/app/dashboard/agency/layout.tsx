@@ -21,7 +21,7 @@ export default async function ClientRecruitmentLayout({
   if (!ctx) redirect('/onboarding');
 
   const supabase = await createClient();
-  const [{ data: cap }, { count: clients }, { data: company }] = await Promise.all([
+  const [{ data: cap }, { count: clients }] = await Promise.all([
     supabase
       .from('company_capabilities')
       .select('is_enabled')
@@ -32,19 +32,11 @@ export default async function ClientRecruitmentLayout({
       .from('agency_clients')
       .select('id', { count: 'exact', head: true })
       .eq('agency_id', ctx.companyId),
-    supabase
-      .from('companies')
-      .select('organization_type')
-      .eq('id', ctx.companyId)
-      .maybeSingle(),
   ]);
 
-  // An explicit choice wins; otherwise the business type is the default, and
-  // work that already exists is always reachable.
-  const byType = ['recruitment_agency', 'staffing_agency', 'rpo_provider', 'workforce_provider'].includes(
-    company?.organization_type ?? 'employer'
-  );
-  const on = cap ? cap.is_enabled : byType;
+  // R10-084: an explicit choice or nothing. Work that already exists stays
+  // reachable either way, so turning the module off never hides real records.
+  const on = cap?.is_enabled ?? false;
   if (!on && (clients ?? 0) === 0) redirect('/dashboard/company');
 
   return children;

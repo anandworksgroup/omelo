@@ -24,7 +24,7 @@ export default async function DashboardLayout({
   if (!ctx) redirect('/onboarding');
 
   const supabase = await createClient();
-  const [trustRes, isAdmin, memberships, invitesRes, capsRes, orgRes, rpoRes, clientRes, workforceRes] =
+  const [trustRes, isAdmin, memberships, invitesRes, capsRes, rpoRes, clientRes, workforceRes] =
     await Promise.all([
       supabase.rpc('omelo_my_trust_status'),
       isPlatformAdmin(),
@@ -36,8 +36,6 @@ export default async function DashboardLayout({
         .from('company_capabilities')
         .select('capability, is_enabled')
         .eq('company_id', ctx.companyId),
-      // The business type is still what supplies the defaults.
-      supabase.from('companies').select('organization_type').eq('id', ctx.companyId).maybeSingle(),
       // RLS shows only engagements this workspace is one side of.
       supabase.from('rpo_engagements').select('id', { count: 'exact', head: true }),
       supabase.from('agency_clients').select('id', { count: 'exact', head: true }).eq('agency_id', ctx.companyId),
@@ -60,15 +58,10 @@ export default async function DashboardLayout({
   // A capability row is an explicit choice. Without one the business type
   // supplies the default, exactly as omelo_has_capability does in the database,
   // and anything already in use stays visible whatever the switch says.
-  const orgType = orgRes.data?.organization_type ?? 'employer';
-  const agencyLike = ['recruitment_agency', 'staffing_agency', 'rpo_provider', 'workforce_provider'];
-  const byType: Capabilities = {
-    client_recruitment: agencyLike.includes(orgType),
-    workforce: ['staffing_agency', 'workforce_provider'].includes(orgType),
-    rpo: orgType === 'rpo_provider',
-    billing: orgType !== 'employer',
-  };
-  const capabilities: Capabilities = { ...byType };
+  // R10-084: business type grants nothing. A section appears when the
+  // organization has turned the capability on, or when work already exists
+  // under it — switching a module off hides a menu, never real records.
+  const capabilities: Capabilities = {};
   for (const row of capsRes.data ?? []) {
     capabilities[row.capability as keyof Capabilities] = row.is_enabled;
   }

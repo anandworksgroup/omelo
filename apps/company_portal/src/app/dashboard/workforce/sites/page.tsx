@@ -16,14 +16,9 @@ const W = '/dashboard/workforce';
  */
 export default async function SitesPage() {
   const ctx = (await getCompanyContext())!;
-  if (ctx.kind !== 'employer') {
-    return (
-      <div className="space-y-5">
-        <PageHeader title="Workforce at your sites" />
-        <Notice title="For employers">This view is for companies whose sites host agency workers.</Notice>
-      </div>
-    );
-  }
+  // R10: whether anyone is working at our sites is answered by the data, not
+  // by what kind of business we are. A staffing firm can host another firm's
+  // workers just as a restaurant can.
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('omelo_client_workforce', { p_company: ctx.companyId });
   const rows = parseClientWorkforce(data ?? null);
