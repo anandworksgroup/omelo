@@ -156,6 +156,14 @@ def main():
     check("it is an rpo_provider, and unverified like any new organization",
           s == 200 and rco and rco[0]["organization_type"] == "rpo_provider"
           and rco[0]["is_verified"] is False, msg(rco))
+    # R10-084: calling yourself an RPO provider grants nothing. Running RPO is a
+    # capability the owner turns on, and it is audited like any other.
+    s, d = rpc("omelo_create_rpo_engagement", {"p": {"provider_id": provider, "client_company_id": acme,
+               "title": "Too early", "permissions": ["view_jobs"]}}, tok["rpo"])
+    blocked("drafting an engagement before RPO is turned on", s, d)
+    s, d = rpc("omelo_set_capability",
+               {"p_company": provider, "p_capability": "rpo", "p_enabled": True}, tok["rpo"])
+    check("the provider turns on RPO", s in (200, 204), f"{s} {msg(d)}")
     s, inv = rpc("omelo_invite_team_member", {"p_company": provider, "p_email": acc["rrec"]["email"], "p_role": "recruiter"}, tok["rpo"])
     rpc("omelo_accept_team_invitation", {"p_invitation": inv}, tok["rrec"])
     s, eng = rpc("omelo_create_rpo_engagement", {"p": {"provider_id": provider, "client_company_id": acme,
